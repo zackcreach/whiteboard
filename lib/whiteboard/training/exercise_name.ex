@@ -1,12 +1,14 @@
-defmodule Whiteboard.ExerciseName do
+defmodule Whiteboard.Training.ExerciseName do
   use Whiteboard.Schema, prefix: "ex_name"
 
   import Ecto.Changeset
 
+  alias Whiteboard.Training
+
   schema "exercise_names" do
     field :name, :string
 
-    has_many :exercises, Whiteboard.Exercise
+    has_many :exercises, Training.Exercise
 
     timestamps()
   end

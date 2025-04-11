@@ -1,12 +1,14 @@
-defmodule Whiteboard.ExerciseCategory do
+defmodule Whiteboard.Training.ExerciseCategory do
   use Whiteboard.Schema, prefix: "ex_category"
 
   import Ecto.Changeset
 
+  alias Whiteboard.Training
+
   schema "exercise_categories" do
     field :category, :string
 
-    has_many :exercises, Whiteboard.Exercise
+    has_many :exercises, Training.Exercise
 
     timestamps()
   end
