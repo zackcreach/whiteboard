@@ -1,12 +1,11 @@
-defmodule Whiteboard.Session do
-  use Whiteboard.Schema, prefix: "session"
+defmodule Whiteboard.Workout do
+  use Whiteboard.Schema, prefix: "wo"
 
   import Ecto.Changeset
 
-  schema "sessions" do
+  schema "workouts" do
     field :name, :string
     field :notes, :string
-    field :completed_on, :utc_datetime_usec
 
     has_many :exercises, Whiteboard.Exercise, on_replace: :delete_if_exists
 
@@ -15,7 +14,7 @@ defmodule Whiteboard.Session do
 
   def changeset(session, params \\ %{}) do
     session
-    |> cast(params, [:name, :notes, :completed_on])
+    |> cast(params, [:name, :notes])
     |> validate_required([:name])
     |> cast_assoc(:exercises)
   end

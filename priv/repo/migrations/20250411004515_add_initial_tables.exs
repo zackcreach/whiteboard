@@ -2,27 +2,35 @@ defmodule Whiteboard.Repo.Migrations.AddInitialTables do
   use Whiteboard.Utils.Migrations
 
   def change do
-    create table(:sessions, primary_key: false) do
-      id(:session)
+    create table(:workouts, primary_key: false) do
+      id(:wo)
       add :name, :string, null: false
       add :notes, :string
-      add :completed_on, :utc_datetime_usec
       timestamps()
     end
 
-    create table(:exercise_types, primary_key: false) do
-      id(:exercise_type)
+    create table(:exercise_names, primary_key: false) do
+      id(:ex_name)
       add :name, :string, null: false
+      timestamps()
+    end
+
+    create table(:exercise_categories, primary_key: false) do
+      id(:ex_category)
+      add :category, :string, null: false
       timestamps()
     end
 
     create table(:exercises, primary_key: false) do
-      id(:exercise)
+      id(:ex)
       add :notes, :string
-      add :session_id, references(:sessions, type: :text, on_delete: :delete_all)
+      add :workout_id, references(:workouts, type: :text, on_delete: :delete_all)
 
-      add :exercise_type_id,
-          references(:exercise_types, type: :text, on_delete: :delete_all)
+      add :exercise_name_id,
+          references(:exercise_names, type: :text, on_delete: :delete_all)
+
+      add :exercise_category_id,
+          references(:exercise_categories, type: :text, on_delete: :delete_all)
 
       timestamps()
     end
@@ -36,6 +44,7 @@ defmodule Whiteboard.Repo.Migrations.AddInitialTables do
       timestamps()
     end
 
-    create unique_index(:exercise_types, [:name])
+    create unique_index(:exercise_names, [:name])
+    create unique_index(:exercise_categories, [:category])
   end
 end

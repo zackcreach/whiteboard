@@ -13,8 +13,8 @@ defmodule Whiteboard.Set do
     timestamps()
   end
 
-  def changeset(session, params \\ %{}) do
-    session
+  def changeset(set, params \\ %{}) do
+    set
     |> cast(params, [:weight, :reps, :notes])
     |> validate_required([:weight, :reps])
   end
