@@ -17,7 +17,10 @@ defmodule WhiteboardWeb.Router do
   scope "/", WhiteboardWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live_session(:public_routes, []) do
+      live "/", HomeLive
+      live "/:workout_id", WorkoutLive
+    end
   end
 
   # Other scopes may use custom stacks.
