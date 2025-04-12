@@ -17,7 +17,7 @@ defmodule Whiteboard.Training.Set do
 
   def changeset(set, params \\ %{}) do
     set
-    |> cast(params, [:weight, :reps, :notes])
+    |> cast(params, [:weight, :reps, :notes, :exercise_id])
     |> validate_required([:weight, :reps])
   end
 end

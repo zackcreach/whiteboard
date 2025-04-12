@@ -19,7 +19,7 @@ defmodule Whiteboard.Training.Exercise do
 
   def changeset(exercise, params \\ %{}) do
     exercise
-    |> cast(params, [:notes])
+    |> cast(params, [:notes, :workout_id, :exercise_name_id, :exercise_category_id])
     |> cast_assoc(:sets)
   end
 end

@@ -43,7 +43,8 @@ defmodule WhiteboardWeb do
         layouts: [html: WhiteboardWeb.Layouts]
 
       import Plug.Conn
-      import WhiteboardWeb.Gettext
+
+      use Gettext, backend: WhiteboardWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -88,7 +89,8 @@ defmodule WhiteboardWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import WhiteboardWeb.CoreComponents
-      import WhiteboardWeb.Gettext
+
+      use Gettext, backend: WhiteboardWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

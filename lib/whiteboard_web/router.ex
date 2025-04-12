@@ -19,7 +19,7 @@ defmodule WhiteboardWeb.Router do
 
     live_session(:public_routes, []) do
       live "/", HomeLive
-      live "/:workout_id", WorkoutLive
+      live "/workout/:workout_id", WorkoutLive
     end
   end
 
