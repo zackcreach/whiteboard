@@ -58,7 +58,8 @@ defmodule WhiteboardWeb.WorkoutLive do
         </section>
       </.form>
 
-      <section class="mt-auto">
+      <section class="mt-auto flex justify-between items-center">
+        <p>Autosaved on {render_datetime(Form.input_value(@workout_form, :updated_at))}</p>
         <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
           <.input type="select" field={f[:exercise_name_id]} options={list_exercises()} placeholder="Exercises" />
           <.button type="submit">Add</.button>
@@ -74,6 +75,9 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> ok()
   end
 
+  #
+  # Workouts
+  #
   def handle_event("maybe_update_workout", %{"workout" => params}, socket) do
     socket =
       with %Ecto.Changeset{valid?: true} <- Workout.changeset(socket.assigns.workout_form.data, atomize_params(params)),
@@ -91,6 +95,9 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  #
+  # Exercises
+  #
   def handle_event("create_exercise", %{"exercise_name_id" => exercise_name_id}, socket) do
     socket =
       case Training.create_exercise(%{
@@ -120,6 +127,9 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  #
+  # Sets
+  #
   def handle_event("create_set", %{"exercise_id" => exercise_id}, socket) do
     socket =
       case Training.create_set(%{exercise_id: exercise_id, weight: 0, reps: 0, notes: ""}) do
@@ -159,10 +169,11 @@ defmodule WhiteboardWeb.WorkoutLive do
     end)
   end
 
-  defp render_date(native_datetime) do
-    case Calendar.ISO.parse_date(Date.to_string(native_datetime)) do
-      {:ok, {year, month, day}} -> "#{month}/#{day}/#{year}"
-      _error -> ""
-    end
+  defp render_date(naive_datetime) do
+    Calendar.strftime(DateTime.add(naive_datetime, -4, :hour), "%m/%d/%y")
+  end
+
+  defp render_datetime(naive_datetime) do
+    Calendar.strftime(DateTime.add(naive_datetime, -4, :hour), "%m/%d/%y – %I:%M:%S %p")
   end
 end
