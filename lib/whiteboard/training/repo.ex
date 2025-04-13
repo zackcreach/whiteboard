@@ -115,6 +115,10 @@ defmodule Whiteboard.Training.Repo do
     create(Set, params)
   end
 
+  def delete_set(id) do
+    delete(Set, id)
+  end
+
   #
   # Shared
   #

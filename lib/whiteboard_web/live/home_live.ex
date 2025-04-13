@@ -2,7 +2,6 @@ defmodule WhiteboardWeb.HomeLive do
   @moduledoc false
   use WhiteboardWeb, :live_view
 
-  alias Whiteboard.Repo
   alias Whiteboard.Training
   alias Whiteboard.Training.Workout
 

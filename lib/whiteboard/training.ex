@@ -82,4 +82,8 @@ defmodule Whiteboard.Training do
   def create_set(params) do
     TrainingRepo.create_set(params)
   end
+
+  def delete_set(params) do
+    TrainingRepo.delete_set(params)
+  end
 end

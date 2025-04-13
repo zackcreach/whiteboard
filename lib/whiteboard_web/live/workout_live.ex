@@ -26,11 +26,11 @@ defmodule WhiteboardWeb.WorkoutLive do
         <section class="grid grid-cols-2 gap-4">
           <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
             <div class="rounded-lg shadow-lg relative p-4 flex flex-col">
-              <div phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-6 right-3">
+              <div phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-6 right-4">
                 <.icon name="hero-trash size-5" />
               </div>
 
-              <div class="flex justify-between pr-6">
+              <div class="flex justify-between pr-9">
                 <h3>
                   {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
                 </h3>
@@ -39,13 +39,16 @@ defmodule WhiteboardWeb.WorkoutLive do
                 </div>
               </div>
 
-              <ul class="mt-4">
+              <ul class="mt-4 mb-2">
                 <.inputs_for :let={set} field={exercise[:sets]}>
                   <li class="flex items-center gap-x-4 mb-2">
                     <p>Set {set.index + 1}</p>
                     <.input field={set[:weight]} placeholder="Weight" />
                     <.input field={set[:reps]} placeholder="Reps" />
                     <.input field={set[:notes]} placeholder="Notes" />
+                    <div phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer">
+                      <.icon name="hero-trash size-5" />
+                    </div>
                   </li>
                 </.inputs_for>
               </ul>
@@ -59,10 +62,10 @@ defmodule WhiteboardWeb.WorkoutLive do
       </.form>
 
       <section class="mt-auto flex justify-between items-center">
-        <p>Autosaved on {render_datetime(Form.input_value(@workout_form, :updated_at))}</p>
+        <p>Autosaved on {render_date(Form.input_value(@workout_form, :updated_at), :include_time)}</p>
         <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
           <.input type="select" field={f[:exercise_name_id]} options={list_exercises()} placeholder="Exercises" />
-          <.button type="submit">Add</.button>
+          <.button type="submit">Add exercise</.button>
         </.form>
       </section>
     </div>
@@ -102,7 +105,12 @@ defmodule WhiteboardWeb.WorkoutLive do
     socket =
       case Training.create_exercise(%{
              workout_id: socket.assigns.workout_form.data.id,
-             exercise_name_id: exercise_name_id
+             exercise_name_id: exercise_name_id,
+             sets: [
+               %{weight: nil, reps: nil, notes: ""},
+               %{weight: nil, reps: nil, notes: ""},
+               %{weight: nil, reps: nil, notes: ""}
+             ]
            }) do
         {:ok, %Exercise{}} ->
           assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
@@ -114,9 +122,9 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
-  def handle_event("delete_exercise", %{"exercise_id" => id}, socket) do
+  def handle_event("delete_exercise", %{"exercise_id" => exercise_id}, socket) do
     socket =
-      case Training.delete_exercise(id) do
+      case Training.delete_exercise(exercise_id) do
         {:ok, %Exercise{}} ->
           assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
 
@@ -132,12 +140,25 @@ defmodule WhiteboardWeb.WorkoutLive do
   #
   def handle_event("create_set", %{"exercise_id" => exercise_id}, socket) do
     socket =
-      case Training.create_set(%{exercise_id: exercise_id, weight: 0, reps: 0, notes: ""}) do
+      case Training.create_set(%{exercise_id: exercise_id, weight: nil, reps: nil, notes: ""}) do
         {:ok, %Set{}} ->
           assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
 
         {:error, error} ->
           put_flash(socket, :error, "Error saving workout: #{error}")
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event("delete_set", %{"set_id" => set_id}, socket) do
+    socket =
+      case Training.delete_set(set_id) do
+        {:ok, %Set{}} ->
+          assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+
+        error ->
+          put_flash(socket, :error, "Error deleting exercise: #{error}")
       end
 
     noreply(socket)
@@ -173,7 +194,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     Calendar.strftime(DateTime.add(naive_datetime, -4, :hour), "%m/%d/%y")
   end
 
-  defp render_datetime(naive_datetime) do
+  defp render_date(naive_datetime, :include_time) do
     Calendar.strftime(DateTime.add(naive_datetime, -4, :hour), "%m/%d/%y – %I:%M:%S %p")
   end
 end
