@@ -11,7 +11,6 @@ defmodule Whiteboard.Training.Exercise do
 
     belongs_to :workout, Training.Workout
     belongs_to :exercise_name, Training.ExerciseName
-    belongs_to :exercise_category, Training.ExerciseCategory
 
     has_many :sets, Whiteboard.Training.Set, on_replace: :delete_if_exists
 
@@ -20,7 +19,7 @@ defmodule Whiteboard.Training.Exercise do
 
   def changeset(exercise, params \\ %{}) do
     exercise
-    |> cast(params, [:notes, :workout_id, :exercise_name_id, :exercise_category_id])
+    |> cast(params, [:notes, :workout_id, :exercise_name_id])
     |> cast_assoc(:sets)
   end
 end

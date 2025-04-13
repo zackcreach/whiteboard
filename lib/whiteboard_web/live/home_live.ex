@@ -8,7 +8,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <.simple_form for={@workout_form} phx-change="validate_workout" phx-submit="save_workout">
+    <.simple_form for={@workout_form} phx-change="validate_workout" phx-submit="create_workout">
       <.input field={@workout_form[:name]} placeholder="Name" />
       <:actions>
         <.button>Save</.button>
@@ -32,15 +32,11 @@ defmodule WhiteboardWeb.HomeLive do
     {:noreply, assign(socket, workout_form: workout_form)}
   end
 
-  def handle_event("save_workout", %{"workout" => params}, socket) do
+  def handle_event("create_workout", %{"workout" => params}, socket) do
     socket =
-      case Repo.transaction(fn ->
-             Training.create_workout(params)
-           end) do
+      case Training.create_workout(params) do
         {:ok, %Workout{id: id}} ->
-          socket
-          |> put_flash(:info, "Created new workout successfully.")
-          |> redirect(to: ~p"/workout/#{id}")
+          redirect(socket, to: ~p"/workout/#{id}")
 
         {:error, error} ->
           put_flash(socket, :error, "Error creating workout: #{error}")

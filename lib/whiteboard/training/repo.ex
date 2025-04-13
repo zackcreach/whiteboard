@@ -10,18 +10,21 @@ defmodule Whiteboard.Training.Repo do
 
   # Workouts
   def get_workout(id) do
-    Repo.one!(
-      from(w in Workout,
-        where: w.id == ^id,
-        preload: [
-          exercises:
-            ^from(e in Exercise,
-              order_by: [asc: e.inserted_at],
-              preload: [:exercise_name, :exercise_category, sets: ^from(s in Set, order_by: [asc: s.inserted_at])]
-            )
-        ]
-      )
+    from(w in Workout,
+      where: w.id == ^id,
+      preload: [
+        exercises:
+          ^from(e in Exercise,
+            order_by: [asc: e.inserted_at],
+            preload: [exercise_name: [:exercise_category], sets: ^from(s in Set, order_by: [asc: s.inserted_at])]
+          )
+      ]
     )
+    |> Repo.one!()
+    |> case do
+      %Workout{} = workout -> {:ok, workout}
+      error -> error
+    end
   end
 
   def create_workout(params) do
@@ -29,12 +32,15 @@ defmodule Whiteboard.Training.Repo do
   end
 
   def update_workout(id, params) do
-    id
-    |> get_workout()
-    |> Workout.changeset(params)
-    |> Repo.update!()
-
-    get_workout(id)
+    with {:ok, workout} <- get_workout(id) do
+      workout
+      |> Workout.changeset(params)
+      |> Repo.update!()
+      |> case do
+        %Workout{} -> get_workout(id)
+        error -> error
+      end
+    end
   end
 
   def delete_workout(id) do
@@ -104,7 +110,14 @@ defmodule Whiteboard.Training.Repo do
     delete(ExerciseCategory, id)
   end
 
+  # Sets
+  def create_set(params) do
+    create(Set, params)
+  end
+
+  #
   # Shared
+  #
   def list(module) do
     Repo.all(module)
   end
@@ -118,6 +131,10 @@ defmodule Whiteboard.Training.Repo do
     |> struct()
     |> module.changeset(params)
     |> Repo.insert!()
+    |> case do
+      map when is_struct(map, module) -> {:ok, map}
+      error -> error
+    end
   end
 
   def save(module, id, params) do
@@ -125,6 +142,10 @@ defmodule Whiteboard.Training.Repo do
     |> get(id)
     |> module.changeset(params)
     |> Repo.update!()
+    |> case do
+      map when is_struct(map, module) -> {:ok, map}
+      error -> error
+    end
   end
 
   def delete(module, id) do

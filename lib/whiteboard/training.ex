@@ -12,6 +12,7 @@ defmodule Whiteboard.Training do
   end
 
   def update_workout(id, params) do
+    dbg(params)
     TrainingRepo.update_workout(id, params)
   end
 
@@ -76,5 +77,10 @@ defmodule Whiteboard.Training do
 
   def delete_exercise_category(id) do
     TrainingRepo.delete_exercise_category(id)
+  end
+
+  # Sets
+  def create_set(params) do
+    TrainingRepo.create_set(params)
   end
 end

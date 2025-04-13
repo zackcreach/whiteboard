@@ -18,5 +18,6 @@ defmodule Whiteboard.Training.ExerciseCategory do
     exercise_category
     |> cast(params, [:name])
     |> validate_required([:name])
+    |> cast_assoc(:exercise_names)
   end
 end
