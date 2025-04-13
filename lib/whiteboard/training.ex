@@ -12,7 +12,6 @@ defmodule Whiteboard.Training do
   end
 
   def update_workout(id, params) do
-    dbg(params)
     TrainingRepo.update_workout(id, params)
   end
 

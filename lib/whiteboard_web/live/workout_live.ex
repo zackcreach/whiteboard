@@ -11,16 +11,15 @@ defmodule WhiteboardWeb.WorkoutLive do
   def render(assigns) do
     ~H"""
     <div class="h-screen flex flex-col p-8">
-      <.form for={@workout_form} phx-change="validate_workout" phx-submit="update_workout">
+      <.form for={@workout_form} phx-change="maybe_update_workout">
         <section class="flex justify-between mb-8">
           <div>
             <h4>{render_date(Form.input_value(@workout_form, :inserted_at))}</h4>
             <h1>{Form.input_value(@workout_form, :name)}</h1>
           </div>
 
-          <div class="flex items-center gap-x-2">
+          <div class="w-1/2">
             <.input field={@workout_form[:notes]} placeholder="Notes" />
-            <.button type="submit">Save</.button>
           </div>
         </section>
 
@@ -75,20 +74,15 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> ok()
   end
 
-  def handle_event("validate_workout", %{"workout" => params}, socket) do
-    workout_form =
-      socket.assigns.workout_form.data
-      |> Workout.changeset(atomize_params(params))
-      |> to_form(action: :validate)
-
-    {:noreply, assign(socket, workout_form: workout_form)}
-  end
-
-  def handle_event("update_workout", %{"workout" => params}, socket) do
+  def handle_event("maybe_update_workout", %{"workout" => params}, socket) do
     socket =
-      case Training.update_workout(socket.assigns.workout_form.data.id, atomize_params(params)) do
-        {:ok, %Workout{} = workout} ->
-          assign(socket, workout_form: to_form(Workout.changeset(workout)))
+      with %Ecto.Changeset{valid?: true} <- Workout.changeset(socket.assigns.workout_form.data, atomize_params(params)),
+           {:ok, %Workout{} = updated_workout} <-
+             Training.update_workout(socket.assigns.workout_form.data.id, atomize_params(params)) do
+        assign(socket, workout_form: to_form(Workout.changeset(updated_workout)))
+      else
+        %Ecto.Changeset{valid?: false} = invalid_changeset ->
+          assign(socket, workout_form: to_form(invalid_changeset, action: :validate))
 
         {:error, error} ->
           put_flash(socket, :error, "Error updating workout: #{error}")
