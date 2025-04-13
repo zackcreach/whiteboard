@@ -10,7 +10,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   def render(assigns) do
     ~H"""
-    <div class="h-screen flex flex-col p-8">
+    <div class="min-h-screen flex flex-col p-8">
       <.form for={@workout_form} phx-change="maybe_update_workout">
         <section class="flex justify-between mb-8">
           <div>
@@ -25,10 +25,10 @@ defmodule WhiteboardWeb.WorkoutLive do
 
         <section class="grid grid-cols-2 gap-4">
           <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
-            <div class="rounded-lg shadow-lg relative p-4 flex flex-col">
-              <div phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-6 right-4">
-                <.icon name="hero-trash size-5" />
-              </div>
+            <div class="rounded-lg shadow-lg relative p-8 flex flex-col">
+              <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-10 right-8" tabindex="-1">
+                <.icon name="hero-trash-solid size-5" />
+              </button>
 
               <div class="flex justify-between pr-9">
                 <h3>
@@ -39,16 +39,16 @@ defmodule WhiteboardWeb.WorkoutLive do
                 </div>
               </div>
 
-              <ul class="mt-4 mb-2">
+              <ul class="mt-8 mb-4">
                 <.inputs_for :let={set} field={exercise[:sets]}>
-                  <li class="flex items-center gap-x-4 mb-2">
-                    <p>Set {set.index + 1}</p>
-                    <.input field={set[:weight]} placeholder="Weight" />
-                    <.input field={set[:reps]} placeholder="Reps" />
-                    <.input field={set[:notes]} placeholder="Notes" />
-                    <div phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer">
+                  <li class="flex items-center gap-x-4 mb-4">
+                    <p class="min-w-10 font-medium">Set {set.index + 1}</p>
+                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step=".25" autocomplete="off" list="weight-suggestions" />
+                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step="1" autocomplete="off" list="rep-suggestions" />
+                    <.input field={set[:notes]} placeholder="Notes" tabindex="-1" />
+                    <button type="button" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
                       <.icon name="hero-trash size-5" />
-                    </div>
+                    </button>
                   </li>
                 </.inputs_for>
               </ul>
@@ -61,14 +61,22 @@ defmodule WhiteboardWeb.WorkoutLive do
         </section>
       </.form>
 
-      <section class="mt-auto flex justify-between items-center">
-        <p>Autosaved on {render_date(Form.input_value(@workout_form, :updated_at), :include_time)}</p>
+      <section class="mt-auto flex justify-between items-end pt-8">
+        <p class="text-xs">Autosaved on {render_date(Form.input_value(@workout_form, :updated_at), :include_time)}</p>
         <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
           <.input type="select" field={f[:exercise_name_id]} options={list_exercises()} placeholder="Exercises" />
           <.button type="submit">Add exercise</.button>
         </.form>
       </section>
     </div>
+
+    <datalist id="weight-suggestions">
+      <option :for={rep_count <- Enum.map(1..100, fn number -> number * 5 end)} value={rep_count} />
+    </datalist>
+
+    <datalist id="rep-suggestions">
+      <option :for={rep_count <- 1..20} value={rep_count} />
+    </datalist>
     """
   end
 
@@ -105,12 +113,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     socket =
       case Training.create_exercise(%{
              workout_id: socket.assigns.workout_form.data.id,
-             exercise_name_id: exercise_name_id,
-             sets: [
-               %{weight: nil, reps: nil, notes: ""},
-               %{weight: nil, reps: nil, notes: ""},
-               %{weight: nil, reps: nil, notes: ""}
-             ]
+             exercise_name_id: exercise_name_id
            }) do
         {:ok, %Exercise{}} ->
           assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
