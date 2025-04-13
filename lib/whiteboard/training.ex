@@ -1,4 +1,5 @@
 defmodule Whiteboard.Training do
+  @moduledoc false
   alias Whiteboard.Training.Repo, as: TrainingRepo
 
   # Workouts
@@ -19,6 +20,10 @@ defmodule Whiteboard.Training do
   end
 
   # Exercises
+  def get_exercise(id) do
+    TrainingRepo.get_exercise(id)
+  end
+
   def create_exercise(params) do
     TrainingRepo.create_exercise(params)
   end
@@ -32,7 +37,7 @@ defmodule Whiteboard.Training do
   end
 
   # Exercise names
-  def list_exercise_names() do
+  def list_exercise_names do
     TrainingRepo.list_exercise_names()
   end
 
@@ -53,6 +58,14 @@ defmodule Whiteboard.Training do
   end
 
   # Exercise categories
+  def list_exercise_categories do
+    TrainingRepo.list_exercise_categories()
+  end
+
+  def get_exercise_category(id) do
+    TrainingRepo.get_exercise_category(id)
+  end
+
   def create_exercise_category(params) do
     TrainingRepo.create_exercise_category(params)
   end

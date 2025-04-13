@@ -1,8 +1,10 @@
 defmodule WhiteboardWeb.HomeLive do
+  @moduledoc false
+  use WhiteboardWeb, :live_view
+
   alias Whiteboard.Repo
   alias Whiteboard.Training
   alias Whiteboard.Training.Workout
-  use WhiteboardWeb, :live_view
 
   def render(assigns) do
     ~H"""
@@ -51,8 +53,7 @@ defmodule WhiteboardWeb.HomeLive do
     socket =
       case Training.delete_workout(workout_id) do
         {:ok, %Workout{}} ->
-          socket
-          |> put_flash(:info, "Workout deleted successfully")
+          put_flash(socket, :info, "Workout deleted successfully")
 
         {:error, error} ->
           put_flash(socket, :error, "Error deleting workout: #{error}")

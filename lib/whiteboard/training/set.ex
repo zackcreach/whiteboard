@@ -1,4 +1,5 @@
 defmodule Whiteboard.Training.Set do
+  @moduledoc false
   use Whiteboard.Schema, prefix: "set"
 
   import Ecto.Changeset

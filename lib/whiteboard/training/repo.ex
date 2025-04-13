@@ -1,4 +1,6 @@
 defmodule Whiteboard.Training.Repo do
+  import Ecto.Query
+
   alias Whiteboard.Repo
   alias Whiteboard.Training.Exercise
   alias Whiteboard.Training.ExerciseCategory
@@ -6,26 +8,20 @@ defmodule Whiteboard.Training.Repo do
   alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
 
-  import Ecto.Query
-
   # Workouts
   def get_workout(id) do
-    from(w in Workout,
-      where: w.id == ^id,
-      preload: [
-        exercises:
-          ^from(
-            e in Exercise,
-            order_by: [asc: e.inserted_at],
-            preload: [
-              :exercise_name,
-              :exercise_category,
-              sets: ^from(s in Set, order_by: [asc: s.inserted_at])
-            ]
-          )
-      ]
+    Repo.one!(
+      from(w in Workout,
+        where: w.id == ^id,
+        preload: [
+          exercises:
+            ^from(e in Exercise,
+              order_by: [asc: e.inserted_at],
+              preload: [:exercise_name, :exercise_category, sets: ^from(s in Set, order_by: [asc: s.inserted_at])]
+            )
+        ]
+      )
     )
-    |> Repo.one!()
   end
 
   def create_workout(params) do
@@ -33,10 +29,12 @@ defmodule Whiteboard.Training.Repo do
   end
 
   def update_workout(id, params) do
-    get_workout(id)
+    id
+    |> get_workout()
     |> Workout.changeset(params)
     |> Repo.update!()
-    |> Repo.preload(exercises: [:exercise_name, :exercise_category, :sets])
+
+    get_workout(id)
   end
 
   def delete_workout(id) do
@@ -44,6 +42,10 @@ defmodule Whiteboard.Training.Repo do
   end
 
   # Exercises
+  def get_exercise(id) do
+    Repo.one!(from(e in Exercise, where: e.id == ^id, preload: [sets: ^from(s in Set, order_by: [asc: s.inserted_at])]))
+  end
+
   def create_exercise(params) do
     create(Exercise, params)
   end
@@ -57,12 +59,16 @@ defmodule Whiteboard.Training.Repo do
   end
 
   # Exercise names
-  def list_exercise_names() do
-    Repo.all(ExerciseName)
+  def list_exercise_names do
+    ExerciseName
+    |> list()
+    |> Repo.preload(:exercise_category)
   end
 
   def get_exercise_name(id) do
-    get(ExerciseName, id)
+    ExerciseName
+    |> get(id)
+    |> Repo.preload(:exercise_category)
   end
 
   def create_exercise_name(params) do
@@ -78,6 +84,14 @@ defmodule Whiteboard.Training.Repo do
   end
 
   # Exercise categories
+  def list_exercise_categories do
+    list(ExerciseCategory)
+  end
+
+  def get_exercise_category(id) do
+    get(ExerciseCategory, id)
+  end
+
   def create_exercise_category(params) do
     create(ExerciseCategory, params)
   end
@@ -91,12 +105,17 @@ defmodule Whiteboard.Training.Repo do
   end
 
   # Shared
+  def list(module) do
+    Repo.all(module)
+  end
+
   def get(module, id) do
     Repo.get(module, id)
   end
 
   def create(module, params) do
-    struct(module)
+    module
+    |> struct()
     |> module.changeset(params)
     |> Repo.insert!()
   end

@@ -7,30 +7,6 @@
 # General application configuration
 import Config
 
-config :whiteboard,
-  ecto_repos: [Whiteboard.Repo],
-  generators: [timestamp_type: :utc_datetime]
-
-# Configures the endpoint
-config :whiteboard, WhiteboardWeb.Endpoint,
-  url: [host: "localhost"],
-  adapter: Bandit.PhoenixAdapter,
-  render_errors: [
-    formats: [html: WhiteboardWeb.ErrorHTML, json: WhiteboardWeb.ErrorJSON],
-    layout: false
-  ],
-  pubsub_server: Whiteboard.PubSub,
-  live_view: [signing_salt: "7IMWAw1M"]
-
-# Configures the mailer
-#
-# By default it uses the "Local" adapter which stores the emails
-# locally. You can see the emails in your browser, at "/dev/mailbox".
-#
-# For production it's recommended to configure a different adapter
-# at the `config/runtime.exs`.
-config :whiteboard, Whiteboard.Mailer, adapter: Swoosh.Adapters.Local
-
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",
@@ -40,6 +16,17 @@ config :esbuild,
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
+
+# Auto recompile
+config :exsync, addition_dirs: ["/priv"]
+
+# Configures Elixir's Logger
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [:request_id]
+
+# Use Jason for JSON parsing in Phoenix
+config :phoenix, :json_library, Jason
 
 # Configure tailwind (the version is required)
 config :tailwind,
@@ -53,17 +40,30 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
-# Configures Elixir's Logger
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+# Configures the mailer
+#
+# By default it uses the "Local" adapter which stores the emails
+# locally. You can see the emails in your browser, at "/dev/mailbox".
+#
+# For production it's recommended to configure a different adapter
+# at the `config/runtime.exs`.
+config :whiteboard, Whiteboard.Mailer, adapter: Swoosh.Adapters.Local
 
-# Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Jason
+# Configures the endpoint
+config :whiteboard, WhiteboardWeb.Endpoint,
+  url: [host: "localhost"],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [html: WhiteboardWeb.ErrorHTML, json: WhiteboardWeb.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: Whiteboard.PubSub,
+  # Import environment specific config. This must remain at the bottom
+  # of this file so it overrides the configuration defined above.
+  live_view: [signing_salt: "7IMWAw1M"]
 
-# Auto recompile
-config :exsync, addition_dirs: ["/priv"]
+config :whiteboard,
+  ecto_repos: [Whiteboard.Repo],
+  generators: [timestamp_type: :utc_datetime]
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
