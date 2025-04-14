@@ -1,5 +1,7 @@
 defmodule WhiteboardWeb.WorkoutLive do
-  @moduledoc false
+  @moduledoc """
+  One big form to update individual workouts and corresponding exercises, sets
+  """
   use WhiteboardWeb, :live_view
 
   alias Phoenix.HTML.Form
@@ -7,68 +9,67 @@ defmodule WhiteboardWeb.WorkoutLive do
   alias Whiteboard.Training.Exercise
   alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
+  alias WhiteboardWeb.Utils.DateHelpers
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col p-8">
-      <.form for={@workout_form} phx-change="maybe_update_workout">
-        <section class="flex justify-between mb-8">
-          <div>
-            <h4>{render_date(Form.input_value(@workout_form, :inserted_at))}</h4>
-            <h1>{Form.input_value(@workout_form, :name)}</h1>
-          </div>
+    <.form for={@workout_form} phx-change="maybe_update_workout">
+      <section class="flex justify-between mb-8">
+        <div>
+          <p class="font-extralight">{DateHelpers.render_date(Form.input_value(@workout_form, :inserted_at))}</p>
+          <h1>{Form.input_value(@workout_form, :name)}</h1>
+        </div>
 
-          <div class="w-1/2">
-            <.input field={@workout_form[:notes]} placeholder="Notes" />
-          </div>
-        </section>
+        <div class="w-1/2">
+          <.input field={@workout_form[:notes]} placeholder="Notes" />
+        </div>
+      </section>
 
-        <section class="grid grid-cols-2 gap-4">
-          <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
-            <div class="rounded-lg shadow-lg relative p-8 flex flex-col">
-              <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-10 right-8" tabindex="-1">
-                <.icon name="hero-trash-solid size-5" />
-              </button>
+      <section class="grid grid-cols-2 gap-4">
+        <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
+          <div class="rounded-lg shadow-lg relative p-8 flex flex-col">
+            <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-10 right-8" tabindex="-1">
+              <.icon name="hero-trash-solid size-5" />
+            </button>
 
-              <div class="flex justify-between pr-9">
-                <h3>
-                  {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
-                </h3>
-                <div class="w-1/2">
-                  <.input field={exercise[:notes]} placeholder="Notes" />
-                </div>
-              </div>
-
-              <ul class="mt-8 mb-4">
-                <.inputs_for :let={set} field={exercise[:sets]}>
-                  <li class="flex items-center gap-x-4 mb-4">
-                    <p class="min-w-10 font-medium">Set {set.index + 1}</p>
-                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step=".25" autocomplete="off" list="weight-suggestions" />
-                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step="1" autocomplete="off" list="rep-suggestions" />
-                    <.input field={set[:notes]} placeholder="Notes" tabindex="-1" />
-                    <button type="button" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
-                      <.icon name="hero-trash size-5" />
-                    </button>
-                  </li>
-                </.inputs_for>
-              </ul>
-
-              <div class="mt-auto ml-auto">
-                <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="cursor-pointer">Add set</.button>
+            <div class="flex justify-between pr-9">
+              <h3>
+                {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
+              </h3>
+              <div class="w-1/2">
+                <.input field={exercise[:notes]} placeholder="Notes" />
               </div>
             </div>
-          </.inputs_for>
-        </section>
-      </.form>
 
-      <section class="mt-auto flex justify-between items-end pt-8">
-        <p class="text-xs">Autosaved on {render_date(Form.input_value(@workout_form, :updated_at), :include_time)}</p>
-        <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
-          <.input type="select" field={f[:exercise_name_id]} options={list_exercises()} placeholder="Exercises" />
-          <.button type="submit">Add exercise</.button>
-        </.form>
+            <ul class="mt-8 mb-4">
+              <.inputs_for :let={set} field={exercise[:sets]}>
+                <li class="flex items-center gap-x-4 mb-4">
+                  <p class="min-w-10 font-medium">Set {set.index + 1}</p>
+                  <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step=".25" autocomplete="off" list="weight-suggestions" />
+                  <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step="1" autocomplete="off" list="rep-suggestions" />
+                  <.input field={set[:notes]} placeholder="Notes" tabindex="-1" />
+                  <button type="button" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
+                    <.icon name="hero-trash size-5" />
+                  </button>
+                </li>
+              </.inputs_for>
+            </ul>
+
+            <div class="mt-auto ml-auto">
+              <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="cursor-pointer">Add set</.button>
+            </div>
+          </div>
+        </.inputs_for>
       </section>
-    </div>
+    </.form>
+
+    <section class="mt-auto flex justify-between items-end pt-8">
+      <p class="text-xs font-extralight">Autosaved on {DateHelpers.render_date(Form.input_value(@workout_form, :updated_at), include_time: true)}</p>
+      <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
+        <.input type="select" field={f[:exercise_name_id]} options={list_exercises()} placeholder="Exercises" />
+        <.button type="submit">Add exercise</.button>
+      </.form>
+    </section>
 
     <datalist id="weight-suggestions">
       <option :for={rep_count <- Enum.map(1..100, fn number -> number * 5 end)} value={rep_count} />
@@ -191,13 +192,5 @@ defmodule WhiteboardWeb.WorkoutLive do
         original_pair
       end
     end)
-  end
-
-  defp render_date(naive_datetime) do
-    Calendar.strftime(DateTime.add(naive_datetime, -4, :hour), "%m/%d/%y")
-  end
-
-  defp render_date(naive_datetime, :include_time) do
-    Calendar.strftime(DateTime.add(naive_datetime, -4, :hour), "%m/%d/%y – %I:%M:%S %p")
   end
 end

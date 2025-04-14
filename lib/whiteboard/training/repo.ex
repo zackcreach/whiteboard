@@ -9,6 +9,10 @@ defmodule Whiteboard.Training.Repo do
   alias Whiteboard.Training.Workout
 
   # Workouts
+  def list_workouts do
+    list(Workout)
+  end
+
   def get_workout(id) do
     from(w in Workout,
       where: w.id == ^id,

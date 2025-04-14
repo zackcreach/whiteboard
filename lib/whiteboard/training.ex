@@ -3,6 +3,10 @@ defmodule Whiteboard.Training do
   alias Whiteboard.Training.Repo, as: TrainingRepo
 
   # Workouts
+  def list_workouts do
+    TrainingRepo.list_workouts()
+  end
+
   def get_workout(id) do
     TrainingRepo.get_workout(id)
   end
