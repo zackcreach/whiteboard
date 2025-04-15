@@ -29,7 +29,7 @@
             nodePackages.prettier
             elixir
             (lexical.override { elixir = elixir; })
-            postgresql_14
+            postgresql_16
             flyctl
             glibcLocales
           ] ++ optional stdenv.isLinux inotify-tools
