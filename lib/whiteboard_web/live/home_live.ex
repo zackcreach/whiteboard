@@ -5,23 +5,59 @@ defmodule WhiteboardWeb.HomeLive do
   use WhiteboardWeb, :live_view
 
   alias Whiteboard.Training
+  alias Whiteboard.Training.ExerciseCategory
+  alias Whiteboard.Training.ExerciseName
   alias Whiteboard.Training.Workout
+  alias WhiteboardWeb.Components.Card
   alias WhiteboardWeb.Utils.DateHelpers
+  alias WhiteboardWeb.Utils.ExerciseHelpers
 
   def render(assigns) do
     ~H"""
-    <.form for={@create_workout_form} phx-change="validate_workout" phx-submit="create_workout" class="flex items-center gap-x-4">
-      <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
-      <.button type="submit">New workout</.button>
-    </.form>
+    <div class="grid grid-cols-2 gap-x-4">
+      <Card.render>
+        <h3>Workouts</h3>
+        <div class="mt-4">
+          <.form for={@create_workout_form} phx-change="validate_workout" phx-submit="create_workout" class="flex items-center gap-x-4">
+            <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
+            <.button type="submit">New workout</.button>
+          </.form>
+        </div>
+      </Card.render>
 
-    <div class="mt-8 grid grid-cols-[2fr_1fr_1fr_0.5fr] items-center">
+      <Card.render>
+        <h3>Exercises</h3>
+        <div class="mt-4">
+          <.form for={@create_exercise_category_form} phx-change="validate_exercise_category" phx-submit="create_exercise_category" class="flex items-center gap-x-4">
+            <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name (e.g. Triceps)" />
+            <.button type="submit">New exercise category</.button>
+          </.form>
+        </div>
+        <div class="mt-4">
+          <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex items-center gap-x-4">
+            <div class="basis-1/2">
+              <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={ExerciseHelpers.list_exercise_categories()} placeholder="Exercise categories" />
+            </div>
+            <div class="basis-1/2">
+              <.input field={@create_exercise_name_form[:name]} placeholder="Exercise name (e.g. Skullcrushers)" />
+            </div>
+
+            <.button type="submit">New exercise name</.button>
+          </.form>
+        </div>
+      </Card.render>
+    </div>
+
+    <h3 class="mt-8 mb-4">Previous workouts</h3>
+    <div class="grid grid-cols-[1fr_2fr_1fr_1fr_0.5fr]">
       <p class="py-2 border-b border-zinc-400">Name</p>
+      <p class="py-2 border-b border-zinc-400">Exercises</p>
       <p class="py-2 border-b border-zinc-400">Created on</p>
       <p class="py-2 border-b border-zinc-400">Last updated</p>
       <p class="py-2 border-b border-zinc-400 text-right">Delete</p>
       <%= for workout <- @workouts do %>
         <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{workout.name}</a>
+        <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{ExerciseHelpers.render_exercise_names(workout)}</a>
         <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{DateHelpers.render_date(workout.inserted_at)}</a>
         <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{DateHelpers.render_date(workout.updated_at)}</a>
         <button type="button" phx-click="delete_workout" phx-value-workout_id={workout.id} class="py-2 border-b border-zinc-300 text-right">
@@ -36,11 +72,66 @@ defmodule WhiteboardWeb.HomeLive do
     socket
     |> assign(
       create_workout_form: to_form(Workout.changeset(%Workout{})),
+      create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
+      create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
       workouts: Training.list_workouts()
     )
     |> ok()
   end
 
+  #
+  # Exercise categories
+  #
+  def handle_event("validate_exercise_category", %{"exercise_category" => params}, socket) do
+    create_exercise_category_form =
+      %ExerciseCategory{}
+      |> ExerciseCategory.changeset(params)
+      |> to_form(action: :validate)
+
+    {:noreply, assign(socket, create_exercise_category_form: create_exercise_category_form)}
+  end
+
+  def handle_event("create_exercise_category", %{"exercise_category" => params}, socket) do
+    socket =
+      case Training.create_exercise_category(params) do
+        {:ok, %ExerciseCategory{} = exercise_category} ->
+          assign(socket, create_exercise_category_form: to_form(ExerciseCategory.changeset(exercise_category)))
+
+        {:error, error} ->
+          put_flash(socket, :error, "Error creating workout: #{error}")
+      end
+
+    noreply(socket)
+  end
+
+  #
+  # Exercise names
+  #
+  def handle_event("validate_exercise_name", %{"exercise_name" => params}, socket) do
+    create_exercise_name_form =
+      %ExerciseName{}
+      |> ExerciseName.changeset(params)
+      |> to_form(action: :validate)
+
+    {:noreply, assign(socket, create_exercise_name_form: create_exercise_name_form)}
+  end
+
+  def handle_event("create_exercise_name", %{"exercise_name" => params}, socket) do
+    socket =
+      case Training.create_exercise_name(params) do
+        {:ok, %ExerciseName{} = exercise_name} ->
+          assign(socket, create_exercise_name_form: to_form(ExerciseName.changeset(exercise_name)))
+
+        {:error, error} ->
+          put_flash(socket, :error, "Error creating exercise name: #{error}")
+      end
+
+    noreply(socket)
+  end
+
+  #
+  # Workouts
+  #
   def handle_event("validate_workout", %{"workout" => params}, socket) do
     create_workout_form =
       %Workout{}

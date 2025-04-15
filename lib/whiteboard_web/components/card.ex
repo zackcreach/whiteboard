@@ -1,5 +1,7 @@
 defmodule WhiteboardWeb.Components.Card do
-  @moduledoc false
+  @moduledoc """
+  Styled block component for use with unordered lists and sections
+  """
   use WhiteboardWeb, :component
 
   attr :class, :string, default: "", doc: "classname overrides on the main wrapper"

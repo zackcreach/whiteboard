@@ -290,8 +290,8 @@ defmodule WhiteboardWeb.CoreComponents do
     ~H"""
     <div>
       <.label for={@id}>{@label}</.label>
-      <select id={@id} name={@name} class="block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm" multiple={@multiple} {@rest}>
-        <option :if={@prompt} value="">{@prompt}</option>
+      <select id={@id} name={@name} class="block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm !leading-6" multiple={@multiple} {@rest}>
+        <option :if={@prompt} value="" class="leading-6">{@prompt}</option>
         {Phoenix.HTML.Form.options_for_select(@options, @value)}
       </select>
       <.error :for={msg <- @errors}>{msg}</.error>

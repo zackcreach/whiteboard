@@ -11,6 +11,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   alias Whiteboard.Training.Workout
   alias WhiteboardWeb.Components.Card
   alias WhiteboardWeb.Utils.DateHelpers
+  alias WhiteboardWeb.Utils.ExerciseHelpers
 
   def render(assigns) do
     ~H"""
@@ -67,7 +68,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     <section class="mt-auto flex justify-between items-end pt-8">
       <p class="text-xs font-extralight">Autosaved on {DateHelpers.render_date(Form.input_value(@workout_form, :updated_at), include_time: true)}</p>
       <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
-        <.input type="select" field={f[:exercise_name_id]} options={list_exercises()} placeholder="Exercises" />
+        <.input type="select" field={f[:exercise_name_id]} options={ExerciseHelpers.list_exercises()} placeholder="Exercises" />
         <.button type="submit">Add exercise</.button>
       </.form>
     </section>
@@ -167,10 +168,6 @@ defmodule WhiteboardWeb.WorkoutLive do
       end
 
     noreply(socket)
-  end
-
-  defp list_exercises do
-    Enum.map(Training.list_exercise_names(), fn exercise -> {exercise.name, exercise.id} end)
   end
 
   defp get_workout_form(id) do

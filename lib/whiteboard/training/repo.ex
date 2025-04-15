@@ -10,7 +10,7 @@ defmodule Whiteboard.Training.Repo do
 
   # Workouts
   def list_workouts do
-    list(Workout)
+    Repo.all(from(wo in Workout, order_by: [desc: wo.inserted_at], preload: [exercises: [:exercise_name]]))
   end
 
   def get_workout(id) do
@@ -127,7 +127,7 @@ defmodule Whiteboard.Training.Repo do
   # Shared
   #
   def list(module) do
-    Repo.all(module)
+    Repo.all(from(m in module, order_by: [asc: m.name]))
   end
 
   def get(module, id) do
