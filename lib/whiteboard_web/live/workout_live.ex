@@ -9,6 +9,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   alias Whiteboard.Training.Exercise
   alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
+  alias WhiteboardWeb.Components.Card
   alias WhiteboardWeb.Utils.DateHelpers
 
   def render(assigns) do
@@ -27,7 +28,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
       <section class="grid grid-cols-2 gap-4">
         <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
-          <div class="rounded-lg shadow-lg relative p-8 flex flex-col">
+          <Card.render>
             <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-10 right-8" tabindex="-1">
               <.icon name="hero-trash-solid size-5" />
             </button>
@@ -58,7 +59,7 @@ defmodule WhiteboardWeb.WorkoutLive do
             <div class="mt-auto ml-auto">
               <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="cursor-pointer">Add set</.button>
             </div>
-          </div>
+          </Card.render>
         </.inputs_for>
       </section>
     </.form>
