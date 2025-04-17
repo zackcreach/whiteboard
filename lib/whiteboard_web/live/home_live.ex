@@ -4,6 +4,8 @@ defmodule WhiteboardWeb.HomeLive do
   """
   use WhiteboardWeb, :live_view
 
+  import PhxComponentHelpers
+
   alias Whiteboard.Training
   alias Whiteboard.Training.ExerciseCategory
   alias Whiteboard.Training.ExerciseName
@@ -13,6 +15,15 @@ defmodule WhiteboardWeb.HomeLive do
   alias WhiteboardWeb.Utils.ExerciseHelpers
 
   def render(assigns) do
+    assigns =
+      assigns
+      |> extend_class("py-2 pr-2 border-b border-zinc-400 last-of-type:text-right",
+        attribute: :previous_workouts_header
+      )
+      |> extend_class("py-2 pr-2 border-b border-zinc-300",
+        attribute: :previous_workouts_cell
+      )
+
     ~H"""
     <div class="grid grid-cols-2 gap-x-4">
       <Card.render>
@@ -36,7 +47,7 @@ defmodule WhiteboardWeb.HomeLive do
         <div class="mt-4">
           <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex items-center gap-x-4">
             <div class="basis-1/2">
-              <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={ExerciseHelpers.list_exercise_categories()} placeholder="Exercise categories" />
+              <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={if @exercise_categories, do: @exercise_categories, else: []} placeholder="Exercise categories" />
             </div>
             <div class="basis-1/2">
               <.input field={@create_exercise_name_form[:name]} placeholder="Exercise name (e.g. Skullcrushers)" />
@@ -50,19 +61,21 @@ defmodule WhiteboardWeb.HomeLive do
 
     <h3 class="mt-8 mb-4">Previous workouts</h3>
     <div class="grid grid-cols-[1fr_2fr_1fr_1fr_0.5fr]">
-      <p class="py-2 border-b border-zinc-400">Name</p>
-      <p class="py-2 border-b border-zinc-400">Exercises</p>
-      <p class="py-2 border-b border-zinc-400">Created on</p>
-      <p class="py-2 border-b border-zinc-400">Last updated</p>
-      <p class="py-2 border-b border-zinc-400 text-right">Delete</p>
+      <p {@heex_previous_workouts_header}>Name</p>
+      <p {@heex_previous_workouts_header}>Exercises</p>
+      <p {@heex_previous_workouts_header}>Created on</p>
+      <p {@heex_previous_workouts_header}>Last updated</p>
+      <p {@heex_previous_workouts_header}>Delete</p>
       <%= for workout <- @workouts do %>
-        <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{workout.name}</a>
-        <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{ExerciseHelpers.render_exercise_names(workout)}</a>
-        <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{DateHelpers.render_date(workout.inserted_at)}</a>
-        <a href={~p"/workouts/#{workout.id}"} class="py-2 border-b border-zinc-300">{DateHelpers.render_date(workout.updated_at)}</a>
-        <button type="button" phx-click="delete_workout" phx-value-workout_id={workout.id} class="py-2 border-b border-zinc-300 text-right">
-          <.icon name="hero-trash size-5" />
-        </button>
+        <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
+        <a {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</a>
+        <a {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</a>
+        <a {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</a>
+        <div class="py-2 border-b border-zinc-300 text-right flex justify-end">
+          <button type="button" phx-click="delete_workout" phx-value-workout_id={workout.id}>
+            <.icon name="hero-trash size-5" />
+          </button>
+        </div>
       <% end %>
     </div>
     """
@@ -74,6 +87,7 @@ defmodule WhiteboardWeb.HomeLive do
       create_workout_form: to_form(Workout.changeset(%Workout{})),
       create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
       create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
+      exercise_categories: ExerciseHelpers.list_exercise_categories(),
       workouts: Training.list_workouts()
     )
     |> ok()
@@ -94,8 +108,11 @@ defmodule WhiteboardWeb.HomeLive do
   def handle_event("create_exercise_category", %{"exercise_category" => params}, socket) do
     socket =
       case Training.create_exercise_category(params) do
-        {:ok, %ExerciseCategory{} = exercise_category} ->
-          assign(socket, create_exercise_category_form: to_form(ExerciseCategory.changeset(exercise_category)))
+        {:ok, %ExerciseCategory{}} ->
+          assign(socket,
+            create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
+            exercise_categories: ExerciseHelpers.list_exercise_categories()
+          )
 
         {:error, error} ->
           put_flash(socket, :error, "Error creating workout: #{error}")
@@ -119,8 +136,10 @@ defmodule WhiteboardWeb.HomeLive do
   def handle_event("create_exercise_name", %{"exercise_name" => params}, socket) do
     socket =
       case Training.create_exercise_name(params) do
-        {:ok, %ExerciseName{} = exercise_name} ->
-          assign(socket, create_exercise_name_form: to_form(ExerciseName.changeset(exercise_name)))
+        {:ok, %ExerciseName{}} ->
+          assign(socket,
+            create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{}))
+          )
 
         {:error, error} ->
           put_flash(socket, :error, "Error creating exercise name: #{error}")
