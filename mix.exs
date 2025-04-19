@@ -36,6 +36,7 @@ defmodule Whiteboard.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:ecto_sql, "~> 3.10"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
+      {:ex_machina, "~> 2.8.0", only: :test},
       {:exsync, "~> 0.4", only: :dev},
       {:finch, "~> 0.13"},
       {:floki, ">= 0.30.0", only: :test},

@@ -87,3 +87,6 @@ config :whiteboard, :base_url, "http://localhost:4000"
 
 # Enable dev routes for dashboard and mailbox
 config :whiteboard, dev_routes: true
+
+# Auto recompile
+config :exsync, addition_dirs: ["/priv"]

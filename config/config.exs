@@ -17,9 +17,6 @@ config :esbuild,
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
 
-# Auto recompile
-config :exsync, addition_dirs: ["/priv"]
-
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
@@ -65,5 +62,9 @@ config :whiteboard, WhiteboardWeb.Endpoint,
 config :whiteboard,
   ecto_repos: [Whiteboard.Repo],
   generators: [timestamp_type: :utc_datetime]
+
+config :whiteboard, Whiteboard.Repo,
+  migration_primary_key: false,
+  migration_timestamps: [type: :timestamptz]
 
 import_config "#{config_env()}.exs"

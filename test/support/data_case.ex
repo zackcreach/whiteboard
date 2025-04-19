@@ -25,6 +25,7 @@ defmodule Whiteboard.DataCase do
       import Ecto.Query
       import Whiteboard.DataCase
 
+      alias Whiteboard.Factory
       alias Whiteboard.Repo
     end
   end
