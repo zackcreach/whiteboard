@@ -28,12 +28,11 @@ defmodule Whiteboard.Factories.Training do
       def exercise_factory(attrs) do
         changeset =
           %Exercise{
-            exercise_name_id: build(:exercise_name).id,
             sets: []
           }
           |> merge_attributes(attrs)
           |> evaluate_lazy_attributes()
-          |> ExerciseName.changeset()
+          |> Exercise.changeset()
 
         if changeset.valid? do
           Ecto.Changeset.apply_changes(changeset)

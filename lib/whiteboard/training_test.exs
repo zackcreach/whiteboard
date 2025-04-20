@@ -2,11 +2,62 @@ defmodule Whiteboard.TrainingTest do
   use Whiteboard.DataCase
 
   alias Whiteboard.Training
+  alias Whiteboard.Training.Exercise
+  # alias Whiteboard.Training.ExerciseCategory
+  # alias Whiteboard.Training.ExerciseName
+  # alias Whiteboard.Training.Set
+  alias Whiteboard.Training.Workout
+
+  setup do
+    %{id: exercise_category_id} = exercise_category = Factory.insert(:exercise_category, name: "Biceps")
+    exercise_name = Factory.insert(:exercise_name, name: "Curls", exercise_category_id: exercise_category_id)
+
+    %{exercise_category: exercise_category, exercise_name: exercise_name}
+  end
 
   test "list_workouts/0" do
     [older_workout, newer_workout] = Factory.insert_pair(:workout)
 
     # Confirm both are returned in descending order
     assert [^newer_workout, ^older_workout] = Training.list_workouts()
+  end
+
+  test "get_workout/1" do
+    existing_workout = Factory.insert(:workout)
+
+    assert {:ok, ^existing_workout} = Training.get_workout(existing_workout.id)
+  end
+
+  describe "create_workout/1" do
+    test "successfully generates simple workout" do
+      name = "Back"
+
+      assert {:ok, %Workout{name: ^name}} = Training.create_workout(%{name: name})
+    end
+
+    test "successfully generates complex workout", %{exercise_name: %{id: exercise_name_id}} do
+      assert {:ok, %Workout{exercises: [%Exercise{exercise_name_id: ^exercise_name_id}], notes: "Cool beans"}} =
+               Training.create_workout(%{
+                 name: "Back day",
+                 exercises: [%{exercise_name_id: exercise_name_id}],
+                 notes: "Cool beans"
+               })
+    end
+  end
+
+  test "update_workout/2" do
+    new_name = "Legs + Back"
+    %{id: existing_workout_id} = Factory.insert(:workout, name: "Just legs")
+
+    assert {:ok, %Workout{name: ^new_name}} = Training.update_workout(existing_workout_id, %{name: new_name})
+  end
+
+  test "delete_workout/2" do
+    %{id: workout_id} = workout = Factory.insert(:workout)
+    assert [workout] === Training.list_workouts()
+
+    Training.delete_workout(workout_id)
+
+    assert [] === Training.list_workouts()
   end
 end
