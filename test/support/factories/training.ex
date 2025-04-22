@@ -11,7 +11,7 @@ defmodule Whiteboard.Factories.Training do
       def workout_factory(attrs) do
         changeset =
           %Workout{
-            name: "Legs",
+            name: random_binary(),
             exercises: []
           }
           |> merge_attributes(attrs)
@@ -44,7 +44,7 @@ defmodule Whiteboard.Factories.Training do
       def exercise_name_factory(attrs) do
         changeset =
           %ExerciseName{
-            name: "Squat"
+            name: random_binary()
           }
           |> merge_attributes(attrs)
           |> evaluate_lazy_attributes()
@@ -60,7 +60,7 @@ defmodule Whiteboard.Factories.Training do
       def exercise_category_factory(attrs) do
         changeset =
           %ExerciseCategory{
-            name: "Quads"
+            name: random_binary()
           }
           |> merge_attributes(attrs)
           |> evaluate_lazy_attributes()

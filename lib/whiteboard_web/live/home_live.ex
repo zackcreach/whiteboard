@@ -65,15 +65,18 @@ defmodule WhiteboardWeb.HomeLive do
       <p {@heex_previous_workouts_header}>Exercises</p>
       <p {@heex_previous_workouts_header}>Created on</p>
       <p {@heex_previous_workouts_header}>Last updated</p>
-      <p {@heex_previous_workouts_header}>Delete</p>
+      <p {@heex_previous_workouts_header}>Actions</p>
       <%= for workout <- @workouts do %>
         <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
         <a {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</a>
         <a {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</a>
         <a {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</a>
-        <div class="py-2 border-b border-zinc-300 text-right flex justify-end">
+        <div class="py-2 border-b border-zinc-300 text-right flex justify-end gap-x-8">
+          <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
+            <.icon name="hero-document-duplicate size-6" />
+          </button>
           <button type="button" phx-click="delete_workout" phx-value-workout_id={workout.id}>
-            <.icon name="hero-trash size-5" />
+            <.icon name="hero-trash size-6" />
           </button>
         </div>
       <% end %>
@@ -168,6 +171,19 @@ defmodule WhiteboardWeb.HomeLive do
 
         {:error, error} ->
           put_flash(socket, :error, "Error creating workout: #{error}")
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event("duplicate_workout", %{"workout_id" => workout_id}, socket) do
+    socket =
+      case Training.duplicate_workout(workout_id) do
+        {:ok, %Workout{id: id}} ->
+          redirect(socket, to: ~p"/workouts/#{id}")
+
+        {:error, error} ->
+          put_flash(socket, :error, "Error duplicating workout: #{error}")
       end
 
     noreply(socket)

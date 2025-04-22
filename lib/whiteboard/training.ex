@@ -23,6 +23,10 @@ defmodule Whiteboard.Training do
     TrainingRepo.delete_workout(id)
   end
 
+  def duplicate_workout(id) do
+    TrainingRepo.duplicate_workout(id)
+  end
+
   # Exercises
   def get_exercise(id) do
     TrainingRepo.get_exercise(id)

@@ -60,4 +60,41 @@ defmodule Whiteboard.TrainingTest do
 
     assert [] === Training.list_workouts()
   end
+
+  test "duplicate_workout/1" do
+    exercise_count = 3
+    set_count = 5
+    notes = "Cool beans"
+    name = "Leg day"
+
+    %{id: exercise_category_id} = exercise_category = Factory.insert(:exercise_category)
+
+    %{id: exercise_name_id} =
+      exercise_name =
+      Factory.insert(:exercise_name,
+        exercise_category: exercise_category,
+        exercise_category_id: exercise_category_id
+      )
+
+    %{id: existing_workout_id} =
+      Factory.insert(:workout,
+        name: name,
+        notes: notes,
+        exercises:
+          Factory.insert_list(exercise_count, :exercise,
+            exercise_name_id: exercise_name_id,
+            exercise_name: exercise_name,
+            sets: Factory.build_list(set_count, :set)
+          )
+      )
+
+    assert {:ok, %Workout{name: ^name, notes: ^notes} = new_workout} = Training.duplicate_workout(existing_workout_id)
+
+    assert exercise_count === length(new_workout.exercises)
+
+    for exercise <- new_workout.exercises do
+      assert set_count === length(exercise.sets)
+      assert exercise_name_id === exercise.exercise_name_id
+    end
+  end
 end

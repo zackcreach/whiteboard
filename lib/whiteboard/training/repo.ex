@@ -56,6 +56,26 @@ defmodule Whiteboard.Training.Repo do
     delete(Workout, id)
   end
 
+  def duplicate_workout(id) do
+    with {:ok, existing_workout} <- get_workout(id) do
+      existing_workout
+      |> Map.from_struct()
+      |> then(fn workout_map ->
+        exercises_as_maps =
+          Enum.map(workout_map.exercises, fn exercise ->
+            %{
+              exercise_name_id: exercise.exercise_name_id,
+              notes: exercise.notes,
+              sets: Enum.map(exercise.sets, fn set -> Map.from_struct(set) end)
+            }
+          end)
+
+        Map.replace(workout_map, :exercises, exercises_as_maps)
+      end)
+      |> create_workout()
+    end
+  end
+
   # Exercises
   def get_exercise(id) do
     Repo.one!(from(e in Exercise, where: e.id == ^id, preload: [sets: ^from(s in Set, order_by: [asc: s.inserted_at])]))
