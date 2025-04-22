@@ -10,7 +10,12 @@ defmodule Whiteboard.Training.Repo do
 
   # Workouts
   def list_workouts do
-    Repo.all(from(wo in Workout, order_by: [desc: wo.inserted_at], preload: [exercises: [:exercise_name]]))
+    Repo.all(
+      from(wo in Workout,
+        order_by: [desc: wo.inserted_at],
+        preload: [exercises: [:sets, exercise_name: [:exercise_category]]]
+      )
+    )
   end
 
   def get_workout(id) do
