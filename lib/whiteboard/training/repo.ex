@@ -77,6 +77,17 @@ defmodule Whiteboard.Training.Repo do
   end
 
   # Exercises
+  def list_previous_exercises(workout_id, exercise_name_id) do
+    Repo.all(
+      from(e in Exercise,
+        where: e.exercise_name_id == ^exercise_name_id,
+        where: e.workout_id != ^workout_id,
+        order_by: [desc: e.inserted_at],
+        preload: [:workout, sets: ^from(s in Set, order_by: [asc: s.inserted_at])]
+      )
+    )
+  end
+
   def get_exercise(id) do
     Repo.one!(from(e in Exercise, where: e.id == ^id, preload: [sets: ^from(s in Set, order_by: [asc: s.inserted_at])]))
   end

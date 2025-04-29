@@ -97,4 +97,34 @@ defmodule Whiteboard.TrainingTest do
       assert exercise_name_id === exercise.exercise_name_id
     end
   end
+
+  test "list_exercises_by_name/1", %{exercise_category: %{id: exercise_category_id} = exercise_category} do
+    %{id: current_workout_id} = Factory.insert(:workout)
+
+    %{id: irrelevant_exercise_name_id} =
+      Factory.insert(:exercise_name,
+        name: "Pullups",
+        exercise_category: exercise_category,
+        exercise_category_id: exercise_category_id
+      )
+
+    %{id: relevant_exercise_name_id} =
+      Factory.insert(:exercise_name,
+        name: "Raises",
+        exercise_category: exercise_category,
+        exercise_category_id: exercise_category_id
+      )
+
+    _current_exercise =
+      Factory.insert(:exercise, workout_id: current_workout_id, exercise_name_id: irrelevant_exercise_name_id)
+
+    %{id: previous_exercise_id1} =
+      Factory.insert(:exercise, workout_id: Factory.insert(:workout).id, exercise_name_id: relevant_exercise_name_id)
+
+    %{id: previous_exercise_id2} =
+      Factory.insert(:exercise, workout_id: Factory.insert(:workout).id, exercise_name_id: relevant_exercise_name_id)
+
+    assert [%{id: ^previous_exercise_id2}, %{id: ^previous_exercise_id1}] =
+             Training.list_previous_exercises(current_workout_id, relevant_exercise_name_id)
+  end
 end

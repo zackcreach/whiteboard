@@ -17,4 +17,8 @@ defmodule WhiteboardWeb.Utils.ExerciseHelpers do
   def render_exercise_names(%Workout{exercises: exercises}) do
     Enum.map_join(exercises, ", ", & &1.exercise_name.name)
   end
+
+  def render_list_with_index(list) do
+    Enum.with_index(list, fn item, index -> Map.put(item, :index, index) end)
+  end
 end

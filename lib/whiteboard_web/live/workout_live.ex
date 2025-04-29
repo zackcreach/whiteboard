@@ -10,6 +10,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
   alias WhiteboardWeb.Components.Card
+  alias WhiteboardWeb.Components.ExerciseBrowser
   alias WhiteboardWeb.Utils.DateHelpers
   alias WhiteboardWeb.Utils.ExerciseHelpers
 
@@ -27,39 +28,43 @@ defmodule WhiteboardWeb.WorkoutLive do
         </div>
       </section>
 
-      <section class="grid grid-cols-2 gap-4">
+      <section class="grid grid-cols-1 gap-4">
         <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
-          <Card.render>
-            <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-10 right-8" tabindex="-1">
-              <.icon name="hero-trash-solid size-5" />
-            </button>
+          <Card.render class="grid grid-cols-2 gap-x-10">
+            <div class="relative flex flex-col">
+              <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-1 right-0" tabindex="-1">
+                <.icon name="hero-trash-solid size-5" />
+              </button>
 
-            <div class="flex justify-between pr-9">
-              <h3>
-                {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
-              </h3>
-              <div class="w-1/2">
-                <.input field={exercise[:notes]} placeholder="Notes" />
+              <div class="flex justify-between pr-9">
+                <h3>
+                  {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
+                </h3>
+                <div class="w-1/2">
+                  <.input field={exercise[:notes]} placeholder="Notes" />
+                </div>
+              </div>
+
+              <ul class="mt-8 mb-4">
+                <.inputs_for :let={set} field={exercise[:sets]}>
+                  <li class="flex items-center gap-x-4 mb-4">
+                    <p class="min-w-10 font-medium">Set {set.index + 1}</p>
+                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step=".25" autocomplete="off" list="weight-suggestions" />
+                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step="1" autocomplete="off" list="rep-suggestions" />
+                    <.input field={set[:notes]} placeholder="Notes" tabindex="-1" />
+                    <button type="button" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
+                      <.icon name="hero-trash size-5" />
+                    </button>
+                  </li>
+                </.inputs_for>
+              </ul>
+
+              <div class="mt-auto ml-auto">
+                <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="cursor-pointer">Add set</.button>
               </div>
             </div>
 
-            <ul class="mt-8 mb-4">
-              <.inputs_for :let={set} field={exercise[:sets]}>
-                <li class="flex items-center gap-x-4 mb-4">
-                  <p class="min-w-10 font-medium">Set {set.index + 1}</p>
-                  <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step=".25" autocomplete="off" list="weight-suggestions" />
-                  <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step="1" autocomplete="off" list="rep-suggestions" />
-                  <.input field={set[:notes]} placeholder="Notes" tabindex="-1" />
-                  <button type="button" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
-                    <.icon name="hero-trash size-5" />
-                  </button>
-                </li>
-              </.inputs_for>
-            </ul>
-
-            <div class="mt-auto ml-auto">
-              <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="cursor-pointer">Add set</.button>
-            </div>
+            <.live_component module={ExerciseBrowser} id={"exercise-browser-#{exercise.data.id}"} workout_id={@workout_form.data.id} exercise_name_id={exercise.data.exercise_name.id} />
           </Card.render>
         </.inputs_for>
       </section>

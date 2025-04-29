@@ -28,6 +28,10 @@ defmodule Whiteboard.Training do
   end
 
   # Exercises
+  def list_previous_exercises(workout_id, exercise_name_id) do
+    TrainingRepo.list_previous_exercises(workout_id, exercise_name_id)
+  end
+
   def get_exercise(id) do
     TrainingRepo.get_exercise(id)
   end

@@ -288,7 +288,7 @@ defmodule WhiteboardWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div>
+    <div class="w-full">
       <.label for={@id}>{@label}</.label>
       <select id={@id} name={@name} class="block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm !leading-6" multiple={@multiple} {@rest}>
         <option :if={@prompt} value="" class="leading-6">{@prompt}</option>
