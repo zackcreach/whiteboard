@@ -47,10 +47,16 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     case_result =
       case Training.list_previous_exercises(workout_id, exercise_name_id) do
         [%{id: first_exercise_id} | _rest] = exercises ->
+          # assign first exercise on first mount, otherwise keep selected exercise
+          current_exercise =
+            if socket.assigns[:current_exercise],
+              do: socket.assigns.current_exercise,
+              else: Training.get_exercise(first_exercise_id)
+
           assign(
             socket,
             exercises: exercises,
-            current_exercise: Training.get_exercise(first_exercise_id)
+            current_exercise: current_exercise
           )
 
         _error ->
