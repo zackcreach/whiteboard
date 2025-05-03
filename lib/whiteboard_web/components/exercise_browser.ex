@@ -6,12 +6,13 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
   use WhiteboardWeb, :live_component
 
   alias Whiteboard.Training
+  alias Whiteboard.Training.Exercise
   alias WhiteboardWeb.Utils.ExerciseHelpers
 
   attr :workout_id, :string, required: true
   attr :exercise_name_id, :string, required: true
 
-  def render(assigns) do
+  def render(%{current_exercise: %Exercise{}} = assigns) do
     ~H"""
     <div>
       <div class="flex gap-x-4 items-center mb-[42px]">
@@ -33,20 +34,33 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     """
   end
 
-  def update(%{workout_id: workout_id, exercise_name_id: exercise_name_id}, socket) do
-    [%{id: first_exercise_id} | _rest] = exercises = Training.list_previous_exercises(workout_id, exercise_name_id)
+  def render(assigns) do
+    ~H"<p>No previous exercises found</p>"
+  end
 
-    socket
-    |> assign(
-      exercises: exercises,
-      current_exercise: Training.get_exercise(first_exercise_id)
-    )
-    |> ok()
+  def mount(socket) do
+    dbg(socket.assigns)
+    ok(socket)
+  end
+
+  def update(%{workout_id: workout_id, exercise_name_id: exercise_name_id}, socket) do
+    case_result =
+      case Training.list_previous_exercises(workout_id, exercise_name_id) do
+        [%{id: first_exercise_id} | _rest] = exercises ->
+          assign(
+            socket,
+            exercises: exercises,
+            current_exercise: Training.get_exercise(first_exercise_id)
+          )
+
+        _error ->
+          socket
+      end
+
+    ok(case_result)
   end
 
   def handle_event("update_current_exercise", %{"exercise_id" => exercise_id}, socket) do
-    dbg("HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
-
     socket
     |> assign(current_exercise: Training.get_exercise(exercise_id))
     |> noreply()
