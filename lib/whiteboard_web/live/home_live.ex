@@ -17,7 +17,7 @@ defmodule WhiteboardWeb.HomeLive do
   def render(assigns) do
     assigns =
       assigns
-      |> extend_class("py-2 pr-2 border-b border-zinc-400 last-of-type:text-right",
+      |> extend_class("py-2 pr-2 border-b border-zinc-400 [&:nth-of-type(5)]:text-right",
         attribute: :previous_workouts_header
       )
       |> extend_class("py-2 pr-2 border-b border-zinc-300",
@@ -68,31 +68,42 @@ defmodule WhiteboardWeb.HomeLive do
       <p {@heex_previous_workouts_header}>Actions</p>
       <%= for workout <- @workouts do %>
         <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
-        <a {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</a>
-        <a {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</a>
-        <a {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</a>
+        <p {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
+        <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
+        <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
         <div class="py-2 border-b border-zinc-300 text-right flex justify-end gap-x-8">
           <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
             <.icon name="hero-document-duplicate size-6" />
           </button>
-          <button type="button" phx-click="delete_workout" phx-value-workout_id={workout.id}>
+          <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")}>
             <.icon name="hero-trash size-6" />
           </button>
         </div>
       <% end %>
     </div>
+
+    <.modal id="delete-modal" show={@live_action == :delete}>
+      <div class="flex flex-col items-center">
+        <p class="mb-4 font-medium">Delete workout?</p>
+        <div class="flex space-between gap-x-4 mx-auto">
+          <.button type="button" phx-click="delete_workout" phx-value-workout_id={@modal_delete_id}>Confirm</.button>
+          <.button type="button" phx-click={JS.navigate(~p"/")}>Cancel</.button>
+        </div>
+      </div>
+    </.modal>
     """
+  end
+
+  def mount(%{"workout_id" => workout_id}, _session, %{assigns: %{live_action: :delete}} = socket) do
+    socket
+    |> initialize_forms()
+    |> assign(modal_delete_id: workout_id)
+    |> ok()
   end
 
   def mount(_params, _session, socket) do
     socket
-    |> assign(
-      create_workout_form: to_form(Workout.changeset(%Workout{})),
-      create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
-      create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
-      exercise_categories: ExerciseHelpers.list_exercise_categories(),
-      workouts: Training.list_workouts()
-    )
+    |> initialize_forms()
     |> ok()
   end
 
@@ -195,6 +206,7 @@ defmodule WhiteboardWeb.HomeLive do
         {:ok, %Workout{}} ->
           socket
           |> assign(workouts: Training.list_workouts())
+          |> redirect(to: ~p"/")
           |> put_flash(:info, "Workout deleted successfully")
 
         {:error, error} ->
@@ -202,5 +214,16 @@ defmodule WhiteboardWeb.HomeLive do
       end
 
     noreply(socket)
+  end
+
+  defp initialize_forms(socket) do
+    assign(socket,
+      modal_delete_id: nil,
+      create_workout_form: to_form(Workout.changeset(%Workout{})),
+      create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
+      create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
+      exercise_categories: ExerciseHelpers.list_exercise_categories(),
+      workouts: Training.list_workouts()
+    )
   end
 end
