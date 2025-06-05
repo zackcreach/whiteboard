@@ -58,15 +58,16 @@ defmodule Whiteboard.Training.Repo do
 
   def duplicate_workout(id) do
     with {:ok, existing_workout} <- get_workout(id) do
+      # purposefully excluding notes
       existing_workout
       |> Map.from_struct()
+      |> Map.delete(:notes)
       |> then(fn workout_map ->
         exercises_as_maps =
           Enum.map(workout_map.exercises, fn exercise ->
             %{
               exercise_name_id: exercise.exercise_name_id,
-              notes: exercise.notes,
-              sets: Enum.map(exercise.sets, fn set -> Map.from_struct(set) end)
+              sets: Enum.map(exercise.sets, fn set -> %{weight: set.weight, reps: set.reps} end)
             }
           end)
 

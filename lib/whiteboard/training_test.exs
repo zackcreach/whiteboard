@@ -88,13 +88,14 @@ defmodule Whiteboard.TrainingTest do
           )
       )
 
-    assert {:ok, %Workout{name: ^name, notes: ^notes} = new_workout} = Training.duplicate_workout(existing_workout_id)
+    assert {:ok, %Workout{name: ^name, notes: nil} = new_workout} = Training.duplicate_workout(existing_workout_id)
 
     assert exercise_count === length(new_workout.exercises)
 
     for exercise <- new_workout.exercises do
       assert set_count === length(exercise.sets)
       assert exercise_name_id === exercise.exercise_name_id
+      assert is_nil(exercise.notes)
     end
   end
 
