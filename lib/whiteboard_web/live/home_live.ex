@@ -60,7 +60,7 @@ defmodule WhiteboardWeb.HomeLive do
     </div>
 
     <h3 class="mt-8 mb-4">Previous workouts</h3>
-    <div class="grid grid-cols-[1fr_2fr_1fr_1fr_0.5fr]">
+    <div class="grid grid-cols-[1fr_2fr_1fr_1fr_0.5fr] [&>a]:underline">
       <p {@heex_previous_workouts_header}>Name</p>
       <p {@heex_previous_workouts_header}>Exercises</p>
       <p {@heex_previous_workouts_header}>Created on</p>
