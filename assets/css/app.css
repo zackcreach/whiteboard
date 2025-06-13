@@ -1,6 +1,14 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+@plugin "../plugins/heroicons.js";
+
+@source "../js/**/*.js";
+@source "../../lib/whiteboard.ex";
+@source "../../lib/whiteboard_web/**/*.*ex";
+
+@import 'tailwindcss';
 
 main {
   @apply text-gray-800;

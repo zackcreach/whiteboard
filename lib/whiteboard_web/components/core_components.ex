@@ -290,8 +290,8 @@ defmodule WhiteboardWeb.CoreComponents do
     ~H"""
     <div class="w-full">
       <.label for={@id}>{@label}</.label>
-      <select id={@id} name={@name} class="block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border-zinc-400 focus:ring-0 sm:text-sm !leading-6" multiple={@multiple} {@rest}>
-        <option :if={@prompt} value="" class="leading-6">{@prompt}</option>
+      <select id={@id} name={@name} class="block w-full rounded-lg border border-gray-300 bg-white focus:border-zinc-400 focus:ring-0 sm:text-sm p-3" multiple={@multiple} {@rest}>
+        <option :if={@prompt} value="">{@prompt}</option>
         {Phoenix.HTML.Form.options_for_select(@options, @value)}
       </select>
       <.error :for={msg <- @errors}>{msg}</.error>
@@ -329,9 +329,9 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-          @errors == [] && "border-zinc-300 focus:border-zinc-400",
-          @errors != [] && "border-rose-400 focus:border-rose-400",
+          "block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm p-2.5",
+          @errors == [] && "border border-zinc-300 focus:border-zinc-400",
+          @errors != [] && "border border-rose-400 focus:border-rose-400",
           @class
         ]}
         {@rest}

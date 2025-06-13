@@ -27,14 +27,13 @@ config :phoenix, :json_library, Jason
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "3.4.3",
+  version: "4.1.0",
   whiteboard: [
     args: ~w(
-      --config=tailwind.config.js
-      --input=css/app.css
-      --output=../priv/static/assets/app.css
+      --input=assets/css/app.css
+      --output=priv/static/assets/app.css
     ),
-    cd: Path.expand("../assets", __DIR__)
+    cd: Path.expand("..", __DIR__)
   ]
 
 # Configures the mailer
@@ -45,6 +44,10 @@ config :tailwind,
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
 config :whiteboard, Whiteboard.Mailer, adapter: Swoosh.Adapters.Local
+
+config :whiteboard, Whiteboard.Repo,
+  migration_primary_key: false,
+  migration_timestamps: [type: :timestamptz]
 
 # Configures the endpoint
 config :whiteboard, WhiteboardWeb.Endpoint,
@@ -62,9 +65,5 @@ config :whiteboard, WhiteboardWeb.Endpoint,
 config :whiteboard,
   ecto_repos: [Whiteboard.Repo],
   generators: [timestamp_type: :utc_datetime]
-
-config :whiteboard, Whiteboard.Repo,
-  migration_primary_key: false,
-  migration_timestamps: [type: :timestamptz]
 
 import_config "#{config_env()}.exs"
