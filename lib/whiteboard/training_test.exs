@@ -15,11 +15,20 @@ defmodule Whiteboard.TrainingTest do
     %{exercise_category: exercise_category, exercise_name: exercise_name}
   end
 
-  test "list_workouts/0" do
-    [older_workout, newer_workout] = Factory.insert_pair(:workout)
+  describe "list_workouts/0" do
+    test "gets unfiltered workouts" do
+      [older_workout, newer_workout] = Factory.insert_pair(:workout)
 
-    # Confirm both are returned in descending order
-    assert [^newer_workout, ^older_workout] = Training.list_workouts()
+      # Confirm both are returned in descending order
+      assert [^newer_workout, ^older_workout] = Training.list_workouts()
+    end
+
+    test "lists workouts should stop at limit" do
+      Factory.insert_list(21, :workout)
+
+      # Workout list should cut off
+      assert 20 == length(Training.list_workouts())
+    end
   end
 
   test "get_workout/1" do

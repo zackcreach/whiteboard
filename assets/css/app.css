@@ -28,10 +28,6 @@ main {
   h4 {
     @apply text-lg;
   }
-
-  p {
-    @apply text-base;
-  }
 }
 
 /* This file is for your main application CSS */

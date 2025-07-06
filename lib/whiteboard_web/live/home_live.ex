@@ -45,15 +45,15 @@ defmodule WhiteboardWeb.HomeLive do
           </.form>
         </div>
         <div class="mt-4">
-          <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex items-center gap-x-4">
+          <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex items-center">
             <div class="basis-1/2">
-              <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={if @exercise_categories, do: @exercise_categories, else: []} placeholder="Exercise categories" />
+              <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={if @exercise_categories, do: @exercise_categories, else: []} border_variant={:start} placeholder="Exercise categories" />
             </div>
             <div class="basis-1/2">
-              <.input field={@create_exercise_name_form[:name]} placeholder="Exercise name (e.g. Skullcrushers)" />
+              <.input field={@create_exercise_name_form[:name]} border_variant={:end} placeholder="Exercise name (e.g. Skullcrushers)" />
             </div>
 
-            <.button type="submit">New exercise name</.button>
+            <.button type="submit" class="ml-4">New exercise name</.button>
           </.form>
         </div>
       </Card.render>
@@ -71,7 +71,7 @@ defmodule WhiteboardWeb.HomeLive do
         <p {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
         <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
         <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
-        <div class="py-2 border-b border-zinc-300 text-right flex justify-end gap-x-8">
+        <div class="py-2 border-b border-zinc-300 text-right flex justify-end items-start gap-x-4">
           <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
             <.icon name="hero-document-duplicate size-6" />
           </button>

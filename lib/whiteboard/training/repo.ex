@@ -13,7 +13,8 @@ defmodule Whiteboard.Training.Repo do
     Repo.all(
       from(wo in Workout,
         order_by: [desc: wo.inserted_at],
-        preload: [exercises: [:sets, exercise_name: [:exercise_category]]]
+        preload: [exercises: [:sets, exercise_name: [:exercise_category]]],
+        limit: 20
       )
     )
   end

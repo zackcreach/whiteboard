@@ -36,7 +36,7 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <.icon name="hero-trash-solid size-5" />
               </button>
 
-              <div class="flex justify-between pr-9">
+              <div class="flex justify-between items-center pr-9">
                 <h3>
                   {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
                 </h3>
@@ -47,12 +47,12 @@ defmodule WhiteboardWeb.WorkoutLive do
 
               <ul class="mt-8 mb-4">
                 <.inputs_for :let={set} field={exercise[:sets]}>
-                  <li class="flex items-center gap-x-4 mb-4">
-                    <p class="min-w-10 font-medium">Set {set.index + 1}</p>
-                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step=".25" autocomplete="off" list="weight-suggestions" />
-                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:ring-4 placeholder-shown:ring-inset placeholder-shown:ring-zinc-300" type="number" step="1" autocomplete="off" list="rep-suggestions" />
-                    <.input field={set[:notes]} placeholder="Notes" tabindex="-1" />
-                    <button type="button" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
+                  <li class="flex items-center mb-4">
+                    <p class="min-w-10 font-medium mr-4">Set {set.index + 1}</p>
+                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" />
+                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" />
+                    <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" />
+                    <button type="button" class="ml-4" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
                       <.icon name="hero-trash size-5" />
                     </button>
                   </li>
@@ -72,7 +72,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
     <section class="mt-auto flex justify-between items-end pt-8">
       <p class="text-xs font-extralight">Autosaved on {DateHelpers.render_date(Form.input_value(@workout_form, :updated_at), include_time: true)}</p>
-      <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-2">
+      <.form :let={f} for={to_form(%{"exercise_name_id" => ""})} phx-submit="create_exercise" class="flex items-center gap-x-4">
         <.input type="select" field={f[:exercise_name_id]} options={ExerciseHelpers.list_exercises()} placeholder="Exercises" />
         <.button type="submit">Add exercise</.button>
       </.form>

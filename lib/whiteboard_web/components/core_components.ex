@@ -239,6 +239,7 @@ defmodule WhiteboardWeb.CoreComponents do
   attr :name, :any
   attr :label, :string, default: nil
   attr :class, :string, default: ""
+  attr :border_variant, :atom, default: :full, values: [:full, :start, :middle, :end]
   attr :value, :any
 
   attr :type, :string,
@@ -288,10 +289,19 @@ defmodule WhiteboardWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="w-full">
+    <div class="w-full relative after:absolute after:content-['⌄'] after:text-md after:top-1 after:right-2.5">
       <.label for={@id}>{@label}</.label>
-      <select id={@id} name={@name} class="block w-full rounded-lg border border-gray-300 bg-white focus:border-zinc-400 focus:ring-0 sm:text-sm p-3" multiple={@multiple} {@rest}>
-        <option :if={@prompt} value="">{@prompt}</option>
+      <select
+        id={@id}
+        name={@name}
+        class={[
+          "appearance-none block w-full rounded-lg border border-gray-300 bg-white focus:border-zinc-400 focus:ring-0 sm:text-sm p-2.5 pr-6",
+          get_border_variant_classes(@border_variant)
+        ]}
+        multiple={@multiple}
+        {@rest}
+      >
+        <option :if={@prompt} value="" class="">{@prompt}</option>
         {Phoenix.HTML.Form.options_for_select(@options, @value)}
       </select>
       <.error :for={msg <- @errors}>{msg}</.error>
@@ -329,9 +339,10 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm p-2.5",
+          "block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm p-2.5 pr-1.5",
           @errors == [] && "border border-zinc-300 focus:border-zinc-400",
           @errors != [] && "border border-rose-400 focus:border-rose-400",
+          get_border_variant_classes(@border_variant),
           @class
         ]}
         {@rest}
@@ -609,5 +620,13 @@ defmodule WhiteboardWeb.CoreComponents do
   """
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
+  end
+
+  defp get_border_variant_classes(variant) do
+    [
+      variant == :start && "border-r-0 border-r-none rounded-r-none",
+      variant == :middle && "border-r-0 rounded-r-none rounded-l-none",
+      variant == :end && "rounded-l-none"
+    ]
   end
 end
