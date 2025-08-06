@@ -30,14 +30,14 @@ defmodule WhiteboardWeb.WorkoutLive do
 
       <section class="grid grid-cols-1 gap-4">
         <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
-          <Card.render class="grid grid-cols-2 gap-x-10">
+          <Card.render class="md:grid grid-cols-2 gap-x-10">
             <div class="relative flex flex-col">
               <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-1 right-0" tabindex="-1">
                 <.icon name="hero-trash-solid size-5" />
               </button>
 
               <div class="flex justify-between items-center pr-9">
-                <h3>
+                <h3 class="mr-4 truncate">
                   {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
                 </h3>
                 <div class="w-1/2">
@@ -64,7 +64,7 @@ defmodule WhiteboardWeb.WorkoutLive do
               </div>
             </div>
 
-            <.live_component module={ExerciseBrowser} id={"exercise-browser-#{exercise.data.id}"} workout_id={@workout_form.data.id} exercise_name_id={exercise.data.exercise_name.id} />
+            <.live_component module={ExerciseBrowser} container_class="mt-8 md:mt-0" id={"exercise-browser-#{exercise.data.id}"} workout_id={@workout_form.data.id} exercise_name_id={exercise.data.exercise_name.id} />
           </Card.render>
         </.inputs_for>
       </section>

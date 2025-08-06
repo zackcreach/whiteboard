@@ -11,10 +11,11 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
 
   attr :workout_id, :string, required: true
   attr :exercise_name_id, :string, required: true
+  attr :container_class, :string, required: false, default: ""
 
   def render(%{current_exercise: %Exercise{}} = assigns) do
     ~H"""
-    <div>
+    <div class={@container_class}>
       <div class="flex gap-x-4 items-center mb-[42px]">
         <.form :let={f} for={to_form(%{"exercise_id" => ""})} class="w-full">
           <.input type="select" field={f[:exercise_id]} options={render_exercise_options(@exercises)} phx-change="update_current_exercise" phx-target={@myself} />
@@ -36,32 +37,25 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     ~H"<p>No previous exercises found</p>"
   end
 
-  def mount(socket) do
-    dbg(socket.assigns)
-    ok(socket)
-  end
-
-  def update(%{workout_id: workout_id, exercise_name_id: exercise_name_id}, socket) do
-    case_result =
+  def update(%{workout_id: workout_id, exercise_name_id: exercise_name_id} = params, socket) do
+    socket =
       case Training.list_previous_exercises(workout_id, exercise_name_id) do
         [%{id: first_exercise_id} | _rest] = exercises ->
           # assign first exercise on first mount, otherwise keep selected exercise
-          current_exercise =
-            if socket.assigns[:current_exercise],
-              do: socket.assigns.current_exercise,
-              else: Training.get_exercise(first_exercise_id)
+          current_exercise = socket.assigns[:current_exercise] || Training.get_exercise(first_exercise_id)
 
           assign(
             socket,
             exercises: exercises,
-            current_exercise: current_exercise
+            current_exercise: current_exercise,
+            container_class: params[:container_class]
           )
 
         _error ->
           socket
       end
 
-    ok(case_result)
+    ok(socket)
   end
 
   def handle_event("update_current_exercise", %{"exercise_id" => exercise_id}, socket) do
