@@ -33,7 +33,7 @@ defmodule WhiteboardWeb.WorkoutLive do
           <Card.render class="md:grid grid-cols-2 gap-x-10">
             <div class="relative flex flex-col">
               <button type="button" phx-click="delete_exercise" phx-value-exercise_id={exercise.data.id} class="cursor-pointer absolute top-1 right-0" tabindex="-1">
-                <.icon name="hero-trash-solid size-5" />
+                <.icon name="hero-trash-solid size-5 cursor-pointer" />
               </button>
 
               <div class="flex justify-between items-center pr-9">
@@ -53,7 +53,7 @@ defmodule WhiteboardWeb.WorkoutLive do
                     <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" />
                     <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" />
                     <button type="button" class="ml-4" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
-                      <.icon name="hero-trash size-5" />
+                      <.icon name="hero-trash size-5 cursor-pointer" />
                     </button>
                   </li>
                 </.inputs_for>
@@ -64,7 +64,7 @@ defmodule WhiteboardWeb.WorkoutLive do
               </div>
             </div>
 
-            <.live_component module={ExerciseBrowser} container_class="mt-8 md:mt-0" id={"exercise-browser-#{exercise.data.id}"} workout_id={@workout_form.data.id} exercise_name_id={exercise.data.exercise_name.id} />
+            <.live_component module={ExerciseBrowser} container_class="mt-8 md:mt-0" id={"exercise-browser-#{exercise.data.id}"} workout_id={@workout_form.data.id} exercise_form={exercise} />
           </Card.render>
         </.inputs_for>
       </section>
@@ -136,6 +136,23 @@ defmodule WhiteboardWeb.WorkoutLive do
   def handle_event("delete_exercise", %{"exercise_id" => exercise_id}, socket) do
     socket =
       case Training.delete_exercise(exercise_id) do
+        {:ok, %Exercise{}} ->
+          assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+
+        error ->
+          put_flash(socket, :error, "Error deleting exercise: #{error}")
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event(
+        "replace_exercise",
+        %{"selected_exercise_id" => selected_exercise_id, "current_exercise_id" => current_exercise_id},
+        socket
+      ) do
+    socket =
+      case Training.replace_exercise(selected_exercise_id, current_exercise_id) do
         {:ok, %Exercise{}} ->
           assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
 

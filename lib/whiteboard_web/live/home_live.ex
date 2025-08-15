@@ -31,7 +31,7 @@ defmodule WhiteboardWeb.HomeLive do
         <div class="mt-4">
           <.form for={@create_workout_form} phx-change="validate_workout" phx-submit="create_workout" class="flex items-center gap-x-4">
             <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
-            <.button type="submit">New workout</.button>
+            <.button type="submit" class="cursor-pointer">New workout</.button>
           </.form>
         </div>
       </Card.render>
@@ -41,7 +41,7 @@ defmodule WhiteboardWeb.HomeLive do
         <div class="mt-4">
           <.form for={@create_exercise_category_form} phx-change="validate_exercise_category" phx-submit="create_exercise_category" class="flex items-center gap-x-4">
             <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name (e.g. Triceps)" />
-            <.button type="submit">New exercise category</.button>
+            <.button type="submit" class="cursor-pointer">New exercise category</.button>
           </.form>
         </div>
         <div class="mt-4">
@@ -53,7 +53,7 @@ defmodule WhiteboardWeb.HomeLive do
               <.input field={@create_exercise_name_form[:name]} border_variant={:end} placeholder="Exercise name (e.g. Skullcrushers)" />
             </div>
 
-            <.button type="submit" class="ml-4">New exercise name</.button>
+            <.button type="submit" class="ml-4 cursor-pointer">New exercise name</.button>
           </.form>
         </div>
       </Card.render>
@@ -73,10 +73,10 @@ defmodule WhiteboardWeb.HomeLive do
         <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
         <div class="py-2 border-b border-zinc-300 text-right flex justify-end items-start gap-x-4">
           <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
-            <.icon name="hero-document-duplicate size-6" />
+            <.icon name="hero-document-duplicate size-6 cursor-pointer" />
           </button>
           <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")}>
-            <.icon name="hero-trash size-6" />
+            <.icon name="hero-trash size-6 cursor-pointer" />
           </button>
         </div>
       <% end %>

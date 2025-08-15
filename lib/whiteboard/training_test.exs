@@ -137,4 +137,15 @@ defmodule Whiteboard.TrainingTest do
     assert [%{id: ^previous_exercise_id2}, %{id: ^previous_exercise_id1}] =
              Training.list_previous_exercises(current_workout_id, relevant_exercise_name_id)
   end
+
+  test "duplicate_exercise/2" do
+    %{exercises: [%{id: existing_exercise_id, sets: existing_exercise_sets} | _rest]} =
+      Factory.insert(:workout, exercises: Factory.insert_list(3, :exercise))
+
+    %{id: current_workout_id, exercises: [%{id: current_exercise_id}]} =
+      Factory.insert(:workout, exercises: [Factory.build(:exercise)])
+
+    assert {:ok, %Exercise{id: ^current_exercise_id, workout_id: ^current_workout_id, sets: ^existing_exercise_sets}} =
+             Training.replace_exercise(existing_exercise_id, current_exercise_id)
+  end
 end

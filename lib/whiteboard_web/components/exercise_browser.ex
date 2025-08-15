@@ -13,16 +13,19 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
   attr :exercise_name_id, :string, required: true
   attr :container_class, :string, required: false, default: ""
 
-  def render(%{current_exercise: %Exercise{}} = assigns) do
+  def render(%{selected_exercise: %Exercise{}} = assigns) do
     ~H"""
     <div class={@container_class}>
       <div class="flex gap-x-4 items-center mb-[42px]">
         <.form :let={f} for={to_form(%{"exercise_id" => ""})} class="w-full">
-          <.input type="select" field={f[:exercise_id]} options={render_exercise_options(@exercises)} phx-change="update_current_exercise" phx-target={@myself} />
+          <.input type="select" field={f[:exercise_id]} options={render_exercise_options(@exercises)} phx-change="update_selected_exercise" phx-target={@myself} />
         </.form>
+        <div phx-click="replace_exercise" phx-value-selected_exercise_id={@selected_exercise.id} phx-value-current_exercise_id={@current_exercise_id}>
+          <.icon name="hero-document-duplicate size-5 cursor-pointer" />
+        </div>
       </div>
       <ul>
-        <li :for={set <- ExerciseHelpers.render_list_with_index(@current_exercise.sets)} class="flex gap-x-6 mb-[34px]">
+        <li :for={set <- ExerciseHelpers.render_list_with_index(@selected_exercise.sets)} class="flex gap-x-6 mb-[34px]">
           <p class="font-medium">Set {set.index + 1}</p>
           <p>{set.weight} lbs</p>
           <p>{set.reps} reps</p>
@@ -37,17 +40,24 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     ~H"<p>No previous exercises found</p>"
   end
 
-  def update(%{workout_id: workout_id, exercise_name_id: exercise_name_id} = params, socket) do
+  def update(
+        %{
+          workout_id: workout_id,
+          exercise_form: %{data: %{id: current_exercise_id, exercise_name: %{id: exercise_name_id}}}
+        } = params,
+        socket
+      ) do
     socket =
       case Training.list_previous_exercises(workout_id, exercise_name_id) do
-        [%{id: first_exercise_id} | _rest] = exercises ->
+        [first_exercise | _rest] = exercises ->
           # assign first exercise on first mount, otherwise keep selected exercise
-          current_exercise = socket.assigns[:current_exercise] || Training.get_exercise(first_exercise_id)
+          selected_exercise = socket.assigns[:selected_exercise] || first_exercise
 
           assign(
             socket,
             exercises: exercises,
-            current_exercise: current_exercise,
+            selected_exercise: selected_exercise,
+            current_exercise_id: current_exercise_id,
             container_class: params[:container_class]
           )
 
@@ -58,9 +68,11 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     ok(socket)
   end
 
-  def handle_event("update_current_exercise", %{"exercise_id" => exercise_id}, socket) do
+  def handle_event("update_selected_exercise", %{"exercise_id" => exercise_id}, socket) do
+    {:ok, new_selected_exercise} = Training.get_exercise(exercise_id)
+
     socket
-    |> assign(current_exercise: Training.get_exercise(exercise_id))
+    |> assign(selected_exercise: new_selected_exercise)
     |> noreply()
   end
 

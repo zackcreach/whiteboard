@@ -24,7 +24,24 @@ defmodule Whiteboard.Training do
   end
 
   def duplicate_workout(id) do
-    TrainingRepo.duplicate_workout(id)
+    with {:ok, existing_workout} <- get_workout(id) do
+      # purposefully excluding notes
+      existing_workout
+      |> Map.from_struct()
+      |> Map.delete(:notes)
+      |> then(fn workout_map ->
+        exercises_as_maps =
+          Enum.map(workout_map.exercises, fn exercise ->
+            %{
+              exercise_name_id: exercise.exercise_name_id,
+              sets: Enum.map(exercise.sets, fn set -> %{weight: set.weight, reps: set.reps} end)
+            }
+          end)
+
+        Map.replace(workout_map, :exercises, exercises_as_maps)
+      end)
+      |> create_workout()
+    end
   end
 
   # Exercises
@@ -40,12 +57,26 @@ defmodule Whiteboard.Training do
     TrainingRepo.create_exercise(params)
   end
 
-  def update_exercise(id, params) do
-    TrainingRepo.update_exercise(id, params)
+  def update_exercise(params, id) do
+    TrainingRepo.update_exercise(params, id)
   end
 
   def delete_exercise(id) do
     TrainingRepo.delete_exercise(id)
+  end
+
+  def replace_exercise(existing_exercise_id, current_exercise_id) do
+    with {:ok, existing_exercise} <- get_exercise(existing_exercise_id),
+         {:ok, %{id: current_exercise_id, workout_id: current_workout_id}} <- get_exercise(current_exercise_id) do
+      existing_exercise
+      |> Map.from_struct()
+      |> Map.replace(:workout_id, current_workout_id)
+      |> Map.delete(:notes)
+      |> then(fn exercise_map ->
+        Map.replace(exercise_map, :sets, Enum.map(exercise_map.sets, &%{weight: &1.weight, reps: &1.reps}))
+      end)
+      |> update_exercise(current_exercise_id)
+    end
   end
 
   # Exercise names
