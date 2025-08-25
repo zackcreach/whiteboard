@@ -60,26 +60,30 @@ defmodule WhiteboardWeb.HomeLive do
     </div>
 
     <h3 class="mt-8 mb-4">Previous workouts</h3>
-    <div class="grid grid-cols-[1fr_2fr_1fr_1fr_0.5fr] [&>a]:underline">
+    <div class="grid grid-cols-[1fr_2fr_1fr_1fr_0.5fr] [&_a]:underline">
       <p {@heex_previous_workouts_header}>Name</p>
       <p {@heex_previous_workouts_header}>Exercises</p>
       <p {@heex_previous_workouts_header}>Created on</p>
       <p {@heex_previous_workouts_header}>Last updated</p>
       <p {@heex_previous_workouts_header}>Actions</p>
-      <%= for workout <- @workouts do %>
-        <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
-        <p {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
-        <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
-        <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
-        <div class="py-2 border-b border-zinc-300 text-right flex justify-end items-start gap-x-4">
-          <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
-            <.icon name="hero-document-duplicate size-6 cursor-pointer" />
-          </button>
-          <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")}>
-            <.icon name="hero-trash size-6 cursor-pointer" />
-          </button>
-        </div>
-      <% end %>
+      <div phx-update="stream" id="workouts" class="contents">
+        <%= for {dom_workout_id, workout} <- @streams.workouts do %>
+          <div id={dom_workout_id} class="contents">
+            <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
+            <p {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
+            <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
+            <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
+            <div class="py-2 border-b border-zinc-300 text-right flex justify-end items-start gap-x-4">
+              <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
+                <.icon name="hero-document-duplicate size-6 cursor-pointer" />
+              </button>
+              <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")}>
+                <.icon name="hero-trash size-6 cursor-pointer" />
+              </button>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
 
     <.modal id="delete-modal" show={@live_action == :delete}>
@@ -205,7 +209,7 @@ defmodule WhiteboardWeb.HomeLive do
       case Training.delete_workout(workout_id) do
         {:ok, %Workout{}} ->
           socket
-          |> assign(workouts: Training.list_workouts())
+          |> stream(:workouts, Training.list_workouts())
           |> redirect(to: ~p"/")
           |> put_flash(:info, "Workout deleted successfully")
 
@@ -217,13 +221,15 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   defp initialize_forms(socket) do
-    assign(socket,
+    socket
+    |> assign(
       modal_delete_id: nil,
       create_workout_form: to_form(Workout.changeset(%Workout{})),
       create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
       create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
-      exercise_categories: ExerciseHelpers.list_exercise_categories(),
-      workouts: Training.list_workouts()
+      exercise_categories: ExerciseHelpers.list_exercise_categories()
     )
+    # free up server memory by listing workouts as stream vs assigns
+    |> stream(:workouts, Training.list_workouts())
   end
 end
