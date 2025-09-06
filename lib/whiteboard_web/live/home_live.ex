@@ -17,10 +17,10 @@ defmodule WhiteboardWeb.HomeLive do
   def render(assigns) do
     assigns =
       assigns
-      |> extend_class("py-2 pr-2 border-b border-zinc-400 [&:nth-of-type(5)]:text-right",
+      |> extend_class("py-2 pr-2 border-b border-zinc-400 dark:border-stone-600 [&:nth-of-type(5)]:text-right",
         attribute: :previous_workouts_header
       )
-      |> extend_class("py-2 pr-2 border-b border-zinc-300",
+      |> extend_class("py-2 pr-2 border-b border-zinc-300 dark:border-stone-700",
         attribute: :previous_workouts_cell
       )
 
@@ -73,11 +73,11 @@ defmodule WhiteboardWeb.HomeLive do
             <p {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
             <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
             <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
-            <div class="py-2 border-b border-zinc-300 text-right flex justify-end items-start gap-x-4">
-              <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id}>
+            <div class="py-2 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start gap-x-4">
+              <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id} class="cursor-pointer">
                 <.icon name="hero-document-duplicate size-6 cursor-pointer" />
               </button>
-              <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")}>
+              <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")} class="cursor-pointer">
                 <.icon name="hero-trash size-6 cursor-pointer" />
               </button>
             </div>

@@ -52,7 +52,7 @@ defmodule WhiteboardWeb.WorkoutLive do
                     <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" />
                     <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" />
                     <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" />
-                    <button type="button" class="ml-4" phx-click="delete_set" phx-value-set_id={set.data.id} class="cursor-pointer" tabindex="-1">
+                    <button type="button" class="ml-4 cursor-pointer" phx-click="delete_set" phx-value-set_id={set.data.id} tabindex="-1">
                       <.icon name="hero-trash size-5 cursor-pointer" />
                     </button>
                   </li>

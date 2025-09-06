@@ -9,7 +9,7 @@ defmodule WhiteboardWeb.Components.Card do
 
   def render(assigns) do
     ~H"""
-    <div class={["rounded-lg shadow-lg relative p-8 flex flex-col", @class]}>
+    <div class={["rounded-lg shadow-lg dark:shadow-none bg-white dark:bg-stone-800 relative p-8 flex flex-col transition-colors duration-200", @class]}>
       {render_slot(@inner_block)}
     </div>
     """

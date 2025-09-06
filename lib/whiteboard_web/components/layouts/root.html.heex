@@ -7,19 +7,30 @@
     <.live_title>
       {assigns[:page_title] || "Whiteboard"}
     </.live_title>
+    <script>
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
 
-  <body class="bg-white">
-    <header class="py-4 px-8 bg-zinc-100 flex justify-between items-center gap-x-4">
+  <body class="bg-white dark:bg-stone-900 text-stone-900 dark:text-white transition-colors duration-200">
+    <header class="py-4 px-8 bg-zinc-100 dark:bg-stone-800 flex justify-between items-center gap-x-4 transition-colors duration-200">
       <a href={~p"/"} target="_self">
         <p class="text-lg uppercase font-black tracking-tight">whiteboard</p>
       </a>
-      <a class="leading-none" href={~p"/"} target="_self">
-        <.icon name="hero-home-solid" class="size-5" />
-      </a>
+      <button id="dark-mode-toggle" class="leading-none p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-stone-700 transition-colors duration-200 cursor-pointer" aria-label="Toggle dark mode" phx-hook="ThemeSwitcher">
+        <.icon name="hero-sun" class="size-5 hidden dark:block" />
+        <.icon name="hero-moon" class="size-5 block dark:hidden" />
+      </button>
     </header>
     {@inner_content}
   </body>
