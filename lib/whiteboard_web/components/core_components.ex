@@ -283,9 +283,9 @@ defmodule WhiteboardWeb.CoreComponents do
 
     ~H"""
     <div>
-      <label class="flex items-center gap-4 text-sm leading-6 text-zinc-600">
+      <label class="flex items-center gap-4 text-sm leading-6 text-zinc-600 dark:text-stone-300">
         <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
-        <input type="checkbox" id={@id} name={@name} value="true" checked={@checked} class="rounded border-zinc-300 text-zinc-900 focus:ring-0" {@rest} />
+        <input type="checkbox" id={@id} name={@name} value="true" checked={@checked} class="rounded border-zinc-300 dark:border-stone-600 text-zinc-900 dark:text-stone-100 focus:ring-0" {@rest} />
         {@label}
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>

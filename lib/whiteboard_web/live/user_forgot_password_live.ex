@@ -3,26 +3,27 @@ defmodule WhiteboardWeb.UserForgotPasswordLive do
   use WhiteboardWeb, :live_view
 
   alias Whiteboard.Accounts
+  alias WhiteboardWeb.Components.Card
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <.header class="text-center">
-        Forgot your password?
-        <:subtitle>We'll send a password reset link to your inbox</:subtitle>
-      </.header>
+    <div class="mx-auto w-full sm:w-[400px]">
+      <Card.render>
+        <h3>Forgot your password?</h3>
+        <p class="text-sm mt-2 mb-4">We'll send a password reset link to your inbox.</p>
 
-      <.simple_form for={@form} id="reset_password_form" phx-submit="send_email">
-        <.input field={@form[:email]} type="email" placeholder="Email" required />
-        <:actions>
-          <.button phx-disable-with="Sending..." class="w-full">
-            Send password reset instructions
-          </.button>
-        </:actions>
-      </.simple_form>
-      <p class="text-center text-sm mt-4">
-        <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
-      </p>
+        <.simple_form for={@form} id="reset_password_form" phx-submit="send_email" class="flex flex-col gap-y-4">
+          <.input field={@form[:email]} type="email" placeholder="Email" required />
+          <:actions>
+            <.button phx-disable-with="Sending..." class="w-full">
+              Send password reset instructions
+            </.button>
+          </:actions>
+        </.simple_form>
+        <p class="text-center text-sm mt-4">
+          <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
+        </p>
+      </Card.render>
     </div>
     """
   end

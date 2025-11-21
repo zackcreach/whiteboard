@@ -3,27 +3,28 @@ defmodule WhiteboardWeb.UserConfirmationInstructionsLive do
   use WhiteboardWeb, :live_view
 
   alias Whiteboard.Accounts
+  alias WhiteboardWeb.Components.Card
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <.header class="text-center">
-        No confirmation instructions received?
-        <:subtitle>We'll send a new confirmation link to your inbox</:subtitle>
-      </.header>
+    <div class="mx-auto w-full sm:w-[400px]">
+      <Card.render>
+        <h3>No confirmation instructions received?</h3>
+        <p class="text-sm mt-2 mb-4">We'll send a new confirmation link to your inbox.</p>
 
-      <.simple_form for={@form} id="resend_confirmation_form" phx-submit="send_instructions">
-        <.input field={@form[:email]} type="email" placeholder="Email" required />
-        <:actions>
-          <.button phx-disable-with="Sending..." class="w-full">
-            Resend confirmation instructions
-          </.button>
-        </:actions>
-      </.simple_form>
+        <.simple_form for={@form} id="resend_confirmation_form" phx-submit="send_instructions" class="flex flex-col gap-y-4">
+          <.input field={@form[:email]} type="email" placeholder="Email" required />
+          <:actions>
+            <.button phx-disable-with="Sending..." class="w-full">
+              Resend confirmation instructions
+            </.button>
+          </:actions>
+        </.simple_form>
 
-      <p class="text-center mt-4">
-        <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
-      </p>
+        <p class="text-center mt-4">
+          <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
+        </p>
+      </Card.render>
     </div>
     """
   end

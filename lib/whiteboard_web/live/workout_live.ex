@@ -49,8 +49,8 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <.inputs_for :let={set} field={exercise[:sets]}>
                   <li class="flex items-center mb-4">
                     <p class="min-w-10 font-medium mr-4">Set {set.index + 1}</p>
-                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" />
-                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" />
+                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" />
+                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" />
                     <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" />
                     <button type="button" class="ml-4 cursor-pointer" phx-click="delete_set" phx-value-set_id={set.data.id} tabindex="-1">
                       <.icon name="hero-trash size-5 cursor-pointer" />

@@ -1,37 +1,40 @@
 defmodule WhiteboardWeb.UserLoginLive do
   @moduledoc false
   use WhiteboardWeb, :live_view
+  alias WhiteboardWeb.Components.Card
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <.header class="text-center">
-        Log in to account
-        <:subtitle>
+    <div class="mx-auto w-full sm:w-[400px]">
+      <Card.render>
+        <h3>Log in</h3>
+        <p class="text-sm mt-2 mb-4">
           Don't have an account?
           <.link navigate={~p"/users/register"} class="font-semibold text-brand hover:underline">
             Sign up
           </.link>
           for an account now.
-        </:subtitle>
-      </.header>
+        </p>
 
-      <.simple_form for={@form} id="login_form" action={~p"/users/log_in"} phx-update="ignore">
-        <.input field={@form[:email]} type="email" label="Email" required />
-        <.input field={@form[:password]} type="password" label="Password" required />
+        <.simple_form for={@form} id="login_form" action={~p"/users/log_in"} phx-update="ignore" class="flex flex-col gap-y-4">
+          <.input field={@form[:email]} type="email" placeholder="Email" required />
+          <.input field={@form[:password]} type="password" placeholder="Password" required />
 
-        <:actions>
-          <.input field={@form[:remember_me]} type="checkbox" label="Keep me logged in" />
-          <.link href={~p"/users/reset_password"} class="text-sm font-semibold">
-            Forgot your password?
-          </.link>
-        </:actions>
-        <:actions>
-          <.button phx-disable-with="Logging in..." class="w-full">
-            Log in <span aria-hidden="true">→</span>
-          </.button>
-        </:actions>
-      </.simple_form>
+          <:actions>
+            <div class="flex flex-col gap-y-2 w-full">
+              <.input field={@form[:remember_me]} type="checkbox" label="Keep me logged in" />
+              <.link href={~p"/users/reset_password"} class="text-sm font-semibold">
+                Forgot your password?
+              </.link>
+            </div>
+          </:actions>
+          <:actions>
+            <.button phx-disable-with="Logging in..." class="w-full">
+              Log in <span aria-hidden="true">→</span>
+            </.button>
+          </:actions>
+        </.simple_form>
+      </Card.render>
     </div>
     """
   end
