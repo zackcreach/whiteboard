@@ -7,6 +7,7 @@ defmodule Whiteboard.MixProject do
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_paths: ["test", "lib"],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps()
@@ -32,6 +33,7 @@ defmodule Whiteboard.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
       {:bandit, "~> 1.5"},
       {:dns_cluster, "~> 0.1.1"},
       {:ecto_sql, "~> 3.10"},
@@ -44,6 +46,7 @@ defmodule Whiteboard.MixProject do
       {:heroicons,
        github: "tailwindlabs/heroicons", tag: "v2.1.1", sparse: "optimized", app: false, compile: false, depth: 1},
       {:jason, "~> 1.2"},
+      {:lazy_html, ">= 0.1.0", only: :test},
       {:phoenix, "~> 1.7.14"},
       {:phoenix_ecto, "~> 4.5"},
       {:phoenix_html, "~> 4.1"},

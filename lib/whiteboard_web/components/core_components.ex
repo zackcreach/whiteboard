@@ -49,7 +49,13 @@ defmodule WhiteboardWeb.CoreComponents do
       <div class="fixed inset-0 overflow-y-auto" aria-labelledby={"#{@id}-title"} aria-describedby={"#{@id}-description"} role="dialog" aria-modal="true" tabindex="0">
         <div class="flex min-h-full items-center justify-center">
           <div class="w-full max-w-3xl p-4 sm:p-6 lg:py-8">
-            <.focus_wrap id={"#{@id}-container"} phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")} phx-key="escape" phx-click-away={JS.exec("data-cancel", to: "##{@id}")} class="shadow-zinc-700/10 ring-zinc-700/10 dark:ring-stone-600/50 relative hidden rounded-2xl bg-white dark:bg-stone-800 p-14 shadow-lg dark:shadow-none ring-1 transition-colors duration-200">
+            <.focus_wrap
+              id={"#{@id}-container"}
+              phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
+              phx-key="escape"
+              phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
+              class="shadow-zinc-700/10 ring-zinc-700/10 dark:ring-stone-600/50 relative hidden rounded-2xl bg-white dark:bg-stone-800 p-14 shadow-lg dark:shadow-none ring-1 transition-colors duration-200"
+            >
               <div class="absolute top-6 right-5">
                 <button phx-click={JS.exec("data-cancel", to: "##{@id}")} type="button" class="-m-3 flex-none p-3 opacity-20 hover:opacity-40 cursor-pointer" aria-label={gettext("close")}>
                   <.icon name="hero-x-mark-solid" class="h-5 w-5" />

@@ -21,7 +21,11 @@ defmodule Whiteboard.Repo.Migrations.AddInitialTables do
     create table(:exercise_names, primary_key: false) do
       id(:ex_name)
       add(:name, :string, null: false)
-      add(:exercise_category_id, references(:exercise_categories, type: :text, on_delete: :delete_all))
+
+      add(
+        :exercise_category_id,
+        references(:exercise_categories, type: :text, on_delete: :delete_all)
+      )
 
       timestamps()
     end

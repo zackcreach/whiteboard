@@ -1,5 +1,8 @@
 import Config
 
+# Auto recompile
+config :exsync, addition_dirs: ["/priv"]
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 
@@ -57,21 +60,20 @@ config :whiteboard, WhiteboardWeb.Endpoint,
   http: [ip: {0, 0, 0, 0}, port: 4000],
   check_origin: false,
   code_reloader: true,
+  # Watch static and templates for browser reloading.
+  #       keyfile: "priv/cert/selfsigned_key.pem",
+  #       certfile: "priv/cert/selfsigned.pem"
+  #     ],
+  #
+  # If desired, both `http:` and `https:` keys can be
+  # configured to run both http and https servers on
+  # different ports.
   debug_errors: true,
   secret_key_base: "npr3y/Lt8Ur5B8U5YJFc7EngH1SPEOj7HJxrmyJBRHElaoQaxk0ac2uuOXsEbKoi",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:whiteboard, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:whiteboard, ~w(--watch)]}
   ]
-
-# Watch static and templates for browser reloading.
-#       keyfile: "priv/cert/selfsigned_key.pem",
-#       certfile: "priv/cert/selfsigned.pem"
-#     ],
-#
-# If desired, both `http:` and `https:` keys can be
-# configured to run both http and https servers on
-# different ports.
 
 config :whiteboard, WhiteboardWeb.Endpoint,
   live_reload: [
@@ -87,6 +89,3 @@ config :whiteboard, :base_url, "http://localhost:4000"
 
 # Enable dev routes for dashboard and mailbox
 config :whiteboard, dev_routes: true
-
-# Auto recompile
-config :exsync, addition_dirs: ["/priv"]

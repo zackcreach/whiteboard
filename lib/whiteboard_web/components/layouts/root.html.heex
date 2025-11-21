@@ -27,10 +27,43 @@
       <a href={~p"/"} target="_self">
         <p class="text-lg uppercase font-black tracking-tight">whiteboard</p>
       </a>
-      <button id="dark-mode-toggle" class="leading-none p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-stone-700 transition-colors duration-200 cursor-pointer" aria-label="Toggle dark mode" phx-hook="ThemeSwitcher">
-        <.icon name="hero-sun" class="size-5 hidden dark:block" />
-        <.icon name="hero-moon" class="size-5 block dark:hidden" />
-      </button>
+      <div class="flex">
+        <ul class="flex items-center gap-4 [&>li]:text-xs mr-4">
+          <%= if @current_user do %>
+            <li>
+              {@current_user.email}
+            </li>
+            <li>
+              <.link href={~p"/users/settings"}>
+                Settings
+              </.link>
+            </li>
+            <li>
+              <.link
+                href={~p"/users/log_out"}
+                method="delete"
+              >
+                Log out
+              </.link>
+            </li>
+          <% else %>
+            <li>
+              <.link href={~p"/users/register"}>
+                Register
+              </.link>
+            </li>
+            <li>
+              <.link href={~p"/users/log_in"}>
+                Log in
+              </.link>
+            </li>
+          <% end %>
+        </ul>
+        <button id="dark-mode-toggle" class="leading-none p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-stone-700 transition-colors duration-200 cursor-pointer" aria-label="Toggle dark mode" phx-hook="ThemeSwitcher">
+          <.icon name="hero-sun" class="size-5 hidden dark:block" />
+          <.icon name="hero-moon" class="size-5 block dark:hidden" />
+        </button>
+      </div>
     </header>
     {@inner_content}
   </body>
