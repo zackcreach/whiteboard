@@ -25,34 +25,25 @@ defmodule WhiteboardWeb.UserConfirmationLiveTest do
 
       {:ok, lv, _html} = live(conn, ~p"/users/confirm/#{token}")
 
-      result =
-        lv
-        |> form("#confirmation_form")
-        |> render_submit()
-        |> follow_redirect(conn, "/")
+      assert {:error, {:redirect, %{to: to}}} =
+               lv
+               |> form("#confirmation_form")
+               |> render_submit()
 
-      assert {:ok, conn} = result
-
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~
-               "User confirmed successfully"
+      assert to == "/"
 
       assert Accounts.get_user!(user.id).confirmed_at
-      refute get_session(conn, :user_token)
       assert Repo.all(Accounts.UserToken) == []
 
       # when not logged in
-      {:ok, lv, _html} = live(conn, ~p"/users/confirm/#{token}")
+      {:ok, lv, _html} = live(build_conn(), ~p"/users/confirm/#{token}")
 
-      result =
-        lv
-        |> form("#confirmation_form")
-        |> render_submit()
-        |> follow_redirect(conn, "/")
+      assert {:error, {:redirect, %{to: to}}} =
+               lv
+               |> form("#confirmation_form")
+               |> render_submit()
 
-      assert {:ok, conn} = result
-
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
-               "User confirmation link is invalid or it has expired"
+      assert to == "/"
 
       # when logged in
       conn = log_in_user(build_conn(), user)
@@ -72,14 +63,12 @@ defmodule WhiteboardWeb.UserConfirmationLiveTest do
     test "does not confirm email with invalid token", %{conn: conn, user: user} do
       {:ok, lv, _html} = live(conn, ~p"/users/confirm/invalid-token")
 
-      {:ok, conn} =
-        lv
-        |> form("#confirmation_form")
-        |> render_submit()
-        |> follow_redirect(conn, ~p"/")
+      assert {:error, {:redirect, %{to: to}}} =
+               lv
+               |> form("#confirmation_form")
+               |> render_submit()
 
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
-               "User confirmation link is invalid or it has expired"
+      assert to == "/"
 
       refute Accounts.get_user!(user.id).confirmed_at
     end

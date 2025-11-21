@@ -19,12 +19,6 @@ defmodule WhiteboardWeb.Router do
 
   scope "/", WhiteboardWeb do
     pipe_through :browser
-
-    live_session(:public_routes, []) do
-      live "/", HomeLive
-      live "/delete/:workout_id", HomeLive, :delete
-      live "/workouts/:workout_id", WorkoutLive
-    end
   end
 
   # Other scopes may use custom stacks.
@@ -72,6 +66,10 @@ defmodule WhiteboardWeb.Router do
       on_mount: [{WhiteboardWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+
+      live "/", HomeLive
+      live "/delete/:workout_id", HomeLive, :delete
+      live "/workouts/:workout_id", WorkoutLive
     end
   end
 
