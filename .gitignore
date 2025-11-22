@@ -37,3 +37,7 @@ npm-debug.log
 
 # Local config file
 .iex.exs
+
+# Env files
+.env
+.env.*

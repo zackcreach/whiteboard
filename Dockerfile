@@ -61,6 +61,11 @@ RUN mix compile
 COPY config/runtime.exs config/
 
 COPY rel rel
+
+# Note: Database migrations should be run at deployment time, not during build
+# Run migrations before starting the app:
+# docker exec <container> /app/bin/whiteboard eval "Whiteboard.Release.migrate"
+
 RUN mix release
 
 # start a new build stage so that the final image will only contain

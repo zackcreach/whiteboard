@@ -7,10 +7,16 @@ defmodule Whiteboard.Application do
 
   @impl true
   def start(_type, _args) do
+    dns_query =
+      case Application.get_env(:whiteboard, :dns_cluster_query) do
+        query when is_binary(query) and query != "" -> query
+        _ -> :ignore
+      end
+
     children = [
       WhiteboardWeb.Telemetry,
       Whiteboard.Repo,
-      {DNSCluster, query: Application.get_env(:whiteboard, :dns_cluster_query) || :ignore},
+      {DNSCluster, query: dns_query},
       {Phoenix.PubSub, name: Whiteboard.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Whiteboard.Finch},

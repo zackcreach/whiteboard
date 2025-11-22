@@ -63,7 +63,10 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
-  config :whiteboard, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  dns_cluster_query = System.get_env("DNS_CLUSTER_QUERY")
+  if dns_cluster_query && dns_cluster_query != "" do
+    config :whiteboard, :dns_cluster_query, dns_cluster_query
+  end
 
   # ## SSL Support
   #
