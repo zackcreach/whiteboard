@@ -10,7 +10,8 @@ defmodule Whiteboard.MixProject do
       test_paths: ["test", "lib"],
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      releases: releases()
     ]
   end
 
@@ -35,7 +36,6 @@ defmodule Whiteboard.MixProject do
     [
       {:bcrypt_elixir, "~> 3.0"},
       {:bandit, "~> 1.5"},
-      {:dns_cluster, "~> 0.1.1"},
       {:ecto_sql, "~> 3.10"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:ex_machina, "~> 2.8.0", only: :test},
@@ -83,6 +83,14 @@ defmodule Whiteboard.MixProject do
         "tailwind whiteboard --minify",
         "esbuild whiteboard --minify",
         "phx.digest"
+      ]
+    ]
+  end
+
+  defp releases do
+    [
+      whiteboard: [
+        include_executables_for: [:unix]
       ]
     ]
   end

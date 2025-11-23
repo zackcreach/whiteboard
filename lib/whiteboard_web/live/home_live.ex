@@ -25,13 +25,13 @@ defmodule WhiteboardWeb.HomeLive do
       )
 
     ~H"""
-    <div class="grid grid-cols-2 gap-x-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card.render>
         <h3>Workouts</h3>
         <div class="mt-4">
-          <.form for={@create_workout_form} phx-change="validate_workout" phx-submit="create_workout" class="flex items-center gap-x-4">
+          <.form for={@create_workout_form} phx-change="validate_workout" phx-submit="create_workout" class="flex flex-col md:flex-row items-center gap-4">
             <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
-            <.button type="submit" class="cursor-pointer">New workout</.button>
+            <.button type="submit" class="cursor-pointer w-full md:w-auto">New workout</.button>
           </.form>
         </div>
       </Card.render>
@@ -39,21 +39,23 @@ defmodule WhiteboardWeb.HomeLive do
       <Card.render>
         <h3>Exercises</h3>
         <div class="mt-4">
-          <.form for={@create_exercise_category_form} phx-change="validate_exercise_category" phx-submit="create_exercise_category" class="flex items-center gap-x-4">
+          <.form for={@create_exercise_category_form} phx-change="validate_exercise_category" phx-submit="create_exercise_category" class="flex flex-col md:flex-row items-center gap-4 mb-4 md:mb-0">
             <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name (e.g. Triceps)" />
-            <.button type="submit" class="cursor-pointer">New exercise category</.button>
+            <.button type="submit" class="cursor-pointer w-full md:w-auto">New exercise category</.button>
           </.form>
         </div>
         <div class="mt-4">
-          <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex items-center">
-            <div class="basis-1/2">
-              <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={if @exercise_categories, do: @exercise_categories, else: []} border_variant={:start} placeholder="Exercise categories" />
-            </div>
-            <div class="basis-1/2">
-              <.input field={@create_exercise_name_form[:name]} border_variant={:end} placeholder="Exercise name (e.g. Skullcrushers)" />
+          <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex flex-col md:flex-row items-center gap-4">
+            <div class="flex w-full">
+              <div class="basis-1/3">
+                <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={if @exercise_categories, do: @exercise_categories, else: []} border_variant={:start} placeholder="Exercise categories" />
+              </div>
+              <div class="basis-2/3">
+                <.input field={@create_exercise_name_form[:name]} border_variant={:end} placeholder="Exercise name (e.g. Skullcrushers)" />
+              </div>
             </div>
 
-            <.button type="submit" class="ml-4 cursor-pointer">New exercise name</.button>
+            <.button type="submit" class="cursor-pointer w-full md:w-auto">New exercise name</.button>
           </.form>
         </div>
       </Card.render>

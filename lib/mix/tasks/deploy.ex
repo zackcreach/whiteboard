@@ -1,14 +1,12 @@
 defmodule Mix.Tasks.Deploy do
   @moduledoc """
-  Automated deployment task for Symphony.
+  Automated Docker-based deployment task for Whiteboard.
 
-  Checks for new commits on origin/main, runs tests, builds release, and restarts service.
+  Checks for new commits on origin/main, builds Docker image, and deploys via Docker Compose.
   """
   use Mix.Task
 
   @repo_dir "/home/zack/dev/whiteboard"
-  @service_name "whiteboard"
-  @deploy_target "/var/lib/whiteboard"
 
   def run(args) do
     force = "--force" in args
@@ -22,8 +20,8 @@ defmodule Mix.Tasks.Deploy do
     log("Fetching from origin...")
     git!(["fetch", "origin"])
 
-    local_commit = git!(["rev-parse", "main"]) |> String.trim()
-    remote_commit = git!(["rev-parse", "origin/main"]) |> String.trim()
+    local_commit = ["rev-parse", "main"] |> git!() |> String.trim()
+    remote_commit = ["rev-parse", "origin/main"] |> git!() |> String.trim()
 
     if local_commit == remote_commit and not force do
       log("Already up-to-date (commit: #{String.slice(local_commit, 0..6)})")
@@ -39,45 +37,14 @@ defmodule Mix.Tasks.Deploy do
       git!(["pull", "origin", "main"])
     end
 
-    log("Installing production dependencies...")
-    System.put_env("MIX_ENV", "prod")
-    mix!(["deps.get", "--only", "prod"])
+    log("Building Docker image...")
+    shell!("./scripts/docker-build.sh")
 
-    log("Compiling application...")
-    mix!(["compile"])
+    log("Deploying with Docker Compose...")
+    shell!("./scripts/docker-deploy.sh")
 
-    log("Running tests...")
-    System.put_env("MIX_ENV", "test")
-    mix!(["test"])
-
-    log("Running database migrations...")
-    System.put_env("MIX_ENV", "prod")
-    mix!(["ecto.migrate"])
-
-    log("Building production assets...")
-    setup_asset_tool_wrappers!()
-    mix!(["assets.deploy"])
-
-    log("Building release...")
-    mix!(["release", "--overwrite"])
-
-    log("Copying release to #{@deploy_target}...")
-    rsync_release!()
-
-    log("Restarting #{@service_name} service...")
-    systemctl!(["restart", @service_name])
-
-    log("Waiting for service to start...")
-    Process.sleep(2000)
-
-    case systemctl(["is-active", @service_name]) do
-      {_, 0} ->
-        log("Deployment successful! Service is running.")
-        log("Deployed commit: #{String.slice(remote_commit, 0..6)}")
-
-      _ ->
-        error("Service failed to start after deployment")
-    end
+    log("Deployment complete!")
+    log("Deployed commit: #{String.slice(remote_commit, 0..6)}")
   end
 
   defp log(message) do
@@ -88,26 +55,6 @@ defmodule Mix.Tasks.Deploy do
   defp error(message) do
     log("ERROR: #{message}")
     System.halt(1)
-  end
-
-  defp setup_asset_tool_wrappers! do
-    build_dir = Path.join(@repo_dir, "_build")
-    File.mkdir_p!(build_dir)
-
-    tailwind_wrapper = Path.join(build_dir, "tailwind-linux-x64")
-    esbuild_wrapper = Path.join(build_dir, "esbuild-linux-x64")
-
-    File.write!(tailwind_wrapper, """
-    #!/usr/bin/env bash
-    exec tailwindcss "$@"
-    """)
-    File.chmod!(tailwind_wrapper, 0o755)
-
-    File.write!(esbuild_wrapper, """
-    #!/usr/bin/env bash
-    exec esbuild "$@"
-    """)
-    File.chmod!(esbuild_wrapper, 0o755)
   end
 
   defp configure_git_credentials do
@@ -138,35 +85,10 @@ defmodule Mix.Tasks.Deploy do
     end
   end
 
-  defp mix!(args) do
-    case System.cmd("mix", args, stderr_to_stdout: true, env: [{"MIX_ENV", System.get_env("MIX_ENV", "prod")}]) do
-      {output, 0} ->
-        IO.puts(output)
-        output
-
-      {output, _} ->
-        IO.puts(output)
-        error("Mix command failed: mix #{Enum.join(args, " ")}")
-    end
-  end
-
-  defp rsync_release! do
-    source = Path.join(@repo_dir, "_build/prod/rel/whiteboard") <> "/"
-
-    case System.cmd("/run/wrappers/bin/sudo", ["rsync", "-a", "--delete", source, @deploy_target <> "/"], stderr_to_stdout: true) do
+  defp shell!(command) do
+    case System.cmd("sh", ["-c", command], stderr_to_stdout: true, into: IO.stream()) do
       {_, 0} -> :ok
-      {output, _} -> error("Release copy failed: #{output}")
-    end
-  end
-
-  defp systemctl(args) do
-    System.cmd("/run/wrappers/bin/sudo", ["systemctl"] ++ args, stderr_to_stdout: true)
-  end
-
-  defp systemctl!(args) do
-    case systemctl(args) do
-      {_, 0} -> :ok
-      {output, _} -> error("Systemctl command failed: #{output}")
+      {_, _} -> error("Command failed: #{command}")
     end
   end
 end

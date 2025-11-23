@@ -1,18 +1,45 @@
 # Whiteboard
 
+Fitness tracking application to keep track of workouts > exercises > sets per user
+
+## Features
+
+- Create and manage workouts
+- Add exercises with weights and reps
+- Track progress over time
+- Duplicate previous workouts for easy planning
+- Real-time updates with LiveView
+
+## Development
+
 To start your Phoenix server:
 
-  * Run `mix setup` to install and setup dependencies
-  * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+- Run `mix setup` to install and setup dependencies
+- Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+## Deployment
 
-## Learn more
+Whiteboard uses Docker-based deployment with automated continuous deployment. When you push to the main branch, changes are automatically deployed to production within 5 minutes.
 
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+For detailed deployment documentation, including how to access logs, IEx console, and the database, see **[docs/deploy.md](docs/deploy.md)**.
+
+### Quick Deployment Commands
+
+```bash
+# View running containers
+docker compose ps
+
+# View application logs
+docker compose logs whiteboard -f
+
+# Access IEx console
+docker exec -it whiteboard /app/bin/whiteboard remote
+
+# Access database
+docker exec -it whiteboard_db psql -U postgres -d whiteboard_prod
+
+# Trigger manual deployment
+sudo systemctl start whiteboard-deploy
+```

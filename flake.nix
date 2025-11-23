@@ -30,7 +30,6 @@
             elixir
             (lexical.override { elixir = elixir; })
             postgresql_17_jit
-            flyctl
             glibcLocales
           ] ++ optional stdenv.isLinux inotify-tools
           ++ optional stdenv.isDarwin terminal-notifier

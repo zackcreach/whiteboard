@@ -41,3 +41,4 @@ npm-debug.log
 # Env files
 .env
 .env.*
+docker-compose.override.yml

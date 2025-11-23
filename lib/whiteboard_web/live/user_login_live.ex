@@ -1,6 +1,7 @@
 defmodule WhiteboardWeb.UserLoginLive do
   @moduledoc false
   use WhiteboardWeb, :live_view
+
   alias WhiteboardWeb.Components.Card
 
   def render(assigns) do
