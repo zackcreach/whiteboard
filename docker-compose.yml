@@ -5,6 +5,8 @@ services:
     container_name: whiteboard
     ports:
       - "4000:4000"
+    env_file:
+      - .env
     environment:
       - PHX_SERVER=true
       - PHX_HOST=symphony

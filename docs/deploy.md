@@ -362,7 +362,7 @@ docker image prune -a
 
 ### Environment Variables
 
-Environment variables are configured in `/etc/whiteboard/env`:
+Environment variables are configured in `/home/zack/dev/whiteboard/.env`:
 
 - `SECRET_KEY_BASE`: Phoenix secret key
 - `GITHUB_TOKEN`: GitHub authentication token
@@ -372,7 +372,7 @@ To update:
 
 ```bash
 # Edit environment file
-sudo nano /etc/whiteboard/env
+nano /home/zack/dev/whiteboard/.env
 
 # Restart services
 sudo systemctl restart whiteboard
