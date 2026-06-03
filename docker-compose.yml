@@ -10,6 +10,9 @@ services:
     environment:
       - PHX_SERVER=true
       - PHX_HOST=symphony
+      - PHX_SCHEME=http
+      - PHX_PORT=4000
+      - PHX_CHECK_ORIGIN=http://symphony:4000,http://localhost:4000
       - PORT=4000
       - POOL_SIZE=10
       - MIX_ENV=prod

@@ -39,6 +39,13 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
+  scheme = System.get_env("PHX_SCHEME") || "https"
+  url_port = String.to_integer(System.get_env("PHX_PORT") || "443")
+
+  check_origin =
+    "PHX_CHECK_ORIGIN"
+    |> System.get_env("#{scheme}://#{host}:#{url_port}")
+    |> String.split(",", trim: true)
 
   config :whiteboard, Whiteboard.Repo,
     url: database_url,
@@ -46,7 +53,8 @@ if config_env() == :prod do
     socket_options: [:inet] ++ maybe_ipv6
 
   config :whiteboard, WhiteboardWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [host: host, port: url_port, scheme: scheme],
+    check_origin: check_origin,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
