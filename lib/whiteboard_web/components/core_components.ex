@@ -295,21 +295,24 @@ defmodule WhiteboardWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="w-full relative after:absolute after:content-['⌄'] after:text-md after:top-1 after:right-2.5">
+    <div class="w-full">
       <.label for={@id}>{@label}</.label>
-      <select
-        id={@id}
-        name={@name}
-        class={[
-          "appearance-none block w-full rounded-lg border border-zinc-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-zinc-900 dark:text-stone-100 focus:border-zinc-400 dark:focus:border-stone-500 focus:ring-0 sm:text-sm p-2.5 pr-6 transition-colors duration-200",
-          get_border_variant_classes(@border_variant)
-        ]}
-        multiple={@multiple}
-        {@rest}
-      >
-        <option :if={@prompt} value="" class="">{@prompt}</option>
-        {Phoenix.HTML.Form.options_for_select(@options, @value)}
-      </select>
+      <div class="relative">
+        <select
+          id={@id}
+          name={@name}
+          class={[
+            "appearance-none block w-full rounded-lg border border-zinc-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-zinc-900 dark:text-stone-100 focus:border-zinc-400 dark:focus:border-stone-500 focus:ring-0 sm:text-sm p-2.5 pr-9 transition-colors duration-200",
+            get_border_variant_classes(@border_variant)
+          ]}
+          multiple={@multiple}
+          {@rest}
+        >
+          <option :if={@prompt} value="" class="">{@prompt}</option>
+          {Phoenix.HTML.Form.options_for_select(@options, @value)}
+        </select>
+        <.icon name="hero-chevron-down" class="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-900 dark:text-stone-100" />
+      </div>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """

@@ -26,9 +26,15 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
           phx-change="update_selected_exercise"
           phx-target={@myself}
         />
-        <div phx-click="replace_exercise" phx-value-selected_exercise_id={@selected_exercise.id} phx-value-current_exercise_id={@current_exercise_id}>
-          <.icon name="hero-document-duplicate size-5 cursor-pointer" />
-        </div>
+        <button
+          type="button"
+          phx-click="replace_exercise"
+          phx-value-selected_exercise_id={@selected_exercise.id}
+          phx-value-current_exercise_id={@current_exercise_id}
+          class="relative -top-px inline-flex h-10 w-10 shrink-0 items-center justify-center text-white cursor-pointer"
+        >
+          <.icon name="hero-document-duplicate size-5" />
+        </button>
       </div>
       <ul>
         <li :for={set <- ExerciseHelpers.render_list_with_index(@selected_exercise.sets)} class="flex gap-x-6 mb-[34px]">
