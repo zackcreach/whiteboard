@@ -27,22 +27,57 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
       phx-mounted={focus_command(@focus_target)}
     >
       <Card.render border={true} padding_class="p-4">
-        <div class={["flex items-center justify-between gap-4", @divider && "mb-2", !@divider && "mb-4"]}>
+        <div class="mb-2 flex items-center justify-between gap-4">
           <h4 class="font-medium text-zinc-900 dark:text-white">{@title}</h4>
-          <button
+          <.icon_button
             id={@close_id}
-            type="button"
-            aria-label={@close_label}
+            label={@close_label}
+            icon="hero-x-mark size-5"
             phx-click={@close_event}
-            class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-end rounded-lg text-zinc-900 dark:text-white"
-          >
-            <.icon name="hero-x-mark size-5" />
-          </button>
+            class="h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white"
+          />
         </div>
-        <div :if={@divider} class="mb-2 border-t border-zinc-200 dark:border-stone-600" />
+        <div :if={@divider} class="mb-4 border-t border-zinc-200 dark:border-stone-600" />
         {render_slot(@inner_block)}
       </Card.render>
     </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+  attr :icon, :string, default: nil
+  attr :click, :string, required: true
+  attr :values, :map, default: %{}
+  attr :role, :string, required: true
+  attr :label_role, :string, required: true
+  attr :disabled, :boolean, default: false
+  attr :class, :any, default: nil
+  slot :inner_block
+
+  def row(assigns) do
+    ~H"""
+    <button
+      id={@id}
+      type="button"
+      data-role={@role}
+      aria-label={@label}
+      phx-click={@click}
+      disabled={@disabled}
+      class={[
+        "flex h-[42px] w-full items-center gap-3 rounded-lg px-4 text-left text-sm text-zinc-900 dark:text-stone-100",
+        @disabled && "cursor-not-allowed bg-zinc-100 text-zinc-500 dark:bg-stone-700 dark:text-stone-300",
+        !@disabled && "cursor-pointer hover:bg-zinc-100 dark:hover:bg-stone-700",
+        @class
+      ]}
+      {phx_value_attributes(@values)}
+    >
+      <span :if={@icon} class="shrink-0">
+        <.icon name={@icon} />
+      </span>
+      <span data-role={@label_role} class="min-w-0 flex-1 truncate">{@label}</span>
+      {render_slot(@inner_block)}
+    </button>
     """
   end
 
@@ -52,5 +87,9 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
 
   defp focus_command(focus_target) do
     JS.focus(to: focus_target)
+  end
+
+  defp phx_value_attributes(values) do
+    Enum.map(values, fn {name, value} -> {"phx-value-#{name}", value} end)
   end
 end

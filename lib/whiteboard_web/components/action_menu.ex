@@ -10,6 +10,7 @@ defmodule WhiteboardWeb.Components.ActionMenu do
   attr :close_id, :string, required: true
   attr :close_label, :string, required: true
   attr :position_class, :string, default: "right-0 top-full mt-4"
+  attr :width_class, :string, default: "w-96 max-w-[calc(100vw-2rem)]"
   attr :row_role, :string, default: "exercise-action-menu-item"
   attr :row_label_role, :string, default: "exercise-action-menu-item-label"
 
@@ -31,34 +32,23 @@ defmodule WhiteboardWeb.Components.ActionMenu do
       close_id={@close_id}
       close_label={@close_label}
       position_class={@position_class}
-      width_class="w-96 max-w-[calc(100vw-2rem)]"
+      width_class={@width_class}
       divider={true}
     >
       <div class="flex flex-col gap-1">
-        <button
+        <FloatingDialog.row
           :for={row <- @row}
           id={row.id}
-          type="button"
-          data-role={@row_role}
-          aria-label={row.label}
-          phx-click={row.click}
+          label={row.label}
+          icon={row.icon}
+          click={row.click}
           disabled={row[:disabled] || false}
-          class={[
-            "flex w-full items-center gap-3 rounded px-4 py-3 text-left text-sm text-zinc-900 dark:text-stone-100",
-            row[:disabled] && "cursor-not-allowed bg-zinc-100 text-zinc-500 dark:bg-stone-700 dark:text-stone-300",
-            !row[:disabled] && "cursor-pointer hover:bg-zinc-100 dark:hover:bg-stone-700"
-          ]}
-          {phx_value_attributes(row[:values] || %{})}
-        >
-          <.icon name={row.icon} />
-          <span data-role={@row_label_role} class="truncate">{row.label}</span>
-        </button>
+          role={@row_role}
+          label_role={@row_label_role}
+          values={row[:values] || %{}}
+        />
       </div>
     </FloatingDialog.render>
     """
-  end
-
-  defp phx_value_attributes(values) do
-    Enum.map(values, fn {name, value} -> {"phx-value-#{name}", value} end)
   end
 end

@@ -1,6 +1,6 @@
 defmodule WhiteboardWeb.WorkoutLive do
   @moduledoc """
-  One big form to update individual workouts and corresponding exercises, sets
+  Workout editor for details, exercises, and sets.
   """
   use WhiteboardWeb, :live_view
 
@@ -11,41 +11,54 @@ defmodule WhiteboardWeb.WorkoutLive do
   alias Whiteboard.Training.Exercise
   alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
+  alias WhiteboardWeb.Components.ActionMenu
   alias WhiteboardWeb.Components.Card
   alias WhiteboardWeb.Components.ExerciseBrowser
   alias WhiteboardWeb.Components.ExerciseNameDialog
+  alias WhiteboardWeb.Components.WorkoutDetailsDialog
   alias WhiteboardWeb.Utils.DateHelpers
 
   def render(assigns) do
     ~H"""
+    <section class="flex items-center justify-between gap-4 mb-8">
+      <div class="relative min-w-0 flex-1">
+        <p class="font-extralight">{DateHelpers.render_date(Form.input_value(@workout_form, :inserted_at))}</p>
+        <div class="flex min-w-0 items-center gap-4">
+          <h1 class="min-w-0">{Form.input_value(@workout_form, :name)}</h1>
+          <.icon_button
+            :if={!@read_only?}
+            id="open-workout-details"
+            label="Edit workout"
+            icon="hero-pencil-square size-5"
+            phx-click="open_workout_details"
+            class="h-[42px] w-5 justify-center text-zinc-900 dark:text-white"
+          />
+        </div>
+        <WorkoutDetailsDialog.render
+          open={@workout_details_open?}
+          form={@workout_details_form}
+          title={"Edit #{Form.input_value(@workout_form, :name)}"}
+        />
+      </div>
+
+      <div :if={!@read_only?} class="relative shrink-0">
+        <.button id="open-add-exercise-top" type="button" phx-click="open_add_exercise" phx-value-position="top">Add exercise</.button>
+        <.add_exercise_dialog
+          open={@add_exercise_open}
+          active_position={@add_exercise_position}
+          position="top"
+          exercise_names={@exercise_names}
+          query={@add_exercise_query}
+          position_class="right-0 top-full mt-4"
+        />
+      </div>
+    </section>
+
     <.form for={@workout_form} phx-change={unless @read_only?, do: "maybe_update_workout"}>
-      <section class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between md:gap-4">
-        <div>
-          <p class="font-extralight">{DateHelpers.render_date(Form.input_value(@workout_form, :inserted_at))}</p>
-          <h1>{Form.input_value(@workout_form, :name)}</h1>
-        </div>
-
-        <div class="flex w-full items-center gap-4 md:w-1/2">
-          <div class="min-w-0 flex-1">
-            <.input field={@workout_form[:notes]} placeholder="Notes" class="h-10 text-sm" disabled={@read_only?} />
-          </div>
-          <div :if={!@read_only?} class="relative shrink-0">
-            <.button id="open-add-exercise-top" type="button" phx-click="open_add_exercise" phx-value-position="top">Add exercise</.button>
-            <.add_exercise_dialog
-              open={@add_exercise_open}
-              active_position={@add_exercise_position}
-              position="top"
-              exercise_names={@exercise_names}
-              query={@add_exercise_query}
-              position_class="right-0 top-full mt-4"
-            />
-          </div>
-        </div>
-      </section>
-
       <% exercise_count = length(@workout_form.data.exercises) %>
       <section id="workout-exercises" class="grid grid-cols-1 gap-4" phx-hook={unless @read_only?, do: "ExerciseReorder"}>
         <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
+          <% selected_previous_exercise_id = selected_previous_exercise_id(@selected_previous_exercise_ids, exercise.data.id) %>
           <Card.render
             id={"exercise-card-#{exercise.data.id}"}
             padding_class="p-4"
@@ -54,8 +67,8 @@ defmodule WhiteboardWeb.WorkoutLive do
             data-exercise-id={exercise.data.id}
           >
             <div class="relative flex flex-col">
-              <div class="flex justify-between items-center gap-4">
-                <div class="relative min-w-0 flex-1">
+              <div class="flex items-center">
+                <div class="relative mr-4 min-w-0 flex-1">
                   <div class="flex min-w-0 items-center gap-2">
                     <h3
                       :if={!@read_only?}
@@ -76,7 +89,19 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <div class="w-[40%] shrink-0">
                   <.input field={exercise[:notes]} placeholder="Notes" disabled={@read_only?} />
                 </div>
-                <div class="h-10 w-6 shrink-0" />
+                <.exercise_action_menu_control
+                  :if={!@read_only?}
+                  current_exercise={exercise.data}
+                  selected_previous_exercise_id={selected_previous_exercise_id}
+                  action_menu_exercise_id={@action_menu_exercise_id}
+                  replace_exercise_id={@replace_exercise_id}
+                  replace_exercise_query={@replace_exercise_query}
+                  exercise_names={@exercise_names}
+                  copy_disabled={is_nil(selected_previous_exercise_id)}
+                  move_up_disabled={exercise.index == 0}
+                  move_down_disabled={exercise.index == exercise_count - 1}
+                />
+                <div :if={@read_only?} class="ml-1.5 h-[42px] w-[42px] shrink-0" />
               </div>
 
               <ul class="mt-4 space-y-4">
@@ -86,19 +111,18 @@ defmodule WhiteboardWeb.WorkoutLive do
                     <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" disabled={@read_only?} />
                     <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" disabled={@read_only?} />
                     <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" disabled={@read_only?} />
-                    <button
-                      type="button"
+                    <.icon_button
+                      label="Delete set"
+                      icon="hero-x-mark size-5"
                       class={[
-                        "inline-flex h-10 w-[30px] shrink-0 items-center justify-end text-zinc-900 dark:text-white md:w-10 md:justify-center",
+                        "ml-1.5 h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white",
                         @read_only? && "invisible",
                         !@read_only? && "cursor-pointer"
                       ]}
                       phx-click={unless @read_only?, do: "delete_set"}
                       phx-value-set_id={set.data.id}
                       tabindex="-1"
-                    >
-                      <.icon name="hero-x-mark size-5" />
-                    </button>
+                    />
                   </li>
                 </.inputs_for>
               </ul>
@@ -108,7 +132,7 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <div class="flex-1">
                   <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="w-full cursor-pointer">Add set</.button>
                 </div>
-                <div class="h-10 w-10 shrink-0" />
+                <div class="h-[42px] w-12 shrink-0" />
               </div>
             </div>
 
@@ -120,12 +144,7 @@ defmodule WhiteboardWeb.WorkoutLive do
               read_only?={@read_only?}
               workout_id={@workout_form.data.id}
               exercise_form={exercise}
-              exercise_names={@exercise_names}
-              replace_exercise_id={@replace_exercise_id}
-              replace_exercise_query={@replace_exercise_query}
-              action_menu_exercise_id={@action_menu_exercise_id}
-              move_up_disabled={exercise.index == 0}
-              move_down_disabled={exercise.index == exercise_count - 1}
+              selected_previous_exercise_id={selected_previous_exercise_id}
             />
           </Card.render>
         </.inputs_for>
@@ -184,6 +203,116 @@ defmodule WhiteboardWeb.WorkoutLive do
     """
   end
 
+  defp exercise_action_menu_control(assigns) do
+    ~H"""
+    <div class="relative ml-1.5 h-[42px] w-[42px] shrink-0">
+      <.icon_button
+        id={"exercise-action-menu-button-#{@current_exercise.id}"}
+        label="Open exercise actions"
+        icon="hero-ellipsis-vertical size-5"
+        phx-click="open_exercise_action_menu"
+        phx-value-exercise_id={@current_exercise.id}
+        class="h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white"
+      />
+      <.exercise_action_menu
+        :if={@action_menu_exercise_id == @current_exercise.id}
+        current_exercise={@current_exercise}
+        selected_previous_exercise_id={@selected_previous_exercise_id}
+        copy_disabled={@copy_disabled}
+        move_up_disabled={@move_up_disabled}
+        move_down_disabled={@move_down_disabled}
+      />
+      <.replace_exercise_popover
+        :if={@replace_exercise_id == @current_exercise.id}
+        current_exercise={@current_exercise}
+        exercise_names={@exercise_names}
+        replace_exercise_query={@replace_exercise_query}
+      />
+    </div>
+    """
+  end
+
+  defp exercise_action_menu(assigns) do
+    ~H"""
+    <ActionMenu.render
+      id={"exercise-action-menu-#{@current_exercise.id}"}
+      title={"#{exercise_name(@current_exercise)} actions"}
+      close_event="cancel_exercise_action_menu"
+      close_id={"cancel-exercise-action-menu-#{@current_exercise.id}"}
+      close_label="Close exercise actions"
+    >
+      <:row
+        id={"delete-exercise-#{@current_exercise.id}"}
+        label="Delete exercise"
+        icon="hero-trash size-5"
+        click="delete_exercise"
+        values={%{exercise_id: @current_exercise.id}}
+      />
+      <:row
+        id={"clear-exercise-sets-#{@current_exercise.id}"}
+        label="Clear sets"
+        icon="hero-x-circle size-5"
+        click="clear_exercise_sets"
+        values={%{exercise_id: @current_exercise.id}}
+      />
+      <:row
+        id={"change-exercise-#{@current_exercise.id}"}
+        label="Replace exercise"
+        icon="hero-arrow-path size-5"
+        click="open_replace_exercise"
+        values={%{exercise_id: @current_exercise.id}}
+      />
+      <:row
+        id={"copy-exercise-sets-#{@current_exercise.id}"}
+        label="Copy sets from past exercise"
+        icon="hero-arrow-up-on-square-stack size-5"
+        click="replace_exercise"
+        disabled={@copy_disabled}
+        values={copy_exercise_values(@current_exercise.id, @selected_previous_exercise_id)}
+      />
+      <:row
+        :if={!@move_up_disabled}
+        id={"move-exercise-up-#{@current_exercise.id}"}
+        label="Move up"
+        icon="hero-arrow-long-up size-5"
+        click="move_exercise_up"
+        values={%{exercise_id: @current_exercise.id}}
+      />
+      <:row
+        :if={!@move_down_disabled}
+        id={"move-exercise-down-#{@current_exercise.id}"}
+        label="Move down"
+        icon="hero-arrow-long-down size-5"
+        click="move_exercise_down"
+        values={%{exercise_id: @current_exercise.id}}
+      />
+    </ActionMenu.render>
+    """
+  end
+
+  defp replace_exercise_popover(assigns) do
+    ~H"""
+    <ExerciseNameDialog.render
+      id={"replace-exercise-popover-#{@current_exercise.id}"}
+      title={"Replace #{exercise_name(@current_exercise)}"}
+      exercise_names={@exercise_names}
+      query={@replace_exercise_query}
+      query_id={"replace-exercise-query-#{@current_exercise.id}"}
+      query_name="replace_exercise_query"
+      filter_event="filter_replace_exercises"
+      cancel_event="cancel_replace_exercise"
+      cancel_id={"cancel-replace-exercise-#{@current_exercise.id}"}
+      cancel_label="Cancel exercise change"
+      option_event="change_exercise_name"
+      option_id_prefix={"replace-exercise-option-#{@current_exercise.id}"}
+      option_name_role="replace-exercise-option-name"
+      option_role="replace-exercise-option"
+      current_exercise_name_id={@current_exercise.exercise_name_id}
+      exercise_id={@current_exercise.id}
+    />
+    """
+  end
+
   def mount(%{"workout_id" => workout_id}, _session, socket) do
     case workout_page_owner(socket, workout_id) do
       {:ok, page_owner, read_only?} ->
@@ -193,7 +322,12 @@ defmodule WhiteboardWeb.WorkoutLive do
             |> assign(page_owner: page_owner)
             |> assign(read_only?: read_only?)
             |> assign(workout_form: workout_form)
+            |> assign(workout_details_open?: false)
+            |> assign(workout_details_form: workout_details_form(workout_form.data))
             |> assign(exercise_names: Training.list_exercise_names(page_owner))
+            |> assign(
+              selected_previous_exercise_ids: selected_previous_exercise_ids(page_owner, workout_form.data, %{})
+            )
             |> assign(replace_exercise_id: nil)
             |> assign(replace_exercise_query: "")
             |> assign(add_exercise_open: false)
@@ -218,12 +352,63 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  def handle_event("open_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("open_workout_details", _params, socket) do
+    socket
+    |> assign(workout_details_open?: true)
+    |> assign(workout_details_form: workout_details_form(socket.assigns.workout_form.data))
+    |> close_exercise_overlays()
+    |> noreply()
+  end
+
+  def handle_event("cancel_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_details", _params, socket) do
+    socket
+    |> close_workout_details()
+    |> noreply()
+  end
+
+  def handle_event("update_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("update_workout_details", params, socket) do
+    socket =
+      case Training.update_workout_details(
+             socket.assigns.page_owner,
+             socket.assigns.workout_form.data.id,
+             workout_details_event_params(params)
+           ) do
+        {:ok, %Workout{} = updated_workout} ->
+          socket
+          |> assign_workout_forms(updated_workout)
+          |> close_workout_details()
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          assign(socket,
+            workout_details_open?: true,
+            workout_details_form: to_form(changeset, as: :workout_details, action: :validate)
+          )
+
+        {:error, error} ->
+          put_flash(socket, :error, "Error updating workout: #{inspect(error)}")
+      end
+
+    noreply(socket)
+  end
+
   def handle_event("maybe_update_workout", %{"workout" => params}, socket) do
     socket =
       with %Ecto.Changeset{valid?: true} <- Workout.changeset(socket.assigns.workout_form.data, params),
            {:ok, %Workout{} = updated_workout} <-
              Training.update_workout(socket.assigns.page_owner, socket.assigns.workout_form.data.id, params) do
-        assign(socket, workout_form: to_form(Workout.changeset(updated_workout)))
+        assign_workout_forms(socket, updated_workout)
       else
         %Ecto.Changeset{valid?: false} = invalid_changeset ->
           assign(socket, workout_form: to_form(invalid_changeset, action: :validate))
@@ -238,6 +423,21 @@ defmodule WhiteboardWeb.WorkoutLive do
   #
   # Exercises
   #
+  def handle_event("update_selected_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("update_selected_exercise", %{"previous_exercise" => previous_exercise}, socket) do
+    previous_exercise
+    |> Enum.find(fn {_exercise_id, _previous_exercise_id} -> true end)
+    |> update_selected_previous_exercise(socket)
+    |> noreply()
+  end
+
+  def handle_event("update_selected_exercise", _params, socket) do
+    noreply(socket)
+  end
+
   def handle_event("create_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
     noreply(socket)
   end
@@ -272,6 +472,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> assign(add_exercise_query: "")
     |> close_replace_exercise()
     |> close_exercise_action_menu()
+    |> close_workout_details()
     |> noreply()
   end
 
@@ -318,6 +519,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> assign(replace_exercise_query: "")
     |> close_add_exercise()
     |> close_exercise_action_menu()
+    |> close_workout_details()
     |> noreply()
   end
 
@@ -391,6 +593,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> assign(action_menu_exercise_id: exercise_id)
     |> close_add_exercise()
     |> close_replace_exercise()
+    |> close_workout_details()
     |> noreply()
   end
 
@@ -522,12 +725,115 @@ defmodule WhiteboardWeb.WorkoutLive do
     end
   end
 
+  defp workout_details_form(%Workout{} = workout) do
+    workout
+    |> Workout.details_changeset(workout_details_params(workout))
+    |> to_form(as: :workout_details)
+  end
+
+  defp workout_details_params(%Workout{} = workout) do
+    %{name: workout.name, notes: workout.notes, date: Workout.local_date(workout.inserted_at)}
+  end
+
+  defp assign_workout_forms(socket, %Workout{} = workout) do
+    socket
+    |> assign(
+      workout_form: to_form(Workout.changeset(workout)),
+      workout_details_form: workout_details_form(workout)
+    )
+    |> assign_selected_previous_exercise_ids(workout)
+  end
+
   defp assign_workout_form(socket) do
     case get_workout_form(socket.assigns.page_owner, socket.assigns.workout_form.data.id) do
-      {:ok, workout_form} -> assign(socket, workout_form: workout_form)
-      {:error, _reason} -> put_flash(socket, :error, "Error loading workout")
+      {:ok, workout_form} ->
+        socket
+        |> assign(
+          workout_form: workout_form,
+          workout_details_form: workout_details_form(workout_form.data)
+        )
+        |> assign_selected_previous_exercise_ids(workout_form.data)
+
+      {:error, _reason} ->
+        put_flash(socket, :error, "Error loading workout")
     end
   end
+
+  defp close_workout_details(socket) do
+    assign(socket,
+      workout_details_open?: false,
+      workout_details_form: workout_details_form(socket.assigns.workout_form.data)
+    )
+  end
+
+  defp assign_selected_previous_exercise_ids(socket, %Workout{} = workout) do
+    existing_selected_exercise_ids = Map.get(socket.assigns, :selected_previous_exercise_ids, %{})
+
+    assign(
+      socket,
+      selected_previous_exercise_ids:
+        selected_previous_exercise_ids(socket.assigns.page_owner, workout, existing_selected_exercise_ids)
+    )
+  end
+
+  defp selected_previous_exercise_ids(%User{} = user, %Workout{} = workout, existing_selected_exercise_ids) do
+    Map.new(workout.exercises, fn exercise ->
+      {exercise.id, selected_previous_exercise_id(user, workout, exercise, existing_selected_exercise_ids[exercise.id])}
+    end)
+  end
+
+  defp selected_previous_exercise_id(%User{} = user, %Workout{} = workout, %Exercise{} = exercise, selected_exercise_id) do
+    previous_exercises = Training.list_previous_exercises(user, workout.id, exercise.exercise_name_id)
+
+    previous_exercises
+    |> Enum.find(&(&1.id == selected_exercise_id))
+    |> selected_previous_exercise(List.first(previous_exercises))
+  end
+
+  defp selected_previous_exercise_id(selected_previous_exercise_ids, exercise_id)
+       when is_map(selected_previous_exercise_ids) do
+    Map.get(selected_previous_exercise_ids, exercise_id)
+  end
+
+  defp selected_previous_exercise(%Exercise{} = selected_exercise, _default_exercise), do: selected_exercise.id
+
+  defp selected_previous_exercise(nil, %Exercise{} = default_exercise), do: default_exercise.id
+
+  defp selected_previous_exercise(nil, nil), do: nil
+
+  defp update_selected_previous_exercise({exercise_id, previous_exercise_id}, socket) do
+    with {:ok, %Exercise{} = exercise} <- current_workout_exercise(socket, exercise_id),
+         true <- previous_exercise?(socket, exercise, previous_exercise_id) do
+      selected_previous_exercise_ids =
+        socket.assigns
+        |> Map.get(:selected_previous_exercise_ids, %{})
+        |> Map.put(exercise_id, previous_exercise_id)
+
+      assign(socket, selected_previous_exercise_ids: selected_previous_exercise_ids)
+    else
+      _invalid_selection -> socket
+    end
+  end
+
+  defp update_selected_previous_exercise(nil, socket), do: socket
+
+  defp previous_exercise?(socket, %Exercise{} = exercise, previous_exercise_id) do
+    socket.assigns.page_owner
+    |> Training.list_previous_exercises(socket.assigns.workout_form.data.id, exercise.exercise_name_id)
+    |> Enum.any?(&(&1.id == previous_exercise_id))
+  end
+
+  defp copy_exercise_values(current_exercise_id, nil) do
+    %{current_exercise_id: current_exercise_id}
+  end
+
+  defp copy_exercise_values(current_exercise_id, selected_exercise_id) do
+    %{current_exercise_id: current_exercise_id, selected_exercise_id: selected_exercise_id}
+  end
+
+  defp exercise_name(%Exercise{exercise_name: %{name: name}}), do: name
+
+  defp exercise_name(%Exercise{}), do: "Exercise"
 
   defp close_replace_exercise(socket) do
     socket
@@ -589,7 +895,7 @@ defmodule WhiteboardWeb.WorkoutLive do
     case Training.reorder_exercises(socket.assigns.page_owner, socket.assigns.workout_form.data.id, exercise_ids) do
       {:ok, %Workout{} = workout} ->
         socket
-        |> assign(workout_form: to_form(Workout.changeset(workout)))
+        |> assign_workout_forms(workout)
         |> close_exercise_overlays()
         |> noreply()
 
@@ -626,6 +932,10 @@ defmodule WhiteboardWeb.WorkoutLive do
   defp current_workout_exercise_result(%Exercise{} = exercise), do: {:ok, exercise}
 
   defp current_workout_exercise_result(nil), do: {:error, :invalid_exercise}
+
+  defp workout_details_event_params(%{"workout_details" => params}), do: params
+
+  defp workout_details_event_params(_params), do: %{}
 
   defp replace_exercise_query(params), do: event_query(params, "replace_exercise_query")
 

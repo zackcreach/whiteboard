@@ -53,6 +53,13 @@ defmodule Whiteboard.Training.Repo do
     end
   end
 
+  def update_workout_details(%User{} = user, id, params) do
+    with {:ok, workout} <- get_workout(user, id),
+         {:ok, %Workout{}} <- workout |> Workout.details_changeset(params) |> Repo.update() do
+      get_workout(user, id)
+    end
+  end
+
   def delete_workout(%User{} = user, id) do
     with {:ok, workout} <- get_workout(user, id) do
       delete(workout)

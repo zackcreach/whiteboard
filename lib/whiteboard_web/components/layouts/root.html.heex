@@ -60,10 +60,15 @@
             </li>
           <% end %>
         </ul>
-        <button id="dark-mode-toggle" class="leading-none p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-stone-700 transition-colors duration-200 cursor-pointer" aria-label="Toggle dark mode" phx-hook="ThemeSwitcher">
-          <.icon name="hero-sun" class="size-5 hidden dark:block" />
-          <.icon name="hero-moon" class="size-5 block dark:hidden" />
-        </button>
+        <.icon_button
+          id="dark-mode-toggle"
+          label="Toggle dark mode"
+          class="leading-none text-zinc-900 dark:text-white"
+          phx-hook="ThemeSwitcher"
+        >
+          <.icon name="hero-sun" class="relative z-10 hidden size-5 dark:block" />
+          <.icon name="hero-moon" class="relative z-10 block size-5 dark:hidden" />
+        </.icon_button>
       </div>
     </header>
     {@inner_content}

@@ -12,7 +12,10 @@ defmodule WhiteboardWeb.HomeLive do
   alias Whiteboard.Training.ExerciseCategory
   alias Whiteboard.Training.ExerciseName
   alias Whiteboard.Training.Workout
+  alias WhiteboardWeb.Components.ActionMenu
   alias WhiteboardWeb.Components.Card
+  alias WhiteboardWeb.Components.FloatingDialog
+  alias WhiteboardWeb.Components.WorkoutDetailsDialog
   alias WhiteboardWeb.Utils.DateHelpers
   alias WhiteboardWeb.Utils.ExerciseHelpers
 
@@ -22,8 +25,14 @@ defmodule WhiteboardWeb.HomeLive do
       |> extend_class("py-2 pr-2 border-b border-zinc-400 dark:border-stone-600 [&:nth-of-type(5)]:text-right",
         attribute: :previous_workouts_header
       )
+      |> extend_class("hidden py-2 pr-2 border-b border-zinc-400 dark:border-stone-600 md:block",
+        attribute: :previous_workouts_exercise_header
+      )
       |> extend_class("py-2 pr-2 border-b border-zinc-300 dark:border-stone-700",
         attribute: :previous_workouts_cell
+      )
+      |> extend_class("hidden py-2 pr-2 border-b border-zinc-300 dark:border-stone-700 md:block",
+        attribute: :previous_workouts_exercise_cell
       )
 
     ~H"""
@@ -64,9 +73,13 @@ defmodule WhiteboardWeb.HomeLive do
     </div>
 
     <h3 class="mt-8 mb-4">Previous workouts</h3>
-    <div class={["grid [&_a]:underline", @read_only? && "grid-cols-[1fr_2fr_1fr_1fr]", !@read_only? && "grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"]}>
+    <div class={[
+      "grid [&_a]:underline",
+      @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
+      !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
+    ]}>
       <p {@heex_previous_workouts_header}>Name</p>
-      <p {@heex_previous_workouts_header}>Exercises</p>
+      <p {@heex_previous_workouts_exercise_header}>Exercises</p>
       <p {@heex_previous_workouts_header}>Created on</p>
       <p {@heex_previous_workouts_header}>Last updated</p>
       <p :if={!@read_only?} {@heex_previous_workouts_header}>Actions</p>
@@ -74,31 +87,65 @@ defmodule WhiteboardWeb.HomeLive do
         <%= for {dom_workout_id, workout} <- @streams.workouts do %>
           <div id={dom_workout_id} class="contents">
             <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
-            <p {@heex_previous_workouts_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
+            <p {@heex_previous_workouts_exercise_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
             <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
             <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
-            <div :if={!@read_only?} class="py-2 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start gap-x-4">
-              <button type="button" phx-click="duplicate_workout" phx-value-workout_id={workout.id} class="cursor-pointer">
-                <.icon name="hero-document-duplicate size-6 cursor-pointer" />
-              </button>
-              <button type="button" phx-click={JS.navigate(~p"/delete/#{workout.id}")} class="cursor-pointer">
-                <.icon name="hero-trash size-6 cursor-pointer" />
-              </button>
+            <div :if={!@read_only?} class="relative py-1 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start">
+              <.icon_button
+                id={"workout-action-menu-button-#{workout.id}"}
+                label="Open workout actions"
+                icon="hero-ellipsis-vertical size-5"
+                phx-click="open_workout_action_menu"
+                phx-value-workout_id={workout.id}
+                class="h-8 w-8 justify-center text-zinc-900 dark:text-white"
+                hover_class="after:h-8 after:w-8 after:rounded-lg"
+              />
+              <ActionMenu.render
+                :if={@workout_action_menu_id == workout.id}
+                id={"workout-action-menu-#{workout.id}"}
+                title={"#{workout.name} actions"}
+                close_event="cancel_workout_action_menu"
+                close_id={"cancel-workout-action-menu-#{workout.id}"}
+                close_label="Close workout actions"
+                width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+                row_role="workout-action-menu-item"
+                row_label_role="workout-action-menu-item-label"
+              >
+                <:row
+                  id={"duplicate-workout-#{workout.id}"}
+                  label="Duplicate workout"
+                  icon="hero-document-duplicate size-5"
+                  click="duplicate_workout"
+                  values={%{workout_id: workout.id}}
+                />
+                <:row
+                  id={"delete-workout-#{workout.id}"}
+                  label="Delete workout"
+                  icon="hero-trash size-5"
+                  click="open_delete_workout"
+                  values={%{workout_id: workout.id}}
+                />
+                <:row
+                  id={"edit-workout-#{workout.id}"}
+                  label="Edit workout"
+                  icon="hero-pencil-square size-5"
+                  click="open_workout_details"
+                  values={%{workout_id: workout.id}}
+                />
+              </ActionMenu.render>
+              <WorkoutDetailsDialog.render
+                :if={@workout_details_workout_id == workout.id}
+                open={true}
+                form={@workout_details_form}
+                title={"Edit #{workout.name}"}
+                position_class="right-0 top-full mt-4"
+              />
+              <.delete_workout_dialog :if={@delete_workout_id == workout.id} workout={workout} />
             </div>
           </div>
         <% end %>
       </div>
     </div>
-
-    <.modal id="delete-modal" show={@live_action == :delete}>
-      <div class="flex flex-col items-center">
-        <p class="mb-4 font-medium">Delete workout?</p>
-        <div class="flex space-between gap-x-4 mx-auto">
-          <.button type="button" phx-click="delete_workout" phx-value-workout_id={@modal_delete_id}>Confirm</.button>
-          <.button type="button" phx-click={JS.navigate(~p"/")}>Cancel</.button>
-        </div>
-      </div>
-    </.modal>
     """
   end
 
@@ -107,7 +154,7 @@ defmodule WhiteboardWeb.HomeLive do
       {:ok, socket} ->
         socket
         |> initialize_forms()
-        |> assign(modal_delete_id: workout_id)
+        |> assign(delete_workout_id: workout_id)
         |> ok()
 
       {:redirect, socket} ->
@@ -125,6 +172,41 @@ defmodule WhiteboardWeb.HomeLive do
       {:redirect, socket} ->
         ok(socket)
     end
+  end
+
+  defp delete_workout_dialog(assigns) do
+    ~H"""
+    <FloatingDialog.render
+      id={"delete-workout-dialog-#{@workout.id}"}
+      title={"Delete #{@workout.name}?"}
+      close_event="cancel_delete_workout"
+      close_id={"cancel-delete-workout-#{@workout.id}"}
+      close_label="Cancel workout delete"
+      position_class="right-0 top-full mt-4"
+      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+      divider={true}
+    >
+      <div class="flex gap-3">
+        <.button
+          id={"confirm-delete-workout-#{@workout.id}"}
+          type="button"
+          phx-click="delete_workout"
+          phx-value-workout_id={@workout.id}
+          class="flex-1"
+        >
+          Confirm
+        </.button>
+        <.button
+          id={"cancel-delete-workout-button-#{@workout.id}"}
+          type="button"
+          phx-click="cancel_delete_workout"
+          class="flex-1 border border-zinc-300 !bg-transparent !text-zinc-900 hover:!bg-zinc-100 dark:border-stone-500 dark:!text-stone-100 dark:hover:!bg-stone-700"
+        >
+          Cancel
+        </.button>
+      </div>
+    </FloatingDialog.render>
+    """
   end
 
   #
@@ -201,7 +283,35 @@ defmodule WhiteboardWeb.HomeLive do
     noreply(socket)
   end
 
+  def handle_event("open_delete_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("delete_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_delete_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("open_workout_action_menu", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_action_menu", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("open_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("update_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
     noreply(socket)
   end
 
@@ -225,6 +335,110 @@ defmodule WhiteboardWeb.HomeLive do
       end
 
     noreply(socket)
+  end
+
+  def handle_event("open_workout_action_menu", %{"workout_id" => workout_id}, socket) do
+    socket
+    |> close_workout_details()
+    |> close_delete_workout()
+    |> assign(workout_action_menu_id: workout_id)
+    |> refresh_workouts()
+    |> noreply()
+  end
+
+  def handle_event("open_workout_action_menu", _params, socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_action_menu", _params, socket) do
+    socket
+    |> close_workout_action_menu()
+    |> refresh_workouts()
+    |> noreply()
+  end
+
+  def handle_event("open_workout_details", %{"workout_id" => workout_id}, socket) do
+    socket =
+      case Training.get_workout(socket.assigns.page_owner, workout_id) do
+        {:ok, %Workout{} = workout} ->
+          socket
+          |> assign(workout_details_workout_id: workout.id)
+          |> assign(workout_details_form: workout_details_form(workout))
+          |> close_workout_action_menu()
+          |> close_delete_workout()
+          |> refresh_workouts()
+
+        {:error, _reason} ->
+          socket
+          |> close_workout_action_menu()
+          |> close_workout_details()
+          |> close_delete_workout()
+          |> refresh_workouts()
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event("open_workout_details", _params, socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_details", _params, socket) do
+    socket
+    |> close_workout_details()
+    |> refresh_workouts()
+    |> noreply()
+  end
+
+  def handle_event("update_workout_details", _params, %{assigns: %{workout_details_workout_id: nil}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("update_workout_details", params, socket) do
+    socket =
+      case Training.update_workout_details(
+             socket.assigns.page_owner,
+             socket.assigns.workout_details_workout_id,
+             workout_details_event_params(params)
+           ) do
+        {:ok, %Workout{} = updated_workout} ->
+          socket
+          |> close_workout_action_menu()
+          |> close_workout_details()
+          |> stream(:workouts, Training.list_workouts(socket.assigns.page_owner), reset: true)
+          |> assign(workout_details_form: workout_details_form(updated_workout))
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          socket
+          |> close_workout_action_menu()
+          |> assign(workout_details_form: to_form(changeset, as: :workout_details, action: :validate))
+          |> refresh_workouts()
+
+        {:error, _reason} ->
+          socket
+          |> close_workout_action_menu()
+          |> close_workout_details()
+          |> refresh_workouts()
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event("open_delete_workout", %{"workout_id" => workout_id}, socket) do
+    socket
+    |> redirect(to: ~p"/delete/#{workout_id}")
+    |> noreply()
+  end
+
+  def handle_event("open_delete_workout", _params, socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_delete_workout", _params, socket) do
+    socket
+    |> close_delete_workout()
+    |> redirect(to: ~p"/")
+    |> noreply()
   end
 
   def handle_event("duplicate_workout", %{"workout_id" => workout_id}, socket) do
@@ -280,7 +494,10 @@ defmodule WhiteboardWeb.HomeLive do
 
     socket
     |> assign(
-      modal_delete_id: nil,
+      delete_workout_id: nil,
+      workout_action_menu_id: nil,
+      workout_details_workout_id: nil,
+      workout_details_form: nil,
       create_workout_form: to_form(Workout.changeset(%Workout{})),
       create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
       create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
@@ -289,4 +506,37 @@ defmodule WhiteboardWeb.HomeLive do
     # free up server memory by listing workouts as stream vs assigns
     |> stream(:workouts, Training.list_workouts(page_owner))
   end
+
+  defp workout_details_form(%Workout{} = workout) do
+    workout
+    |> Workout.details_changeset(workout_details_params(workout))
+    |> to_form(as: :workout_details)
+  end
+
+  defp workout_details_params(%Workout{} = workout) do
+    %{name: workout.name, notes: workout.notes, date: Workout.local_date(workout.inserted_at)}
+  end
+
+  defp close_workout_action_menu(socket) do
+    assign(socket, workout_action_menu_id: nil)
+  end
+
+  defp close_workout_details(socket) do
+    assign(socket,
+      workout_details_workout_id: nil,
+      workout_details_form: nil
+    )
+  end
+
+  defp close_delete_workout(socket) do
+    assign(socket, delete_workout_id: nil)
+  end
+
+  defp refresh_workouts(socket) do
+    stream(socket, :workouts, Training.list_workouts(socket.assigns.page_owner), reset: true)
+  end
+
+  defp workout_details_event_params(%{"workout_details" => params}), do: params
+
+  defp workout_details_event_params(_params), do: %{}
 end

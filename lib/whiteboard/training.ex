@@ -19,6 +19,10 @@ defmodule Whiteboard.Training do
     TrainingRepo.update_workout(user, id, params)
   end
 
+  def update_workout_details(%User{} = user, id, params) do
+    TrainingRepo.update_workout_details(user, id, params)
+  end
+
   def delete_workout(%User{} = user, id) do
     TrainingRepo.delete_workout(user, id)
   end

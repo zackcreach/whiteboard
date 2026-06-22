@@ -194,7 +194,7 @@ defmodule WhiteboardWeb.CoreComponents do
       <.button phx-click="go" class="ml-2">Send!</.button>
   """
   attr :type, :string, default: nil
-  attr :class, :string, default: nil
+  attr :class, :any, default: nil
   attr :rest, :global, include: ~w(disabled form name value)
 
   slot :inner_block, required: true
@@ -210,6 +210,39 @@ defmodule WhiteboardWeb.CoreComponents do
       ]}
       {@rest}
     >
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
+
+  @doc """
+  Renders an icon-only button with an out-of-flow hover target.
+  """
+  attr :icon, :string, default: nil
+  attr :label, :string, required: true
+  attr :type, :string, default: "button"
+  attr :class, :any, default: nil
+  attr :icon_class, :string, default: nil
+  attr :hover_class, :string, default: "after:h-[42px] after:w-[42px] after:rounded-lg"
+  attr :rest, :global, include: ~w(disabled form name value)
+  slot :inner_block
+
+  def icon_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      aria-label={@label}
+      class={[
+        "relative isolate inline-flex shrink-0 cursor-pointer items-center leading-none outline-none transition-colors duration-200",
+        "after:pointer-events-none after:absolute after:left-1/2 after:top-1/2 after:-z-10 after:-translate-x-1/2 after:-translate-y-1/2 after:bg-transparent after:transition-colors after:duration-200",
+        "hover:after:bg-zinc-200 focus-visible:after:bg-zinc-200 dark:hover:after:bg-stone-700 dark:focus-visible:after:bg-stone-700",
+        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:after:bg-transparent dark:disabled:hover:after:bg-transparent",
+        @hover_class,
+        @class
+      ]}
+      {@rest}
+    >
+      <.icon :if={@icon} name={@icon} class={@icon_class} />
       {render_slot(@inner_block)}
     </button>
     """
@@ -326,7 +359,7 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         name={@name}
         class={[
-          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 border focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem] transition-colors duration-200",
+          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 border focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem] p-2.5 pr-1.5 transition-colors duration-200",
           @errors == [] && "border-zinc-300 dark:border-stone-600 focus:border-zinc-400 dark:focus:border-stone-500",
           @errors != [] && "border-rose-400 focus:border-rose-400"
         ]}

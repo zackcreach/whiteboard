@@ -58,6 +58,199 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     end
   end
 
+  describe "workout details" do
+    test "renders the edit button and removes the top-row workout notes input", %{conn: conn} do
+      workout = insert(:workout, name: "Back day", notes: "Pull volume")
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user_fixture())
+        |> live(~p"/workouts/#{workout.id}")
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-details-dialog")
+      assert [] = Floki.find(document, "input[name=\"workout[notes]\"]")
+
+      assert [
+               %{
+                 attributes: %{
+                   "aria-label" => "Edit workout",
+                   "id" => "open-workout-details",
+                   "phx-click" => "open_workout_details",
+                   "type" => "button"
+                 },
+                 icon: "hero-pencil-square size-5"
+               }
+             ] = workout_edit_buttons(document)
+    end
+
+    test "opens and cancels the workout details dialog", %{conn: conn} do
+      workout =
+        insert(:workout,
+          name: "Back day",
+          notes: "Pull volume",
+          inserted_at: ~U[2024-01-15 18:45:30.000000Z]
+        )
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user_fixture())
+        |> live(~p"/workouts/#{workout.id}")
+
+      html =
+        lv
+        |> element("#open-workout-details")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{
+               attributes: %{
+                 "id" => "workout-details-dialog",
+                 "phx-click-away" => "cancel_workout_details",
+                 "phx-key" => "escape",
+                 "phx-window-keydown" => "cancel_workout_details"
+               },
+               close_button: %{
+                 attributes: %{
+                   "aria-label" => "Cancel workout edit",
+                   "id" => "cancel-workout-details",
+                   "phx-click" => "cancel_workout_details",
+                   "type" => "button"
+                 }
+               },
+               divider?: true,
+               form_attributes: %{
+                 "class" => "flex flex-col gap-3",
+                 "id" => "workout-details-form",
+                 "phx-submit" => "update_workout_details"
+               },
+               heading: "Edit Back day",
+               inputs: %{
+                 "workout_details[date]" => %{
+                   attributes: %{
+                     "id" => "workout_details_date",
+                     "required" => "",
+                     "type" => "date",
+                     "value" => "2024-01-15"
+                   }
+                 },
+                 "workout_details[name]" => %{
+                   attributes: %{
+                     "id" => "workout_details_name",
+                     "required" => "",
+                     "type" => "text",
+                     "value" => "Back day"
+                   }
+                 }
+               },
+               notes: %{
+                 attributes: %{
+                   "id" => "workout_details_notes",
+                   "name" => "workout_details[notes]"
+                 },
+                 value: "Pull volume"
+               },
+               save_button: %{
+                 attributes: %{
+                   "id" => "save-workout-details",
+                   "type" => "submit"
+                 }
+               }
+             } = workout_details_dialog(document)
+
+      html =
+        lv
+        |> element("#cancel-workout-details")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-details-dialog")
+    end
+
+    test "saves workout details and updates persisted date, title, and notes", %{conn: conn} do
+      workout =
+        insert(:workout,
+          name: "Back day",
+          notes: "Pull volume",
+          inserted_at: ~U[2024-01-15 18:45:30.000000Z]
+        )
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user_fixture())
+        |> live(~p"/workouts/#{workout.id}")
+
+      lv
+      |> element("#open-workout-details")
+      |> render_click()
+
+      html =
+        lv
+        |> form("#workout-details-form",
+          workout_details: %{
+            "date" => "2024-02-20",
+            "name" => "Pull day",
+            "notes" => "Rows and pullups"
+          }
+        )
+        |> render_submit()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-details-dialog")
+      assert ["Pull day"] == document |> Floki.find("h1") |> Enum.map(&Floki.text/1)
+      assert html =~ "02/20/24"
+
+      assert {:ok,
+              %{
+                inserted_at: ~U[2024-02-20 18:45:30.000000Z],
+                name: "Pull day",
+                notes: "Rows and pullups"
+              }} = Training.get_workout(default_user(), workout.id)
+    end
+
+    test "keeps the dialog open and does not persist invalid workout details", %{conn: conn} do
+      workout =
+        insert(:workout,
+          name: "Back day",
+          notes: "Pull volume",
+          inserted_at: ~U[2024-01-15 18:45:30.000000Z]
+        )
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(user_fixture())
+        |> live(~p"/workouts/#{workout.id}")
+
+      lv
+      |> element("#open-workout-details")
+      |> render_click()
+
+      invalid_params = [
+        %{"date" => "", "name" => "Pull day", "notes" => "Rows and pullups"},
+        %{"date" => "not-a-date", "name" => "Pull day", "notes" => "Rows and pullups"},
+        %{"date" => "2024-02-20", "name" => "", "notes" => "Rows and pullups"}
+      ]
+
+      for params <- invalid_params do
+        html = render_submit(lv, "update_workout_details", %{"workout_details" => params})
+        document = parse_document!(html)
+
+        assert %{heading: "Edit Back day"} = workout_details_dialog(document)
+
+        assert {:ok,
+                %{
+                  inserted_at: ~U[2024-01-15 18:45:30.000000Z],
+                  name: "Back day",
+                  notes: "Pull volume"
+                }} = Training.get_workout(default_user(), workout.id)
+      end
+    end
+  end
+
   describe "anonymous read-only mode" do
     test "renders Zack workout controls disabled and hides mutation controls", %{conn: conn} do
       zack = public_read_only_owner_fixture()
@@ -95,6 +288,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert [] = Floki.find(document, "#open-add-exercise")
       assert [] = Floki.find(document, "#open-add-exercise-top")
+      assert [] = Floki.find(document, "#open-workout-details")
       assert [] = Floki.find(document, "[draggable=\"true\"]")
       assert [] = Floki.find(document, "button[phx-click=\"open_exercise_action_menu\"]")
 
@@ -118,6 +312,13 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       refute Map.has_key?(delete_button_attributes, "phx-click")
 
       render_change(lv, "maybe_update_workout", %{"workout" => %{"notes" => "Forged notes"}})
+      render_click(lv, "open_workout_details")
+      render_click(lv, "cancel_workout_details")
+
+      render_submit(lv, "update_workout_details", %{
+        "workout_details" => %{"date" => "2024-02-20", "name" => "Forged workout", "notes" => "Forged notes"}
+      })
+
       render_click(lv, "create_set", %{"exercise_id" => exercise.id})
       render_click(lv, "delete_set", %{"set_id" => set.id})
       render_click(lv, "delete_exercise", %{"exercise_id" => exercise.id})
@@ -128,6 +329,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert {:ok,
               %{
+                name: "Zack demo workout",
                 notes: nil,
                 exercises: [
                   %{
@@ -243,7 +445,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                    "type" => "button"
                  }
                },
-               heading: "Exercise actions",
+               heading: "Bench Press actions",
                items: [
                  %{
                    attributes: %{
@@ -281,7 +483,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                      "type" => "button"
                    },
                    disabled?: false,
-                   icon: "hero-pencil-square size-5",
+                   icon: "hero-arrow-path size-5",
                    label: "Replace exercise"
                  },
                  %{
@@ -295,7 +497,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                      "type" => "button"
                    },
                    disabled?: false,
-                   icon: "hero-document-duplicate size-5",
+                   icon: "hero-arrow-up-on-square-stack size-5",
                    label: "Copy sets from past exercise"
                  }
                ]
@@ -366,7 +568,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                  "type" => "button"
                },
                disabled?: true,
-               icon: "hero-document-duplicate size-5",
+               icon: "hero-arrow-up-on-square-stack size-5",
                label: "Copy sets from past exercise"
              } =
                document
@@ -1251,7 +1453,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                    "type" => "button"
                  }
                },
-               heading: "Replace exercise",
+               heading: "Replace Dips",
                options: [
                  %{
                    attributes: %{
@@ -1605,6 +1807,67 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   defp parse_document!(html) do
     assert {:ok, document} = Floki.parse_document(html)
     document
+  end
+
+  defp workout_edit_buttons(document) do
+    document
+    |> Floki.find("#open-workout-details")
+    |> Enum.map(fn button ->
+      %{
+        attributes: node_attributes(button),
+        icon: button |> Floki.find("span") |> Enum.find(&icon_span?/1) |> attribute!("class")
+      }
+    end)
+  end
+
+  defp workout_details_dialog(document) do
+    assert [dialog] = Floki.find(document, "#workout-details-dialog")
+    assert [close_button] = Floki.find(dialog, "#cancel-workout-details")
+    assert [form] = Floki.find(dialog, "#workout-details-form")
+    assert [notes] = Floki.find(dialog, "#workout_details_notes")
+    assert [save_button] = Floki.find(form, "#save-workout-details")
+
+    %{
+      attributes: node_attributes(dialog),
+      close_button: button_details(close_button),
+      divider?: divider?(dialog),
+      form_attributes: node_attributes(form),
+      heading: dialog |> Floki.find("h4") |> text_one!(),
+      inputs: workout_details_inputs(dialog),
+      notes: textarea_details(notes),
+      save_button: button_details(save_button)
+    }
+  end
+
+  defp workout_details_inputs(dialog) do
+    dialog
+    |> Floki.find("input")
+    |> Map.new(fn input -> {attribute!(input, "name"), input_details(input)} end)
+  end
+
+  defp textarea_details(textarea) do
+    %{
+      attributes: node_attributes(textarea),
+      value: textarea |> Floki.text() |> String.trim()
+    }
+  end
+
+  defp divider?(dialog) do
+    dialog
+    |> Floki.find("div")
+    |> Enum.any?(fn div ->
+      div
+      |> attribute("class")
+      |> class_contains?("border-t")
+    end)
+  end
+
+  defp class_contains?(nil, _class), do: false
+
+  defp class_contains?(class_value, class) do
+    class_value
+    |> String.split()
+    |> Enum.member?(class)
   end
 
   defp create_swappable_workout do
