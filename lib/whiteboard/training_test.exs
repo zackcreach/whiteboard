@@ -148,4 +148,131 @@ defmodule Whiteboard.TrainingTest do
     assert {:ok, %Exercise{id: ^current_exercise_id, workout_id: ^current_workout_id, sets: ^existing_exercise_sets}} =
              Training.replace_exercise(existing_exercise_id, current_exercise_id)
   end
+
+  describe "exercise ordering" do
+    test "appends new exercises to the end of the workout", %{exercise_name: exercise_name} do
+      workout = Factory.insert(:workout)
+
+      first_exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 1
+        )
+
+      assert {:ok, %Exercise{position: 2} = second_exercise} =
+               Training.create_exercise(%{workout_id: workout.id, exercise_name_id: exercise_name.id})
+
+      first_exercise_id = first_exercise.id
+      second_exercise_id = second_exercise.id
+
+      assert {:ok,
+              %Workout{
+                exercises: [
+                  %{id: ^first_exercise_id, position: 1},
+                  %{id: ^second_exercise_id, position: 2}
+                ]
+              }} = Training.get_workout(workout.id)
+    end
+
+    test "persists reordered exercises transactionally", %{exercise_name: exercise_name} do
+      workout = Factory.insert(:workout)
+
+      first_exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 1
+        )
+
+      second_exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 2
+        )
+
+      third_exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 3
+        )
+
+      first_exercise_id = first_exercise.id
+      second_exercise_id = second_exercise.id
+      third_exercise_id = third_exercise.id
+
+      assert {:ok,
+              %Workout{
+                exercises: [
+                  %{id: ^third_exercise_id, position: 1},
+                  %{id: ^first_exercise_id, position: 2},
+                  %{id: ^second_exercise_id, position: 3}
+                ]
+              }} =
+               Training.reorder_exercises(workout.id, [
+                 third_exercise.id,
+                 first_exercise.id,
+                 second_exercise.id
+               ])
+
+      assert {:ok,
+              %Workout{
+                exercises: [
+                  %{id: ^third_exercise_id, position: 1},
+                  %{id: ^first_exercise_id, position: 2},
+                  %{id: ^second_exercise_id, position: 3}
+                ]
+              }} = Training.get_workout(workout.id)
+    end
+
+    test "rejects invalid reorder payloads", %{exercise_name: exercise_name} do
+      workout = Factory.insert(:workout)
+      other_workout = Factory.insert(:workout)
+
+      first_exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 1
+        )
+
+      second_exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 2
+        )
+
+      other_exercise =
+        Factory.insert(:exercise,
+          workout_id: other_workout.id,
+          exercise_name_id: exercise_name.id,
+          position: 1
+        )
+
+      invalid_payloads = [
+        [first_exercise.id],
+        [first_exercise.id, first_exercise.id],
+        [first_exercise.id, other_exercise.id],
+        "not-a-list"
+      ]
+
+      for invalid_payload <- invalid_payloads do
+        assert {:error, :invalid_exercise_order} == Training.reorder_exercises(workout.id, invalid_payload)
+      end
+
+      first_exercise_id = first_exercise.id
+      second_exercise_id = second_exercise.id
+
+      assert {:ok,
+              %Workout{
+                exercises: [
+                  %{id: ^first_exercise_id, position: 1},
+                  %{id: ^second_exercise_id, position: 2}
+                ]
+              }} = Training.get_workout(workout.id)
+    end
+  end
 end

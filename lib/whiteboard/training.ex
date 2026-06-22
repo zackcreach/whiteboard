@@ -31,9 +31,12 @@ defmodule Whiteboard.Training do
       |> Map.delete(:notes)
       |> then(fn workout_map ->
         exercises_as_maps =
-          Enum.map(workout_map.exercises, fn exercise ->
+          workout_map.exercises
+          |> Enum.with_index(1)
+          |> Enum.map(fn {exercise, position} ->
             %{
               exercise_name_id: exercise.exercise_name_id,
+              position: position,
               sets: Enum.map(exercise.sets, fn set -> %{weight: set.weight, reps: set.reps} end)
             }
           end)
@@ -65,6 +68,10 @@ defmodule Whiteboard.Training do
     TrainingRepo.delete_exercise(id)
   end
 
+  def reorder_exercises(workout_id, exercise_ids) do
+    TrainingRepo.reorder_exercises(workout_id, exercise_ids)
+  end
+
   def replace_exercise(existing_exercise_id, current_exercise_id) do
     with {:ok, existing_exercise} <- get_exercise(existing_exercise_id),
          {:ok, %{id: current_exercise_id, workout_id: current_workout_id}} <- get_exercise(current_exercise_id) do
@@ -72,6 +79,7 @@ defmodule Whiteboard.Training do
       |> Map.from_struct()
       |> Map.replace(:workout_id, current_workout_id)
       |> Map.delete(:notes)
+      |> Map.delete(:position)
       |> then(fn exercise_map ->
         Map.replace(exercise_map, :sets, Enum.map(exercise_map.sets, &%{weight: &1.weight, reps: &1.reps}))
       end)
@@ -128,5 +136,9 @@ defmodule Whiteboard.Training do
 
   def delete_set(params) do
     TrainingRepo.delete_set(params)
+  end
+
+  def clear_exercise_sets(exercise_id) do
+    TrainingRepo.clear_exercise_sets(exercise_id)
   end
 end

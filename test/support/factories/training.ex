@@ -28,6 +28,7 @@ defmodule Whiteboard.Factories.Training do
       def exercise_factory(attrs) do
         changeset =
           %Exercise{
+            position: 1,
             sets: []
           }
           |> merge_attributes(attrs)

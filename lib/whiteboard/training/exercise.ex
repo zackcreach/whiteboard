@@ -8,6 +8,7 @@ defmodule Whiteboard.Training.Exercise do
 
   schema "exercises" do
     field :notes, :string
+    field :position, :integer
 
     belongs_to :workout, Training.Workout
     belongs_to :exercise_name, Training.ExerciseName
@@ -19,7 +20,7 @@ defmodule Whiteboard.Training.Exercise do
 
   def changeset(exercise, params \\ %{}) do
     exercise
-    |> cast(params, [:notes, :workout_id, :exercise_name_id])
+    |> cast(params, [:notes, :position, :workout_id, :exercise_name_id])
     |> cast_assoc(:sets)
   end
 end
