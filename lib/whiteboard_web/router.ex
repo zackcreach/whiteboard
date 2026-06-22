@@ -67,9 +67,7 @@ defmodule WhiteboardWeb.Router do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
 
-      live "/", HomeLive
       live "/delete/:workout_id", HomeLive, :delete
-      live "/workouts/:workout_id", WorkoutLive
     end
   end
 
@@ -80,6 +78,8 @@ defmodule WhiteboardWeb.Router do
 
     live_session :current_user,
       on_mount: [{WhiteboardWeb.UserAuth, :mount_current_user}] do
+      live "/", HomeLive
+      live "/workouts/:workout_id", WorkoutLive
       live "/users/confirm/:token", UserConfirmationLive, :edit
       live "/users/confirm", UserConfirmationInstructionsLive, :new
     end

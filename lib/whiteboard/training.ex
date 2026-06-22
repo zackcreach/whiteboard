@@ -1,31 +1,30 @@
 defmodule Whiteboard.Training do
   @moduledoc false
+  alias Whiteboard.Accounts.User
   alias Whiteboard.Training.Repo, as: TrainingRepo
 
-  # Workouts
-  def list_workouts do
-    TrainingRepo.list_workouts()
+  def list_workouts(%User{} = user) do
+    TrainingRepo.list_workouts(user)
   end
 
-  def get_workout(id) do
-    TrainingRepo.get_workout(id)
+  def get_workout(%User{} = user, id) do
+    TrainingRepo.get_workout(user, id)
   end
 
-  def create_workout(params) do
-    TrainingRepo.create_workout(params)
+  def create_workout(%User{} = user, params) do
+    TrainingRepo.create_workout(user, params)
   end
 
-  def update_workout(id, params) do
-    TrainingRepo.update_workout(id, params)
+  def update_workout(%User{} = user, id, params) do
+    TrainingRepo.update_workout(user, id, params)
   end
 
-  def delete_workout(id) do
-    TrainingRepo.delete_workout(id)
+  def delete_workout(%User{} = user, id) do
+    TrainingRepo.delete_workout(user, id)
   end
 
-  def duplicate_workout(id) do
-    with {:ok, existing_workout} <- get_workout(id) do
-      # purposefully excluding notes
+  def duplicate_workout(%User{} = user, id) do
+    with {:ok, existing_workout} <- get_workout(user, id) do
       existing_workout
       |> Map.from_struct()
       |> Map.delete(:notes)
@@ -43,102 +42,97 @@ defmodule Whiteboard.Training do
 
         Map.replace(workout_map, :exercises, exercises_as_maps)
       end)
-      |> create_workout()
+      |> then(&create_workout(user, &1))
     end
   end
 
-  # Exercises
-  def list_previous_exercises(workout_id, exercise_name_id) do
-    TrainingRepo.list_previous_exercises(workout_id, exercise_name_id)
+  def list_previous_exercises(%User{} = user, workout_id, exercise_name_id) do
+    TrainingRepo.list_previous_exercises(user, workout_id, exercise_name_id)
   end
 
-  def get_exercise(id) do
-    TrainingRepo.get_exercise(id)
+  def get_exercise(%User{} = user, id) do
+    TrainingRepo.get_exercise(user, id)
   end
 
-  def create_exercise(params) do
-    TrainingRepo.create_exercise(params)
+  def create_exercise(%User{} = user, params) do
+    TrainingRepo.create_exercise(user, params)
   end
 
-  def update_exercise(params, id) do
-    TrainingRepo.update_exercise(params, id)
+  def update_exercise(%User{} = user, params, id) do
+    TrainingRepo.update_exercise(user, params, id)
   end
 
-  def delete_exercise(id) do
-    TrainingRepo.delete_exercise(id)
+  def delete_exercise(%User{} = user, id) do
+    TrainingRepo.delete_exercise(user, id)
   end
 
-  def reorder_exercises(workout_id, exercise_ids) do
-    TrainingRepo.reorder_exercises(workout_id, exercise_ids)
+  def reorder_exercises(%User{} = user, workout_id, exercise_ids) do
+    TrainingRepo.reorder_exercises(user, workout_id, exercise_ids)
   end
 
-  def replace_exercise(existing_exercise_id, current_exercise_id) do
-    with {:ok, existing_exercise} <- get_exercise(existing_exercise_id),
-         {:ok, %{id: current_exercise_id, workout_id: current_workout_id}} <- get_exercise(current_exercise_id) do
+  def replace_exercise(%User{} = user, existing_exercise_id, current_exercise_id) do
+    with {:ok, existing_exercise} <- get_exercise(user, existing_exercise_id),
+         {:ok, %{id: ^current_exercise_id}} <- get_exercise(user, current_exercise_id) do
       existing_exercise
       |> Map.from_struct()
-      |> Map.replace(:workout_id, current_workout_id)
       |> Map.delete(:notes)
       |> Map.delete(:position)
       |> then(fn exercise_map ->
         Map.replace(exercise_map, :sets, Enum.map(exercise_map.sets, &%{weight: &1.weight, reps: &1.reps}))
       end)
-      |> update_exercise(current_exercise_id)
+      |> then(&update_exercise(user, &1, current_exercise_id))
     end
   end
 
-  # Exercise names
-  def list_exercise_names do
-    TrainingRepo.list_exercise_names()
+  def list_exercise_names(%User{} = user) do
+    TrainingRepo.list_exercise_names(user)
   end
 
-  def get_exercise_name(id) do
-    TrainingRepo.get_exercise_name(id)
+  def get_exercise_name(%User{} = user, id) do
+    TrainingRepo.get_exercise_name(user, id)
   end
 
-  def create_exercise_name(params) do
-    TrainingRepo.create_exercise_name(params)
+  def create_exercise_name(%User{} = user, params) do
+    TrainingRepo.create_exercise_name(user, params)
   end
 
-  def update_exercise_name(id, params) do
-    TrainingRepo.update_exercise_name(id, params)
+  def update_exercise_name(%User{} = user, id, params) do
+    TrainingRepo.update_exercise_name(user, id, params)
   end
 
-  def delete_exercise_name(id) do
-    TrainingRepo.delete_exercise_name(id)
+  def delete_exercise_name(%User{} = user, id) do
+    TrainingRepo.delete_exercise_name(user, id)
   end
 
-  # Exercise categories
-  def list_exercise_categories do
-    TrainingRepo.list_exercise_categories()
+  def list_exercise_categories(%User{} = user) do
+    TrainingRepo.list_exercise_categories(user)
   end
 
-  def get_exercise_category(id) do
-    TrainingRepo.get_exercise_category(id)
+  def get_exercise_category(%User{} = user, id) do
+    TrainingRepo.get_exercise_category(user, id)
   end
 
-  def create_exercise_category(params) do
-    TrainingRepo.create_exercise_category(params)
+  def create_exercise_category(%User{} = user, params) do
+    TrainingRepo.create_exercise_category(user, params)
   end
 
-  def update_exercise_category(id, params) do
-    TrainingRepo.update_exercise_category(id, params)
+  def update_exercise_category(%User{} = user, id, params) do
+    TrainingRepo.update_exercise_category(user, id, params)
   end
 
-  def delete_exercise_category(id) do
-    TrainingRepo.delete_exercise_category(id)
+  def delete_exercise_category(%User{} = user, id) do
+    TrainingRepo.delete_exercise_category(user, id)
   end
 
-  # Sets
-  def create_set(params) do
-    TrainingRepo.create_set(params)
+  def create_set(%User{} = user, params) do
+    TrainingRepo.create_set(user, params)
   end
 
-  def delete_set(params) do
-    TrainingRepo.delete_set(params)
+  def delete_set(%User{} = user, params) do
+    TrainingRepo.delete_set(user, params)
   end
 
-  def clear_exercise_sets(exercise_id) do
-    TrainingRepo.clear_exercise_sets(exercise_id)
+  def clear_exercise_sets(%User{} = user, exercise_id) do
+    TrainingRepo.clear_exercise_sets(user, exercise_id)
   end
 end

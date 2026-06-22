@@ -5,6 +5,8 @@ defmodule WhiteboardWeb.WorkoutLive do
   use WhiteboardWeb, :live_view
 
   alias Phoenix.HTML.Form
+  alias Whiteboard.Accounts
+  alias Whiteboard.Accounts.User
   alias Whiteboard.Training
   alias Whiteboard.Training.Exercise
   alias Whiteboard.Training.Set
@@ -16,7 +18,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   def render(assigns) do
     ~H"""
-    <.form for={@workout_form} phx-change="maybe_update_workout">
+    <.form for={@workout_form} phx-change={unless @read_only?, do: "maybe_update_workout"}>
       <section class="flex flex-col gap-6 mb-8 md:flex-row md:items-center md:justify-between md:gap-4">
         <div>
           <p class="font-extralight">{DateHelpers.render_date(Form.input_value(@workout_form, :inserted_at))}</p>
@@ -25,9 +27,9 @@ defmodule WhiteboardWeb.WorkoutLive do
 
         <div class="flex w-full items-center gap-4 md:w-1/2">
           <div class="min-w-0 flex-1">
-            <.input field={@workout_form[:notes]} placeholder="Notes" class="h-10 text-sm" />
+            <.input field={@workout_form[:notes]} placeholder="Notes" class="h-10 text-sm" disabled={@read_only?} />
           </div>
-          <div class="relative shrink-0">
+          <div :if={!@read_only?} class="relative shrink-0">
             <.button id="open-add-exercise-top" type="button" phx-click="open_add_exercise" phx-value-position="top">Add exercise</.button>
             <.add_exercise_dialog
               open={@add_exercise_open}
@@ -42,7 +44,7 @@ defmodule WhiteboardWeb.WorkoutLive do
       </section>
 
       <% exercise_count = length(@workout_form.data.exercises) %>
-      <section id="workout-exercises" class="grid grid-cols-1 gap-4" phx-hook="ExerciseReorder">
+      <section id="workout-exercises" class="grid grid-cols-1 gap-4" phx-hook={unless @read_only?, do: "ExerciseReorder"}>
         <.inputs_for :let={exercise} field={@workout_form[:exercises]}>
           <Card.render
             id={"exercise-card-#{exercise.data.id}"}
@@ -56,6 +58,7 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <div class="relative min-w-0 flex-1">
                   <div class="flex min-w-0 items-center gap-2">
                     <h3
+                      :if={!@read_only?}
                       id={"exercise-drag-handle-#{exercise.data.id}"}
                       class="truncate cursor-grab active:cursor-grabbing"
                       draggable="true"
@@ -64,11 +67,14 @@ defmodule WhiteboardWeb.WorkoutLive do
                     >
                       {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
                     </h3>
+                    <h3 :if={@read_only?} class="truncate">
+                      {if exercise.data.exercise_name, do: exercise.data.exercise_name.name}
+                    </h3>
                   </div>
                 </div>
 
                 <div class="w-[40%] shrink-0">
-                  <.input field={exercise[:notes]} placeholder="Notes" />
+                  <.input field={exercise[:notes]} placeholder="Notes" disabled={@read_only?} />
                 </div>
                 <div class="h-10 w-6 shrink-0" />
               </div>
@@ -77,13 +83,17 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <.inputs_for :let={set} field={exercise[:sets]}>
                   <li class="flex items-center" data-role="workout-set-row">
                     <p class="w-[2ch] shrink-0 font-medium mr-3">{set.index + 1}</p>
-                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" />
-                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" />
-                    <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" />
+                    <.input field={set[:weight]} placeholder="Weight" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:start} type="text" step=".25" autocomplete="off" list="weight-suggestions" disabled={@read_only?} />
+                    <.input field={set[:reps]} placeholder="Reps" class="placeholder-shown:bg-zinc-200 dark:placeholder-shown:bg-stone-600" border_variant={:middle} type="text" step="1" autocomplete="off" list="rep-suggestions" disabled={@read_only?} />
+                    <.input field={set[:notes]} border_variant={:end} placeholder="Notes" tabindex="-1" disabled={@read_only?} />
                     <button
                       type="button"
-                      class="inline-flex h-10 w-[30px] shrink-0 cursor-pointer items-center justify-end text-zinc-900 dark:text-white md:w-10 md:justify-center"
-                      phx-click="delete_set"
+                      class={[
+                        "inline-flex h-10 w-[30px] shrink-0 items-center justify-end text-zinc-900 dark:text-white md:w-10 md:justify-center",
+                        @read_only? && "invisible",
+                        !@read_only? && "cursor-pointer"
+                      ]}
+                      phx-click={unless @read_only?, do: "delete_set"}
                       phx-value-set_id={set.data.id}
                       tabindex="-1"
                     >
@@ -93,7 +103,7 @@ defmodule WhiteboardWeb.WorkoutLive do
                 </.inputs_for>
               </ul>
 
-              <div class="mt-4 flex items-center">
+              <div :if={!@read_only?} class="mt-4 flex items-center">
                 <div class="w-[2ch] shrink-0 mr-3" />
                 <div class="flex-1">
                   <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="w-full cursor-pointer">Add set</.button>
@@ -106,6 +116,8 @@ defmodule WhiteboardWeb.WorkoutLive do
               module={ExerciseBrowser}
               container_class="mt-8 md:mt-0"
               id={"exercise-browser-#{exercise.data.id}"}
+              page_owner={@page_owner}
+              read_only?={@read_only?}
               workout_id={@workout_form.data.id}
               exercise_form={exercise}
               exercise_names={@exercise_names}
@@ -122,7 +134,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
     <section class="mt-auto flex justify-between items-end pt-8">
       <p class="text-xs font-extralight">Autosaved on {DateHelpers.render_date(Form.input_value(@workout_form, :updated_at), include_time: true)}</p>
-      <div class="relative">
+      <div :if={!@read_only?} class="relative">
         <.button id="open-add-exercise" type="button" phx-click="open_add_exercise" phx-value-position="bottom">Add exercise</.button>
         <.add_exercise_dialog
           open={@add_exercise_open}
@@ -173,26 +185,44 @@ defmodule WhiteboardWeb.WorkoutLive do
   end
 
   def mount(%{"workout_id" => workout_id}, _session, socket) do
-    socket
-    |> assign(workout_form: get_workout_form(workout_id))
-    |> assign(exercise_names: Training.list_exercise_names())
-    |> assign(replace_exercise_id: nil)
-    |> assign(replace_exercise_query: "")
-    |> assign(add_exercise_open: false)
-    |> assign(add_exercise_position: nil)
-    |> assign(add_exercise_query: "")
-    |> assign(action_menu_exercise_id: nil)
-    |> ok()
+    case workout_page_owner(socket, workout_id) do
+      {:ok, page_owner, read_only?} ->
+        case get_workout_form(page_owner, workout_id) do
+          {:ok, workout_form} ->
+            socket
+            |> assign(page_owner: page_owner)
+            |> assign(read_only?: read_only?)
+            |> assign(workout_form: workout_form)
+            |> assign(exercise_names: Training.list_exercise_names(page_owner))
+            |> assign(replace_exercise_id: nil)
+            |> assign(replace_exercise_query: "")
+            |> assign(add_exercise_open: false)
+            |> assign(add_exercise_position: nil)
+            |> assign(add_exercise_query: "")
+            |> assign(action_menu_exercise_id: nil)
+            |> ok()
+
+          {:error, :not_found} ->
+            not_found()
+        end
+
+      {:redirect, socket} ->
+        ok(socket)
+    end
   end
 
   #
   # Workouts
   #
+  def handle_event("maybe_update_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("maybe_update_workout", %{"workout" => params}, socket) do
     socket =
       with %Ecto.Changeset{valid?: true} <- Workout.changeset(socket.assigns.workout_form.data, params),
            {:ok, %Workout{} = updated_workout} <-
-             Training.update_workout(socket.assigns.workout_form.data.id, params) do
+             Training.update_workout(socket.assigns.page_owner, socket.assigns.workout_form.data.id, params) do
         assign(socket, workout_form: to_form(Workout.changeset(updated_workout)))
       else
         %Ecto.Changeset{valid?: false} = invalid_changeset ->
@@ -208,15 +238,19 @@ defmodule WhiteboardWeb.WorkoutLive do
   #
   # Exercises
   #
+  def handle_event("create_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("create_exercise", %{"exercise_name_id" => exercise_name_id}, socket) do
     socket =
-      case Training.create_exercise(%{
+      case Training.create_exercise(socket.assigns.page_owner, %{
              workout_id: socket.assigns.workout_form.data.id,
              exercise_name_id: exercise_name_id
            }) do
         {:ok, %Exercise{}} ->
           socket
-          |> assign(workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          |> assign_workout_form()
           |> close_add_exercise()
           |> close_exercise_action_menu()
 
@@ -224,6 +258,10 @@ defmodule WhiteboardWeb.WorkoutLive do
           put_flash(socket, :error, "Error creating exercise: #{error}")
       end
 
+    noreply(socket)
+  end
+
+  def handle_event("open_add_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
     noreply(socket)
   end
 
@@ -249,12 +287,16 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> noreply()
   end
 
+  def handle_event("delete_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("delete_exercise", %{"exercise_id" => exercise_id}, socket) do
     case_result =
-      case Training.delete_exercise(exercise_id) do
+      case Training.delete_exercise(socket.assigns.page_owner, exercise_id) do
         {:ok, %Exercise{}} ->
           socket
-          |> assign(workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          |> assign_workout_form()
           |> close_exercise_action_menu()
 
         error ->
@@ -264,6 +306,10 @@ defmodule WhiteboardWeb.WorkoutLive do
       end
 
     noreply(case_result)
+  end
+
+  def handle_event("open_replace_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
   end
 
   def handle_event("open_replace_exercise", %{"exercise_id" => exercise_id}, socket) do
@@ -287,6 +333,10 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> noreply()
   end
 
+  def handle_event("change_exercise_name", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event(
         "change_exercise_name",
         %{"exercise_id" => exercise_id, "exercise_name_id" => exercise_name_id},
@@ -296,7 +346,7 @@ defmodule WhiteboardWeb.WorkoutLive do
       case update_current_workout_exercise(socket, exercise_id, %{exercise_name_id: exercise_name_id}) do
         {:ok, %Exercise{}} ->
           socket
-          |> assign(workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          |> assign_workout_form()
           |> close_replace_exercise()
           |> close_exercise_action_menu()
 
@@ -307,16 +357,20 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  def handle_event("replace_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event(
         "replace_exercise",
         %{"selected_exercise_id" => selected_exercise_id, "current_exercise_id" => current_exercise_id},
         socket
       ) do
     case_result =
-      case Training.replace_exercise(selected_exercise_id, current_exercise_id) do
+      case Training.replace_exercise(socket.assigns.page_owner, selected_exercise_id, current_exercise_id) do
         {:ok, %Exercise{}} ->
           socket
-          |> assign(workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          |> assign_workout_form()
           |> close_exercise_action_menu()
 
         error ->
@@ -326,6 +380,10 @@ defmodule WhiteboardWeb.WorkoutLive do
       end
 
     noreply(case_result)
+  end
+
+  def handle_event("open_exercise_action_menu", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
   end
 
   def handle_event("open_exercise_action_menu", %{"exercise_id" => exercise_id}, socket) do
@@ -342,12 +400,24 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> noreply()
   end
 
+  def handle_event("move_exercise_up", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("move_exercise_up", %{"exercise_id" => exercise_id}, socket) do
     reorder_exercise_by_offset(socket, exercise_id, -1)
   end
 
+  def handle_event("move_exercise_down", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("move_exercise_down", %{"exercise_id" => exercise_id}, socket) do
     reorder_exercise_by_offset(socket, exercise_id, 1)
+  end
+
+  def handle_event("reorder_exercises", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
   end
 
   def handle_event("reorder_exercises", %{"exercise_ids" => exercise_ids}, socket) do
@@ -357,11 +427,15 @@ defmodule WhiteboardWeb.WorkoutLive do
   #
   # Sets
   #
+  def handle_event("create_set", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("create_set", %{"exercise_id" => exercise_id}, socket) do
     socket =
-      case Training.create_set(%{exercise_id: exercise_id, weight: nil, reps: nil, notes: ""}) do
+      case Training.create_set(socket.assigns.page_owner, %{exercise_id: exercise_id, weight: nil, reps: nil, notes: ""}) do
         {:ok, %Set{}} ->
-          assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          assign_workout_form(socket)
 
         {:error, error} ->
           put_flash(socket, :error, "Error saving workout: #{error}")
@@ -370,11 +444,15 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  def handle_event("delete_set", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("delete_set", %{"set_id" => set_id}, socket) do
     socket =
-      case Training.delete_set(set_id) do
+      case Training.delete_set(socket.assigns.page_owner, set_id) do
         {:ok, %Set{}} ->
-          assign(socket, workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          assign_workout_form(socket)
 
         error ->
           put_flash(socket, :error, "Error deleting exercise: #{error}")
@@ -383,12 +461,16 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  def handle_event("clear_exercise_sets", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
   def handle_event("clear_exercise_sets", %{"exercise_id" => exercise_id}, socket) do
     case_result =
       case clear_current_workout_exercise_sets(socket, exercise_id) do
         {:ok, %Exercise{}} ->
           socket
-          |> assign(workout_form: get_workout_form(socket.assigns.workout_form.data.id))
+          |> assign_workout_form()
           |> close_exercise_action_menu()
 
         error ->
@@ -400,15 +482,50 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(case_result)
   end
 
-  defp get_workout_form(id) do
-    case Training.get_workout(id) do
+  defp workout_page_owner(%{assigns: %{current_user: %User{} = current_user}}, _workout_id) do
+    {:ok, current_user, false}
+  end
+
+  defp workout_page_owner(socket, workout_id) do
+    case Accounts.get_public_read_only_owner() do
+      %User{} = user ->
+        case Training.get_workout(user, workout_id) do
+          {:ok, %Workout{}} -> {:ok, user, true}
+          {:error, :not_found} -> {:redirect, redirect_to_login(socket)}
+        end
+
+      nil ->
+        {:redirect, redirect_to_login(socket)}
+    end
+  end
+
+  defp redirect_to_login(socket) do
+    socket
+    |> put_flash(:error, "You must log in to access this page.")
+    |> redirect(to: ~p"/users/log_in")
+  end
+
+  defp not_found do
+    raise Ecto.NoResultsError, queryable: Workout
+  end
+
+  defp get_workout_form(%User{} = user, id) do
+    case Training.get_workout(user, id) do
       {:ok, %Workout{} = workout} ->
         workout
         |> Workout.changeset()
         |> to_form()
+        |> then(&{:ok, &1})
 
-      _error ->
-        to_form(%{})
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp assign_workout_form(socket) do
+    case get_workout_form(socket.assigns.page_owner, socket.assigns.workout_form.data.id) do
+      {:ok, workout_form} -> assign(socket, workout_form: workout_form)
+      {:error, _reason} -> put_flash(socket, :error, "Error loading workout")
     end
   end
 
@@ -469,7 +586,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   end
 
   defp persist_exercise_order(socket, exercise_ids) do
-    case Training.reorder_exercises(socket.assigns.workout_form.data.id, exercise_ids) do
+    case Training.reorder_exercises(socket.assigns.page_owner, socket.assigns.workout_form.data.id, exercise_ids) do
       {:ok, %Workout{} = workout} ->
         socket
         |> assign(workout_form: to_form(Workout.changeset(workout)))
@@ -490,13 +607,13 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   defp update_current_workout_exercise(socket, exercise_id, params) do
     with {:ok, %Exercise{}} <- current_workout_exercise(socket, exercise_id) do
-      Training.update_exercise(params, exercise_id)
+      Training.update_exercise(socket.assigns.page_owner, params, exercise_id)
     end
   end
 
   defp clear_current_workout_exercise_sets(socket, exercise_id) do
     with {:ok, %Exercise{}} <- current_workout_exercise(socket, exercise_id) do
-      Training.clear_exercise_sets(exercise_id)
+      Training.clear_exercise_sets(socket.assigns.page_owner, exercise_id)
     end
   end
 

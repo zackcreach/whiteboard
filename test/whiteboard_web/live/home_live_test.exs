@@ -3,23 +3,58 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
   import Phoenix.LiveViewTest
   import Whiteboard.AccountsFixtures
+  import Whiteboard.Factory
 
-  describe "authentication" do
-    test "redirects if user is not logged in", %{conn: conn} do
+  alias Whiteboard.Training
+
+  describe "home" do
+    test "renders Zack's workouts read-only for anonymous users", %{conn: conn} do
+      zack = public_read_only_owner_fixture()
+      workout = insert(:workout, user: zack, name: "Zack demo workout")
+      insert(:workout, name: "Other workout")
+
+      {:ok, lv, html} = live(conn, ~p"/")
+
+      assert html =~ workout.name
+      refute html =~ "Other workout"
+      refute html =~ "New workout"
+      refute html =~ "New exercise category"
+      refute html =~ "Actions"
+      refute html =~ "duplicate_workout"
+      refute html =~ ~p"/delete/#{workout.id}"
+
+      render_submit(lv, "create_workout", %{"workout" => %{"name" => "Forged workout"}})
+
+      assert [%{name: "Zack demo workout"}] = Training.list_workouts(zack)
+    end
+
+    test "redirects anonymous users when the public owner does not exist", %{conn: conn} do
       assert {:error, redirect} = live(conn, ~p"/")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert path == ~p"/users/log_in"
+      assert ~p"/users/log_in" == path
       assert %{"error" => "You must log in to access this page."} = flash
     end
 
-    test "renders home page when authenticated", %{conn: conn} do
+    test "renders only the authenticated user's workouts with write controls", %{conn: conn} do
+      zack = public_read_only_owner_fixture()
+      user = user_fixture()
+
+      insert(:workout, user: zack, name: "Zack demo workout")
+      workout = insert(:workout, user: user, name: "User workout")
+
       {:ok, _lv, html} =
         conn
-        |> log_in_user(user_fixture())
+        |> log_in_user(user)
         |> live(~p"/")
 
-      assert html =~ "Whiteboard"
+      assert html =~ workout.name
+      refute html =~ "Zack demo workout"
+      assert html =~ "New workout"
+      assert html =~ "New exercise category"
+      assert html =~ "Actions"
+      assert html =~ "duplicate_workout"
+      assert html =~ ~p"/delete/#{workout.id}"
     end
   end
 

@@ -13,6 +13,8 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
 
   attr :workout_id, :string, required: true
   attr :exercise_name_id, :string, required: true
+  attr :page_owner, :any, required: true
+  attr :read_only?, :boolean, default: false
   attr :container_class, :string, required: false, default: ""
   attr :move_up_disabled, :boolean, default: false
   attr :move_down_disabled, :boolean, default: false
@@ -29,8 +31,10 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
           options={render_exercise_options(@exercises)}
           phx-change="update_selected_exercise"
           phx-target={@myself}
+          disabled={@read_only?}
         />
         <.action_menu_control
+          :if={!@read_only?}
           current_exercise_id={@current_exercise_id}
           current_exercise_name_id={@current_exercise_name_id}
           selected_exercise_id={@selected_exercise.id}
@@ -60,6 +64,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     <div class={@container_class}>
       <div class="flex justify-end">
         <.action_menu_control
+          :if={!@read_only?}
           current_exercise_id={@current_exercise_id}
           current_exercise_name_id={@current_exercise_name_id}
           selected_exercise_id={nil}
@@ -197,7 +202,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
         } = params,
         socket
       ) do
-    case Training.list_previous_exercises(workout_id, exercise_name_id) do
+    case Training.list_previous_exercises(params.page_owner, workout_id, exercise_name_id) do
       [first_exercise | _rest] = exercises ->
         socket.assigns[:selected_exercise]
         |> find_selected_exercise(exercises)
@@ -216,7 +221,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     current_exercise_id = socket.assigns.current_exercise_id
     %{^current_exercise_id => exercise_id} = previous_exercise
 
-    {:ok, new_selected_exercise} = Training.get_exercise(exercise_id)
+    {:ok, new_selected_exercise} = Training.get_exercise(socket.assigns.page_owner, exercise_id)
 
     socket
     |> assign(selected_exercise: new_selected_exercise)
@@ -241,6 +246,8 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
       selected_exercise: selected_exercise,
       current_exercise_id: current_exercise_id,
       current_exercise_name_id: exercise_name_id,
+      page_owner: params.page_owner,
+      read_only?: params.read_only?,
       exercise_names: params.exercise_names,
       replace_exercise_id: params.replace_exercise_id,
       replace_exercise_query: params.replace_exercise_query,

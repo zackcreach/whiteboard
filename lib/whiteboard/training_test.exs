@@ -3,155 +3,380 @@ defmodule Whiteboard.TrainingTest do
 
   alias Whiteboard.Training
   alias Whiteboard.Training.Exercise
-  # alias Whiteboard.Training.ExerciseCategory
-  # alias Whiteboard.Training.ExerciseName
-  # alias Whiteboard.Training.Set
+  alias Whiteboard.Training.ExerciseCategory
+  alias Whiteboard.Training.ExerciseName
+  alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
 
   setup do
-    %{id: exercise_category_id} = exercise_category = Factory.insert(:exercise_category, name: "Biceps")
-    exercise_name = Factory.insert(:exercise_name, name: "Curls", exercise_category_id: exercise_category_id)
+    user = Factory.insert(:user)
+    other_user = Factory.insert(:user)
+    Process.put(:whiteboard_factory_default_user, user)
 
-    %{exercise_category: exercise_category, exercise_name: exercise_name}
+    exercise_category = Factory.insert(:exercise_category, user: user, name: "Biceps")
+    exercise_name = Factory.insert(:exercise_name, user: user, name: "Curls", exercise_category: exercise_category)
+    other_exercise_category = Factory.insert(:exercise_category, user: other_user, name: "Biceps")
+
+    other_exercise_name =
+      Factory.insert(:exercise_name,
+        user: other_user,
+        name: "Curls",
+        exercise_category: other_exercise_category
+      )
+
+    %{
+      user: user,
+      other_user: other_user,
+      exercise_category: exercise_category,
+      exercise_name: exercise_name,
+      other_exercise_category: other_exercise_category,
+      other_exercise_name: other_exercise_name
+    }
   end
 
-  describe "list_workouts/0" do
-    test "gets unfiltered workouts" do
-      [older_workout, newer_workout] = Factory.insert_pair(:workout)
+  describe "workouts" do
+    test "lists workouts for the given user in descending insert order", %{user: user, other_user: other_user} do
+      older_workout = Factory.insert(:workout, user: user, inserted_at: ~U[2024-01-01 00:00:00.000000Z])
+      newer_workout = Factory.insert(:workout, user: user, inserted_at: ~U[2024-01-02 00:00:00.000000Z])
+      Factory.insert(:workout, user: other_user, inserted_at: ~U[2024-01-03 00:00:00.000000Z])
 
-      # Confirm both are returned in descending order
-      assert [^newer_workout, ^older_workout] = Training.list_workouts()
+      older_workout_id = older_workout.id
+      newer_workout_id = newer_workout.id
+
+      assert [%{id: ^newer_workout_id}, %{id: ^older_workout_id}] = Training.list_workouts(user)
     end
 
-    test "lists workouts should stop at limit" do
-      Factory.insert_list(21, :workout)
+    test "limits workout lists per user", %{user: user, other_user: other_user} do
+      Factory.insert_list(21, :workout, user: user)
+      Factory.insert_list(5, :workout, user: other_user)
 
-      # Workout list should cut off
-      assert 20 == length(Training.list_workouts())
-    end
-  end
-
-  test "get_workout/1" do
-    existing_workout = Factory.insert(:workout)
-
-    assert {:ok, ^existing_workout} = Training.get_workout(existing_workout.id)
-  end
-
-  describe "create_workout/1" do
-    test "successfully generates simple workout" do
-      name = "Back"
-
-      assert {:ok, %Workout{name: ^name}} = Training.create_workout(%{name: name})
+      assert 20 == length(Training.list_workouts(user))
+      assert 5 == length(Training.list_workouts(other_user))
     end
 
-    test "successfully generates complex workout", %{exercise_name: %{id: exercise_name_id}} do
-      assert {:ok, %Workout{exercises: [%Exercise{exercise_name_id: ^exercise_name_id}], notes: "Cool beans"}} =
-               Training.create_workout(%{
+    test "gets workouts only for the owner", %{user: user, other_user: other_user} do
+      workout = Factory.insert(:workout, user: user)
+      workout_id = workout.id
+
+      assert {:ok, %Workout{id: ^workout_id}} = Training.get_workout(user, workout.id)
+      assert {:error, :not_found} == Training.get_workout(other_user, workout.id)
+    end
+
+    test "creates simple and nested workouts for the owner", %{
+      user: user,
+      other_user: other_user,
+      exercise_name: exercise_name
+    } do
+      exercise_name_id = exercise_name.id
+
+      assert {:ok, %Workout{name: "Back", user_id: user_id}} =
+               Training.create_workout(user, %{name: "Back", user_id: other_user.id})
+
+      assert user.id == user_id
+
+      assert {:ok,
+              %Workout{
+                user_id: ^user_id,
+                exercises: [%Exercise{exercise_name_id: ^exercise_name_id}],
+                notes: "Cool beans"
+              }} =
+               Training.create_workout(user, %{
                  name: "Back day",
                  exercises: [%{exercise_name_id: exercise_name_id}],
                  notes: "Cool beans"
                })
     end
-  end
 
-  test "update_workout/2" do
-    new_name = "Legs + Back"
-    %{id: existing_workout_id} = Factory.insert(:workout, name: "Just legs")
+    test "rejects nested exercises from another user's catalog", %{
+      user: user,
+      other_exercise_name: other_exercise_name
+    } do
+      assert {:error, :invalid_exercise_name} ==
+               Training.create_workout(user, %{
+                 name: "Back day",
+                 exercises: [%{exercise_name_id: other_exercise_name.id}]
+               })
+    end
 
-    assert {:ok, %Workout{name: ^new_name}} = Training.update_workout(existing_workout_id, %{name: new_name})
-  end
+    test "updates and deletes workouts only for the owner", %{user: user, other_user: other_user} do
+      workout = Factory.insert(:workout, user: user, name: "Just legs")
+      workout_id = workout.id
 
-  test "delete_workout/2" do
-    %{id: workout_id} = workout = Factory.insert(:workout)
-    assert [workout] === Training.list_workouts()
+      assert {:ok, %Workout{id: ^workout_id, name: "Legs + Back", user_id: user_id}} =
+               Training.update_workout(user, workout.id, %{name: "Legs + Back", user_id: other_user.id})
 
-    Training.delete_workout(workout_id)
+      assert user.id == user_id
+      assert {:error, :not_found} == Training.update_workout(other_user, workout.id, %{name: "Steal"})
+      assert {:error, :not_found} == Training.delete_workout(other_user, workout.id)
 
-    assert [] === Training.list_workouts()
-  end
+      assert {:ok, %Workout{id: ^workout_id}} = Training.delete_workout(user, workout.id)
+      assert [] == Training.list_workouts(user)
+    end
 
-  test "duplicate_workout/1" do
-    exercise_count = 3
-    set_count = 5
-    notes = "Cool beans"
-    name = "Leg day"
+    test "duplicates owned workouts without notes", %{user: user, other_user: other_user, exercise_name: exercise_name} do
+      exercise_count = 3
+      set_count = 5
+      exercise_name_id = exercise_name.id
 
-    %{id: exercise_category_id} = exercise_category = Factory.insert(:exercise_category)
+      existing_workout =
+        Factory.insert(:workout,
+          user: user,
+          name: "Leg day",
+          notes: "Cool beans",
+          exercises:
+            Factory.insert_list(exercise_count, :exercise,
+              exercise_name_id: exercise_name_id,
+              exercise_name: exercise_name,
+              sets: Factory.build_list(set_count, :set)
+            )
+        )
 
-    %{id: exercise_name_id} =
-      exercise_name =
-      Factory.insert(:exercise_name,
-        exercise_category: exercise_category,
-        exercise_category_id: exercise_category_id
-      )
+      assert {:error, :not_found} == Training.duplicate_workout(other_user, existing_workout.id)
 
-    %{id: existing_workout_id} =
-      Factory.insert(:workout,
-        name: name,
-        notes: notes,
-        exercises:
-          Factory.insert_list(exercise_count, :exercise,
-            exercise_name_id: exercise_name_id,
-            exercise_name: exercise_name,
-            sets: Factory.build_list(set_count, :set)
-          )
-      )
+      assert {:ok, %Workout{name: "Leg day", notes: nil, user_id: user_id} = new_workout} =
+               Training.duplicate_workout(user, existing_workout.id)
 
-    assert {:ok, %Workout{name: ^name, notes: nil} = new_workout} = Training.duplicate_workout(existing_workout_id)
+      assert user.id == user_id
+      assert exercise_count == length(new_workout.exercises)
 
-    assert exercise_count === length(new_workout.exercises)
-
-    for exercise <- new_workout.exercises do
-      assert set_count === length(exercise.sets)
-      assert exercise_name_id === exercise.exercise_name_id
-      assert is_nil(exercise.notes)
+      for exercise <- new_workout.exercises do
+        assert set_count == length(exercise.sets)
+        assert exercise_name_id == exercise.exercise_name_id
+        assert is_nil(exercise.notes)
+      end
     end
   end
 
-  test "list_exercises_by_name/1", %{exercise_category: %{id: exercise_category_id} = exercise_category} do
-    %{id: current_workout_id} = Factory.insert(:workout)
+  describe "exercise catalog" do
+    test "lists and gets categories and names by user", %{
+      user: user,
+      other_user: other_user,
+      exercise_category: exercise_category,
+      exercise_name: exercise_name
+    } do
+      exercise_category_id = exercise_category.id
+      exercise_name_id = exercise_name.id
 
-    %{id: irrelevant_exercise_name_id} =
-      Factory.insert(:exercise_name,
-        name: "Pullups",
-        exercise_category: exercise_category,
-        exercise_category_id: exercise_category_id
-      )
+      assert [%ExerciseCategory{id: ^exercise_category_id}] = Training.list_exercise_categories(user)
+      assert [%ExerciseName{id: ^exercise_name_id}] = Training.list_exercise_names(user)
 
-    %{id: relevant_exercise_name_id} =
-      Factory.insert(:exercise_name,
-        name: "Raises",
-        exercise_category: exercise_category,
-        exercise_category_id: exercise_category_id
-      )
+      assert {:ok, %ExerciseCategory{id: ^exercise_category_id}} =
+               Training.get_exercise_category(user, exercise_category.id)
 
-    _current_exercise =
-      Factory.insert(:exercise, workout_id: current_workout_id, exercise_name_id: irrelevant_exercise_name_id)
+      assert {:ok, %ExerciseName{id: ^exercise_name_id}} = Training.get_exercise_name(user, exercise_name.id)
 
-    %{id: previous_exercise_id1} =
-      Factory.insert(:exercise, workout_id: Factory.insert(:workout).id, exercise_name_id: relevant_exercise_name_id)
+      assert {:error, :not_found} == Training.get_exercise_category(other_user, exercise_category.id)
+      assert {:error, :not_found} == Training.get_exercise_name(other_user, exercise_name.id)
+    end
 
-    %{id: previous_exercise_id2} =
-      Factory.insert(:exercise, workout_id: Factory.insert(:workout).id, exercise_name_id: relevant_exercise_name_id)
+    test "allows duplicate category and exercise names across users", %{
+      user: user,
+      other_user: other_user,
+      exercise_category: exercise_category,
+      other_exercise_category: other_exercise_category
+    } do
+      assert {:error, %Ecto.Changeset{}} = Training.create_exercise_category(user, %{name: "Biceps"})
+      assert {:ok, %ExerciseCategory{name: "Triceps"}} = Training.create_exercise_category(user, %{name: "Triceps"})
+      assert {:error, %Ecto.Changeset{}} = Training.create_exercise_category(other_user, %{name: "Biceps"})
 
-    assert [%{id: ^previous_exercise_id2}, %{id: ^previous_exercise_id1}] =
-             Training.list_previous_exercises(current_workout_id, relevant_exercise_name_id)
+      assert {:error, %Ecto.Changeset{}} =
+               Training.create_exercise_name(user, %{name: "Curls", exercise_category_id: exercise_category.id})
+
+      assert {:ok, %ExerciseName{name: "Extensions"}} =
+               Training.create_exercise_name(user, %{name: "Extensions", exercise_category_id: exercise_category.id})
+
+      assert {:error, %Ecto.Changeset{}} =
+               Training.create_exercise_name(other_user, %{
+                 name: "Curls",
+                 exercise_category_id: other_exercise_category.id
+               })
+    end
+
+    test "rejects creating names in another user's category", %{
+      user: user,
+      other_exercise_category: other_exercise_category
+    } do
+      assert {:error, :invalid_exercise_category} ==
+               Training.create_exercise_name(user, %{
+                 name: "Cross-user curls",
+                 exercise_category_id: other_exercise_category.id
+               })
+    end
+
+    test "updates and deletes catalog rows only for the owner", %{
+      user: user,
+      other_user: other_user,
+      exercise_category: exercise_category,
+      exercise_name: exercise_name
+    } do
+      assert {:error, :not_found} ==
+               Training.update_exercise_category(other_user, exercise_category.id, %{name: "Other"})
+
+      assert {:ok, %ExerciseCategory{name: "Arms"}} =
+               Training.update_exercise_category(user, exercise_category.id, %{name: "Arms"})
+
+      assert {:error, :not_found} == Training.update_exercise_name(other_user, exercise_name.id, %{name: "Other"})
+
+      assert {:ok, %ExerciseName{name: "Hammer curls"}} =
+               Training.update_exercise_name(user, exercise_name.id, %{name: "Hammer curls"})
+
+      assert {:error, :not_found} == Training.delete_exercise_name(other_user, exercise_name.id)
+      assert {:ok, %ExerciseName{}} = Training.delete_exercise_name(user, exercise_name.id)
+    end
   end
 
-  test "duplicate_exercise/2" do
-    %{exercises: [%{id: existing_exercise_id, sets: existing_exercise_sets} | _rest]} =
-      Factory.insert(:workout, exercises: Factory.insert_list(3, :exercise))
+  describe "exercises and sets" do
+    test "lists previous exercises by owner and exercise name", %{
+      user: user,
+      other_user: other_user,
+      exercise_category: exercise_category
+    } do
+      current_workout = Factory.insert(:workout, user: user)
 
-    %{id: current_workout_id, exercises: [%{id: current_exercise_id}]} =
-      Factory.insert(:workout, exercises: [Factory.build(:exercise)])
+      irrelevant_exercise_name =
+        Factory.insert(:exercise_name,
+          user: user,
+          name: "Pullups",
+          exercise_category: exercise_category
+        )
 
-    assert {:ok, %Exercise{id: ^current_exercise_id, workout_id: ^current_workout_id, sets: ^existing_exercise_sets}} =
-             Training.replace_exercise(existing_exercise_id, current_exercise_id)
+      relevant_exercise_name =
+        Factory.insert(:exercise_name,
+          user: user,
+          name: "Raises",
+          exercise_category: exercise_category
+        )
+
+      Factory.insert(:exercise,
+        workout_id: current_workout.id,
+        exercise_name_id: irrelevant_exercise_name.id
+      )
+
+      previous_exercise_1 =
+        Factory.insert(:exercise,
+          workout_id: Factory.insert(:workout, user: user).id,
+          exercise_name_id: relevant_exercise_name.id
+        )
+
+      previous_exercise_2 =
+        Factory.insert(:exercise,
+          workout_id: Factory.insert(:workout, user: user).id,
+          exercise_name_id: relevant_exercise_name.id
+        )
+
+      Factory.insert(:exercise,
+        workout_id: Factory.insert(:workout, user: other_user).id,
+        exercise_name_id: relevant_exercise_name.id
+      )
+
+      previous_exercise_1_id = previous_exercise_1.id
+      previous_exercise_2_id = previous_exercise_2.id
+
+      assert [%{id: ^previous_exercise_2_id}, %{id: ^previous_exercise_1_id}] =
+               Training.list_previous_exercises(user, current_workout.id, relevant_exercise_name.id)
+    end
+
+    test "creates exercises only inside the user's workout and catalog", %{
+      user: user,
+      other_user: other_user,
+      exercise_name: exercise_name,
+      other_exercise_name: other_exercise_name
+    } do
+      workout = Factory.insert(:workout, user: user)
+
+      assert {:ok, %Exercise{position: 1}} =
+               Training.create_exercise(user, %{workout_id: workout.id, exercise_name_id: exercise_name.id})
+
+      assert {:error, :not_found} ==
+               Training.create_exercise(other_user, %{workout_id: workout.id, exercise_name_id: exercise_name.id})
+
+      assert {:error, :invalid_exercise_name} ==
+               Training.create_exercise(user, %{workout_id: workout.id, exercise_name_id: other_exercise_name.id})
+    end
+
+    test "updates, deletes, and clears exercises only for the owner", %{
+      user: user,
+      other_user: other_user,
+      exercise_name: exercise_name
+    } do
+      workout = Factory.insert(:workout, user: user)
+
+      exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id
+        )
+
+      Factory.insert(:set, exercise_id: exercise.id)
+
+      assert {:error, :not_found} == Training.update_exercise(other_user, %{notes: "Nope"}, exercise.id)
+      assert {:ok, %Exercise{notes: "Slow"}} = Training.update_exercise(user, %{notes: "Slow"}, exercise.id)
+      assert {:error, :not_found} == Training.clear_exercise_sets(other_user, exercise.id)
+      assert {:ok, %Exercise{sets: []}} = Training.clear_exercise_sets(user, exercise.id)
+      assert {:error, :not_found} == Training.delete_exercise(other_user, exercise.id)
+      assert {:ok, %Exercise{}} = Training.delete_exercise(user, exercise.id)
+    end
+
+    test "copies sets from a previous owned exercise", %{
+      user: user,
+      other_user: other_user,
+      exercise_name: exercise_name
+    } do
+      previous_workout = Factory.insert(:workout, user: user)
+      current_workout = Factory.insert(:workout, user: user)
+
+      previous_exercise =
+        Factory.insert(:exercise,
+          workout_id: previous_workout.id,
+          exercise_name_id: exercise_name.id,
+          sets: [Factory.build(:set, weight: 45.0, reps: 8)]
+        )
+
+      current_exercise =
+        Factory.insert(:exercise,
+          workout_id: current_workout.id,
+          exercise_name_id: exercise_name.id,
+          sets: [Factory.build(:set, weight: 95.0, reps: 3)]
+        )
+
+      current_exercise_id = current_exercise.id
+      current_workout_id = current_workout.id
+
+      assert {:error, :not_found} == Training.replace_exercise(other_user, previous_exercise.id, current_exercise.id)
+
+      assert {:ok,
+              %Exercise{
+                id: ^current_exercise_id,
+                workout_id: ^current_workout_id,
+                sets: [%{weight: 45.0, reps: 8}]
+              }} = Training.replace_exercise(user, previous_exercise.id, current_exercise.id)
+    end
+
+    test "creates and deletes sets only for the exercise owner", %{
+      user: user,
+      other_user: other_user,
+      exercise_name: exercise_name
+    } do
+      workout = Factory.insert(:workout, user: user)
+
+      exercise =
+        Factory.insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id
+        )
+
+      assert {:error, :not_found} ==
+               Training.create_set(other_user, %{exercise_id: exercise.id, weight: 45.0, reps: 8})
+
+      assert {:ok, %Set{} = set} = Training.create_set(user, %{exercise_id: exercise.id, weight: 45.0, reps: 8})
+      assert {:error, :not_found} == Training.delete_set(other_user, set.id)
+      assert {:ok, %Set{}} = Training.delete_set(user, set.id)
+    end
   end
 
   describe "exercise ordering" do
-    test "appends new exercises to the end of the workout", %{exercise_name: exercise_name} do
-      workout = Factory.insert(:workout)
+    test "appends new exercises to the end of the workout", %{user: user, exercise_name: exercise_name} do
+      workout = Factory.insert(:workout, user: user)
 
       first_exercise =
         Factory.insert(:exercise,
@@ -161,7 +386,7 @@ defmodule Whiteboard.TrainingTest do
         )
 
       assert {:ok, %Exercise{position: 2} = second_exercise} =
-               Training.create_exercise(%{workout_id: workout.id, exercise_name_id: exercise_name.id})
+               Training.create_exercise(user, %{workout_id: workout.id, exercise_name_id: exercise_name.id})
 
       first_exercise_id = first_exercise.id
       second_exercise_id = second_exercise.id
@@ -172,32 +397,31 @@ defmodule Whiteboard.TrainingTest do
                   %{id: ^first_exercise_id, position: 1},
                   %{id: ^second_exercise_id, position: 2}
                 ]
-              }} = Training.get_workout(workout.id)
+              }} = Training.get_workout(user, workout.id)
     end
 
-    test "persists reordered exercises transactionally", %{exercise_name: exercise_name} do
-      workout = Factory.insert(:workout)
+    test "persists reordered exercises transactionally for the owner", %{
+      user: user,
+      other_user: other_user,
+      exercise_name: exercise_name
+    } do
+      workout = Factory.insert(:workout, user: user)
 
       first_exercise =
-        Factory.insert(:exercise,
-          workout_id: workout.id,
-          exercise_name_id: exercise_name.id,
-          position: 1
-        )
+        Factory.insert(:exercise, workout_id: workout.id, exercise_name_id: exercise_name.id, position: 1)
 
       second_exercise =
-        Factory.insert(:exercise,
-          workout_id: workout.id,
-          exercise_name_id: exercise_name.id,
-          position: 2
-        )
+        Factory.insert(:exercise, workout_id: workout.id, exercise_name_id: exercise_name.id, position: 2)
 
       third_exercise =
-        Factory.insert(:exercise,
-          workout_id: workout.id,
-          exercise_name_id: exercise_name.id,
-          position: 3
-        )
+        Factory.insert(:exercise, workout_id: workout.id, exercise_name_id: exercise_name.id, position: 3)
+
+      assert {:error, :workout_not_found} ==
+               Training.reorder_exercises(other_user, workout.id, [
+                 third_exercise.id,
+                 first_exercise.id,
+                 second_exercise.id
+               ])
 
       first_exercise_id = first_exercise.id
       second_exercise_id = second_exercise.id
@@ -211,39 +435,22 @@ defmodule Whiteboard.TrainingTest do
                   %{id: ^second_exercise_id, position: 3}
                 ]
               }} =
-               Training.reorder_exercises(workout.id, [
+               Training.reorder_exercises(user, workout.id, [
                  third_exercise.id,
                  first_exercise.id,
                  second_exercise.id
                ])
-
-      assert {:ok,
-              %Workout{
-                exercises: [
-                  %{id: ^third_exercise_id, position: 1},
-                  %{id: ^first_exercise_id, position: 2},
-                  %{id: ^second_exercise_id, position: 3}
-                ]
-              }} = Training.get_workout(workout.id)
     end
 
-    test "rejects invalid reorder payloads", %{exercise_name: exercise_name} do
-      workout = Factory.insert(:workout)
-      other_workout = Factory.insert(:workout)
+    test "rejects invalid reorder payloads", %{user: user, exercise_name: exercise_name} do
+      workout = Factory.insert(:workout, user: user)
+      other_workout = Factory.insert(:workout, user: user)
 
       first_exercise =
-        Factory.insert(:exercise,
-          workout_id: workout.id,
-          exercise_name_id: exercise_name.id,
-          position: 1
-        )
+        Factory.insert(:exercise, workout_id: workout.id, exercise_name_id: exercise_name.id, position: 1)
 
       second_exercise =
-        Factory.insert(:exercise,
-          workout_id: workout.id,
-          exercise_name_id: exercise_name.id,
-          position: 2
-        )
+        Factory.insert(:exercise, workout_id: workout.id, exercise_name_id: exercise_name.id, position: 2)
 
       other_exercise =
         Factory.insert(:exercise,
@@ -260,7 +467,7 @@ defmodule Whiteboard.TrainingTest do
       ]
 
       for invalid_payload <- invalid_payloads do
-        assert {:error, :invalid_exercise_order} == Training.reorder_exercises(workout.id, invalid_payload)
+        assert {:error, :invalid_exercise_order} == Training.reorder_exercises(user, workout.id, invalid_payload)
       end
 
       first_exercise_id = first_exercise.id
@@ -272,7 +479,7 @@ defmodule Whiteboard.TrainingTest do
                   %{id: ^first_exercise_id, position: 1},
                   %{id: ^second_exercise_id, position: 2}
                 ]
-              }} = Training.get_workout(workout.id)
+              }} = Training.get_workout(user, workout.id)
     end
   end
 end

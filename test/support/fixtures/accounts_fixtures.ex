@@ -6,6 +6,7 @@ defmodule Whiteboard.AccountsFixtures do
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
   def valid_user_password, do: "hello world!"
+  def public_read_only_owner_email, do: Whiteboard.Accounts.public_read_only_owner_email()
 
   def valid_user_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
@@ -15,12 +16,26 @@ defmodule Whiteboard.AccountsFixtures do
   end
 
   def user_fixture(attrs \\ %{}) do
+    if Enum.empty?(attrs) && Process.get(:whiteboard_factory_default_user) do
+      Process.get(:whiteboard_factory_default_user)
+    else
+      insert_user_fixture(attrs)
+    end
+  end
+
+  defp insert_user_fixture(attrs) do
     {:ok, user} =
       attrs
       |> valid_user_attributes()
       |> Whiteboard.Accounts.register_user()
 
     user
+  end
+
+  def public_read_only_owner_fixture(attrs \\ %{}) do
+    attrs
+    |> Enum.into(%{email: public_read_only_owner_email()})
+    |> user_fixture()
   end
 
   def extract_user_token(fun) do

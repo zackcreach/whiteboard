@@ -6,12 +6,12 @@ defmodule WhiteboardWeb.Utils.ExerciseHelpers do
   alias Whiteboard.Training
   alias Whiteboard.Training.Workout
 
-  def list_exercises do
-    Enum.map(Training.list_exercise_names(), fn exercise -> {exercise.name, exercise.id} end)
+  def list_exercises(user) do
+    Enum.map(Training.list_exercise_names(user), fn exercise -> {exercise.name, exercise.id} end)
   end
 
-  def list_exercise_categories do
-    Enum.map(Training.list_exercise_categories(), fn category -> {category.name, category.id} end)
+  def list_exercise_categories(user) do
+    Enum.map(Training.list_exercise_categories(user), fn category -> {category.name, category.id} end)
   end
 
   def render_exercise_names(%Workout{exercises: exercises}) do
