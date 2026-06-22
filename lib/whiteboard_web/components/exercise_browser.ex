@@ -17,9 +17,15 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     ~H"""
     <div class={@container_class}>
       <div class="flex gap-x-4 items-center mb-[42px]">
-        <.form :let={f} for={to_form(%{"exercise_id" => ""})} class="w-full">
-          <.input type="select" field={f[:exercise_id]} options={render_exercise_options(@exercises)} phx-change="update_selected_exercise" phx-target={@myself} />
-        </.form>
+        <.input
+          type="select"
+          id={"previous-exercise-#{@current_exercise_id}"}
+          name={"previous_exercise[#{@current_exercise_id}]"}
+          value={@selected_exercise.id}
+          options={render_exercise_options(@exercises)}
+          phx-change="update_selected_exercise"
+          phx-target={@myself}
+        />
         <div phx-click="replace_exercise" phx-value-selected_exercise_id={@selected_exercise.id} phx-value-current_exercise_id={@current_exercise_id}>
           <.icon name="hero-document-duplicate size-5 cursor-pointer" />
         </div>
@@ -50,8 +56,11 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
     socket =
       case Training.list_previous_exercises(workout_id, exercise_name_id) do
         [first_exercise | _rest] = exercises ->
-          # assign first exercise on first mount, otherwise keep selected exercise
-          selected_exercise = socket.assigns[:selected_exercise] || first_exercise
+          selected_exercise =
+            case find_selected_exercise(socket.assigns[:selected_exercise], exercises) do
+              %Exercise{} = exercise -> exercise
+              nil -> first_exercise
+            end
 
           assign(
             socket,
@@ -62,18 +71,34 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
           )
 
         _error ->
-          socket
+          assign(socket,
+            exercises: [],
+            selected_exercise: nil,
+            current_exercise_id: current_exercise_id,
+            container_class: params[:container_class]
+          )
       end
 
     ok(socket)
   end
 
-  def handle_event("update_selected_exercise", %{"exercise_id" => exercise_id}, socket) do
+  def handle_event("update_selected_exercise", %{"previous_exercise" => previous_exercise}, socket) do
+    current_exercise_id = socket.assigns.current_exercise_id
+    %{^current_exercise_id => exercise_id} = previous_exercise
+
     {:ok, new_selected_exercise} = Training.get_exercise(exercise_id)
 
     socket
     |> assign(selected_exercise: new_selected_exercise)
     |> noreply()
+  end
+
+  defp find_selected_exercise(%Exercise{id: selected_exercise_id}, exercises) do
+    Enum.find(exercises, fn exercise -> exercise.id == selected_exercise_id end)
+  end
+
+  defp find_selected_exercise(_selected_exercise, _exercises) do
+    nil
   end
 
   defp render_exercise_options(exercises) do

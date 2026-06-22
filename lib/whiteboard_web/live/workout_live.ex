@@ -99,9 +99,9 @@ defmodule WhiteboardWeb.WorkoutLive do
   #
   def handle_event("maybe_update_workout", %{"workout" => params}, socket) do
     socket =
-      with %Ecto.Changeset{valid?: true} <- Workout.changeset(socket.assigns.workout_form.data, atomize_params(params)),
+      with %Ecto.Changeset{valid?: true} <- Workout.changeset(socket.assigns.workout_form.data, params),
            {:ok, %Workout{} = updated_workout} <-
-             Training.update_workout(socket.assigns.workout_form.data.id, atomize_params(params)) do
+             Training.update_workout(socket.assigns.workout_form.data.id, params) do
         assign(socket, workout_form: to_form(Workout.changeset(updated_workout)))
       else
         %Ecto.Changeset{valid?: false} = invalid_changeset ->
@@ -202,15 +202,5 @@ defmodule WhiteboardWeb.WorkoutLive do
       _error ->
         to_form(%{})
     end
-  end
-
-  defp atomize_params(params) do
-    Map.new(params, fn {key, value} = original_pair ->
-      if is_binary(key) do
-        {String.to_atom(key), value}
-      else
-        original_pair
-      end
-    end)
   end
 end
