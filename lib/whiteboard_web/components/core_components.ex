@@ -98,9 +98,9 @@ defmodule WhiteboardWeb.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 mr-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
-        @kind == :info && "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200 ring-emerald-500 fill-cyan-900",
-        @kind == :error && "bg-rose-50 dark:bg-rose-900/20 text-rose-900 dark:text-rose-200 shadow-md ring-rose-500 fill-rose-900"
+        "fixed top-2 left-1/2 z-50 w-[calc(100vw-1rem)] max-w-sm -translate-x-1/2 rounded-lg p-3 ring-1 sm:max-w-md",
+        @kind == :info && "bg-emerald-50 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 ring-emerald-500 fill-cyan-900",
+        @kind == :error && "bg-rose-50 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 shadow-md ring-rose-500 fill-rose-900"
       ]}
       {@rest}
     >

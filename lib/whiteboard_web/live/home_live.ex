@@ -90,7 +90,11 @@ defmodule WhiteboardWeb.HomeLive do
             <p {@heex_previous_workouts_exercise_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
             <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
             <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
-            <div :if={!@read_only?} class="relative py-1 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start">
+            <div
+              :if={!@read_only?}
+              class="relative py-1 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start"
+              phx-click-away={if @workout_action_menu_id == workout.id, do: "cancel_workout_action_menu"}
+            >
               <.icon_button
                 id={"workout-action-menu-button-#{workout.id}"}
                 label="Open workout actions"
@@ -110,6 +114,7 @@ defmodule WhiteboardWeb.HomeLive do
                 width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
                 row_role="workout-action-menu-item"
                 row_label_role="workout-action-menu-item-label"
+                click_away={false}
               >
                 <:row
                   id={"duplicate-workout-#{workout.id}"}
@@ -338,10 +343,19 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   def handle_event("open_workout_action_menu", %{"workout_id" => workout_id}, socket) do
+    socket =
+      case socket.assigns.workout_action_menu_id do
+        ^workout_id ->
+          close_workout_action_menu(socket)
+
+        _workout_action_menu_id ->
+          socket
+          |> close_workout_details()
+          |> close_delete_workout()
+          |> assign(workout_action_menu_id: workout_id)
+      end
+
     socket
-    |> close_workout_details()
-    |> close_delete_workout()
-    |> assign(workout_action_menu_id: workout_id)
     |> refresh_workouts()
     |> noreply()
   end
@@ -445,7 +459,9 @@ defmodule WhiteboardWeb.HomeLive do
     socket =
       case Training.duplicate_workout(socket.assigns.page_owner, workout_id) do
         {:ok, %Workout{id: id}} ->
-          redirect(socket, to: ~p"/workouts/#{id}")
+          socket
+          |> put_flash(:info, "Workout duplicated successfully, navigated to new workout")
+          |> push_navigate(to: ~p"/workouts/#{id}")
 
         {:error, error} ->
           put_flash(socket, :error, "Error duplicating workout: #{error}")

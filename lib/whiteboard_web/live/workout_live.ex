@@ -15,6 +15,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   alias WhiteboardWeb.Components.Card
   alias WhiteboardWeb.Components.ExerciseBrowser
   alias WhiteboardWeb.Components.ExerciseNameDialog
+  alias WhiteboardWeb.Components.FloatingDialog
   alias WhiteboardWeb.Components.WorkoutDetailsDialog
   alias WhiteboardWeb.Utils.DateHelpers
 
@@ -41,15 +42,22 @@ defmodule WhiteboardWeb.WorkoutLive do
         />
       </div>
 
-      <div :if={!@read_only?} class="relative shrink-0">
-        <.button id="open-add-exercise-top" type="button" phx-click="open_add_exercise" phx-value-position="top">Add exercise</.button>
-        <.add_exercise_dialog
-          open={@add_exercise_open}
-          active_position={@add_exercise_position}
-          position="top"
-          exercise_names={@exercise_names}
-          query={@add_exercise_query}
-          position_class="right-0 top-full mt-4"
+      <div :if={!@read_only?} class="flex shrink-0 items-center">
+        <div class="relative">
+          <.button id="open-add-exercise-top" type="button" phx-click="open_add_exercise" phx-value-position="top">Add exercise</.button>
+          <.add_exercise_dialog
+            open={@add_exercise_open}
+            active_position={@add_exercise_position}
+            position="top"
+            exercise_names={@exercise_names}
+            query={@add_exercise_query}
+            position_class="right-0 top-full mt-4"
+          />
+        </div>
+        <.workout_action_menu_control
+          workout={@workout_form.data}
+          workout_action_menu_id={@workout_action_menu_id}
+          delete_workout_open?={@delete_workout_open?}
         />
       </div>
     </section>
@@ -203,9 +211,104 @@ defmodule WhiteboardWeb.WorkoutLive do
     """
   end
 
+  defp workout_action_menu_control(assigns) do
+    ~H"""
+    <div
+      class="relative ml-1.5 h-[42px] w-[42px] shrink-0"
+      phx-click-away={if @workout_action_menu_id == @workout.id, do: "cancel_workout_action_menu"}
+    >
+      <.icon_button
+        id={"workout-action-menu-button-#{@workout.id}"}
+        label="Open workout actions"
+        icon="hero-ellipsis-vertical size-5"
+        phx-click="open_workout_action_menu"
+        phx-value-workout_id={@workout.id}
+        class="h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white"
+      />
+      <.workout_action_menu
+        :if={@workout_action_menu_id == @workout.id}
+        workout={@workout}
+      />
+      <.delete_workout_dialog
+        :if={@delete_workout_open?}
+        workout={@workout}
+      />
+    </div>
+    """
+  end
+
+  defp workout_action_menu(assigns) do
+    ~H"""
+    <ActionMenu.render
+      id={"workout-action-menu-#{@workout.id}"}
+      title={"#{@workout.name} actions"}
+      close_event="cancel_workout_action_menu"
+      close_id={"cancel-workout-action-menu-#{@workout.id}"}
+      close_label="Close workout actions"
+      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+      row_role="workout-action-menu-item"
+      row_label_role="workout-action-menu-item-label"
+      click_away={false}
+    >
+      <:row
+        id={"duplicate-workout-#{@workout.id}"}
+        label="Duplicate workout"
+        icon="hero-document-duplicate size-5"
+        click="duplicate_workout"
+        values={%{workout_id: @workout.id}}
+      />
+      <:row
+        id={"delete-workout-#{@workout.id}"}
+        label="Delete workout"
+        icon="hero-trash size-5"
+        click="open_delete_workout"
+        values={%{workout_id: @workout.id}}
+      />
+    </ActionMenu.render>
+    """
+  end
+
+  defp delete_workout_dialog(assigns) do
+    ~H"""
+    <FloatingDialog.render
+      id={"delete-workout-dialog-#{@workout.id}"}
+      title={"Delete #{@workout.name}?"}
+      close_event="cancel_delete_workout"
+      close_id={"cancel-delete-workout-#{@workout.id}"}
+      close_label="Cancel workout delete"
+      position_class="right-0 top-full mt-4"
+      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+      divider={true}
+    >
+      <div class="flex gap-3">
+        <.button
+          id={"confirm-delete-workout-#{@workout.id}"}
+          type="button"
+          phx-click="delete_workout"
+          phx-value-workout_id={@workout.id}
+          class="flex-1"
+        >
+          Confirm
+        </.button>
+        <.button
+          id={"cancel-delete-workout-button-#{@workout.id}"}
+          type="button"
+          phx-click="cancel_delete_workout"
+          class="flex-1 border border-zinc-300 !bg-transparent !text-zinc-900 hover:!bg-zinc-100 dark:border-stone-500 dark:!text-stone-100 dark:hover:!bg-stone-700"
+        >
+          Cancel
+        </.button>
+      </div>
+    </FloatingDialog.render>
+    """
+  end
+
   defp exercise_action_menu_control(assigns) do
     ~H"""
-    <div class="relative ml-1.5 h-[42px] w-[42px] shrink-0">
+    <div
+      class="relative ml-1.5 h-[42px] w-[42px] shrink-0"
+      phx-click-away={if @action_menu_exercise_id == @current_exercise.id, do: "cancel_exercise_action_menu"}
+    >
       <.icon_button
         id={"exercise-action-menu-button-#{@current_exercise.id}"}
         label="Open exercise actions"
@@ -240,6 +343,7 @@ defmodule WhiteboardWeb.WorkoutLive do
       close_event="cancel_exercise_action_menu"
       close_id={"cancel-exercise-action-menu-#{@current_exercise.id}"}
       close_label="Close exercise actions"
+      click_away={false}
     >
       <:row
         id={"delete-exercise-#{@current_exercise.id}"}
@@ -334,6 +438,8 @@ defmodule WhiteboardWeb.WorkoutLive do
             |> assign(add_exercise_position: nil)
             |> assign(add_exercise_query: "")
             |> assign(action_menu_exercise_id: nil)
+            |> assign(workout_action_menu_id: nil)
+            |> assign(delete_workout_open?: false)
             |> ok()
 
           {:error, :not_found} ->
@@ -352,6 +458,133 @@ defmodule WhiteboardWeb.WorkoutLive do
     noreply(socket)
   end
 
+  def handle_event("open_workout_action_menu", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("open_workout_action_menu", %{"workout_id" => workout_id}, socket) do
+    {socket.assigns.workout_form.data.id, socket.assigns.workout_action_menu_id}
+    |> case do
+      {^workout_id, ^workout_id} ->
+        close_workout_action_menu(socket)
+
+      {^workout_id, _workout_action_menu_id} ->
+        socket
+        |> assign(workout_action_menu_id: workout_id)
+        |> close_add_exercise()
+        |> close_replace_exercise()
+        |> close_exercise_action_menu()
+        |> close_workout_details()
+        |> close_delete_workout()
+
+      {_current_workout_id, _workout_action_menu_id} ->
+        socket
+    end
+    |> noreply()
+  end
+
+  def handle_event("open_workout_action_menu", _params, socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_action_menu", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_workout_action_menu", _params, socket) do
+    socket
+    |> close_workout_action_menu()
+    |> noreply()
+  end
+
+  def handle_event("duplicate_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("duplicate_workout", _params, socket) do
+    socket =
+      case Training.duplicate_workout(socket.assigns.page_owner, socket.assigns.workout_form.data.id) do
+        {:ok, %Workout{id: id}} ->
+          socket
+          |> put_flash(:info, "Workout duplicated successfully, navigated to new workout")
+          |> push_navigate(to: ~p"/workouts/#{id}")
+
+        {:error, error} ->
+          socket
+          |> put_flash(:error, "Error duplicating workout: #{error}")
+          |> close_workout_action_menu()
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event("open_delete_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("open_delete_workout", %{"workout_id" => workout_id}, socket) do
+    socket.assigns.workout_form.data.id
+    |> case do
+      ^workout_id ->
+        socket
+        |> assign(delete_workout_open?: true)
+        |> close_add_exercise()
+        |> close_replace_exercise()
+        |> close_exercise_action_menu()
+        |> close_workout_action_menu()
+        |> close_workout_details()
+
+      _current_workout_id ->
+        socket
+    end
+    |> noreply()
+  end
+
+  def handle_event("open_delete_workout", _params, socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_delete_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("cancel_delete_workout", _params, socket) do
+    socket
+    |> close_delete_workout()
+    |> noreply()
+  end
+
+  def handle_event("delete_workout", _params, %{assigns: %{read_only?: true}} = socket) do
+    noreply(socket)
+  end
+
+  def handle_event("delete_workout", %{"workout_id" => workout_id}, socket) do
+    socket =
+      case socket.assigns.workout_form.data.id do
+        ^workout_id ->
+          case Training.delete_workout(socket.assigns.page_owner, workout_id) do
+            {:ok, %Workout{}} ->
+              socket
+              |> put_flash(:info, "Workout deleted successfully")
+              |> redirect(to: ~p"/")
+
+            {:error, error} ->
+              socket
+              |> put_flash(:error, "Error deleting workout: #{error}")
+              |> close_delete_workout()
+          end
+
+        _current_workout_id ->
+          socket
+      end
+
+    noreply(socket)
+  end
+
+  def handle_event("delete_workout", _params, socket) do
+    noreply(socket)
+  end
+
   def handle_event("open_workout_details", _params, %{assigns: %{read_only?: true}} = socket) do
     noreply(socket)
   end
@@ -361,6 +594,8 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> assign(workout_details_open?: true)
     |> assign(workout_details_form: workout_details_form(socket.assigns.workout_form.data))
     |> close_exercise_overlays()
+    |> close_workout_action_menu()
+    |> close_delete_workout()
     |> noreply()
   end
 
@@ -473,6 +708,8 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> close_replace_exercise()
     |> close_exercise_action_menu()
     |> close_workout_details()
+    |> close_workout_action_menu()
+    |> close_delete_workout()
     |> noreply()
   end
 
@@ -520,6 +757,8 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> close_add_exercise()
     |> close_exercise_action_menu()
     |> close_workout_details()
+    |> close_workout_action_menu()
+    |> close_delete_workout()
     |> noreply()
   end
 
@@ -589,11 +828,20 @@ defmodule WhiteboardWeb.WorkoutLive do
   end
 
   def handle_event("open_exercise_action_menu", %{"exercise_id" => exercise_id}, socket) do
-    socket
-    |> assign(action_menu_exercise_id: exercise_id)
-    |> close_add_exercise()
-    |> close_replace_exercise()
-    |> close_workout_details()
+    socket.assigns.action_menu_exercise_id
+    |> case do
+      ^exercise_id ->
+        close_exercise_action_menu(socket)
+
+      _action_menu_exercise_id ->
+        socket
+        |> assign(action_menu_exercise_id: exercise_id)
+        |> close_add_exercise()
+        |> close_replace_exercise()
+        |> close_workout_details()
+        |> close_workout_action_menu()
+        |> close_delete_workout()
+    end
     |> noreply()
   end
 
@@ -850,6 +1098,14 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   defp close_exercise_action_menu(socket) do
     assign(socket, action_menu_exercise_id: nil)
+  end
+
+  defp close_workout_action_menu(socket) do
+    assign(socket, workout_action_menu_id: nil)
+  end
+
+  defp close_delete_workout(socket) do
+    assign(socket, delete_workout_open?: false)
   end
 
   defp close_exercise_overlays(socket) do

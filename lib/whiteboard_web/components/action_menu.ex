@@ -13,6 +13,7 @@ defmodule WhiteboardWeb.Components.ActionMenu do
   attr :width_class, :string, default: "w-96 max-w-[calc(100vw-2rem)]"
   attr :row_role, :string, default: "exercise-action-menu-item"
   attr :row_label_role, :string, default: "exercise-action-menu-item-label"
+  attr :click_away, :boolean, default: true
 
   slot :row, required: true do
     attr :id, :string, required: true
@@ -33,6 +34,7 @@ defmodule WhiteboardWeb.Components.ActionMenu do
       close_label={@close_label}
       position_class={@position_class}
       width_class={@width_class}
+      click_away={@click_away}
       divider={true}
     >
       <div class="flex flex-col gap-1">

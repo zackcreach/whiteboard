@@ -13,6 +13,7 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
   attr :close_event, :string, required: true
   attr :close_id, :string, required: true
   attr :close_label, :string, required: true
+  attr :click_away, :boolean, default: true
 
   slot :inner_block, required: true
 
@@ -21,7 +22,7 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
     <div
       id={@id}
       class={["absolute z-20", @width_class, @position_class]}
-      phx-click-away={@close_event}
+      phx-click-away={if @click_away, do: @close_event}
       phx-window-keydown={@close_event}
       phx-key="escape"
       phx-mounted={focus_command(@focus_target)}

@@ -251,6 +251,437 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     end
   end
 
+  describe "workout action menu" do
+    setup :register_and_log_in_user
+
+    test "renders the workout action control directly after the top add exercise control", %{conn: conn, user: user} do
+      workout = insert(:workout, user: user, name: "Current Workout")
+      workout_id = workout.id
+      action_button_id = "workout-action-menu-button-#{workout.id}"
+
+      {:ok, _lv, html} = live(conn, ~p"/workouts/#{workout.id}")
+
+      document = parse_document!(html)
+
+      assert %{
+               attributes: %{"class" => action_area_class},
+               controls: [add_exercise_wrapper, action_menu_wrapper]
+             } = workout_header_action_area(document)
+
+      assert class_contains?(action_area_class, "items-center")
+      refute class_contains?(action_area_class, "items-start")
+
+      assert [add_exercise_button] = Floki.find(add_exercise_wrapper, "#open-add-exercise-top")
+
+      assert %{
+               "id" => "open-add-exercise-top",
+               "phx-click" => "open_add_exercise",
+               "phx-value-position" => "top",
+               "type" => "button"
+             } = node_attributes(add_exercise_button)
+
+      action_menu_wrapper_class = attribute!(action_menu_wrapper, "class")
+
+      for class <- ["relative", "ml-1.5", "h-[42px]", "w-[42px]", "shrink-0"] do
+        assert class_contains?(action_menu_wrapper_class, class)
+      end
+
+      assert [
+               %{
+                 attributes: %{
+                   "aria-label" => "Open workout actions",
+                   "id" => ^action_button_id,
+                   "phx-click" => "open_workout_action_menu",
+                   "phx-value-workout_id" => ^workout_id,
+                   "type" => "button"
+                 },
+                 icon: "hero-ellipsis-vertical size-5"
+               }
+             ] = workout_action_buttons(action_menu_wrapper)
+
+      assert action_button_class =
+               action_menu_wrapper
+               |> Floki.find("##{action_button_id}")
+               |> List.first()
+               |> attribute!("class")
+
+      for class <- ["h-[42px]", "w-[42px]", "justify-center"] do
+        assert class_contains?(action_button_class, class)
+      end
+    end
+
+    test "opens and cancels the workout actions dialog", %{conn: conn, user: user} do
+      workout = insert(:workout, user: user, name: "Current Workout")
+      workout_id = workout.id
+      menu_id = "workout-action-menu-#{workout.id}"
+      cancel_id = "cancel-workout-action-menu-#{workout.id}"
+      duplicate_id = "duplicate-workout-#{workout.id}"
+      delete_id = "delete-workout-#{workout.id}"
+
+      {:ok, lv, _html} = live(conn, ~p"/workouts/#{workout.id}")
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{
+               attributes: %{
+                 "class" => menu_class,
+                 "id" => ^menu_id,
+                 "phx-key" => "escape",
+                 "phx-window-keydown" => "cancel_workout_action_menu"
+               },
+               close_button: %{
+                 attributes: %{
+                   "aria-label" => "Close workout actions",
+                   "id" => ^cancel_id,
+                   "phx-click" => "cancel_workout_action_menu",
+                   "type" => "button"
+                 }
+               },
+               heading: "Current Workout actions",
+               items: [
+                 %{
+                   attributes: %{
+                     "aria-label" => "Duplicate workout",
+                     "data-role" => "workout-action-menu-item",
+                     "id" => ^duplicate_id,
+                     "phx-click" => "duplicate_workout",
+                     "phx-value-workout_id" => ^workout_id,
+                     "type" => "button"
+                   },
+                   disabled?: false,
+                   icon: "hero-document-duplicate size-5",
+                   label: "Duplicate workout"
+                 },
+                 %{
+                   attributes: %{
+                     "aria-label" => "Delete workout",
+                     "data-role" => "workout-action-menu-item",
+                     "id" => ^delete_id,
+                     "phx-click" => "open_delete_workout",
+                     "phx-value-workout_id" => ^workout_id,
+                     "type" => "button"
+                   },
+                   disabled?: false,
+                   icon: "hero-trash size-5",
+                   label: "Delete workout"
+                 }
+               ]
+             } = workout_action_menu(document, workout.id)
+
+      assert %{"phx-click-away" => "cancel_workout_action_menu"} =
+               document
+               |> click_away_wrapper("workout-action-menu-button-#{workout.id}")
+               |> node_attributes()
+
+      refute Map.has_key?(workout_action_menu(document, workout.id).attributes, "phx-click-away")
+
+      assert class_contains?(menu_class, "w-72")
+      assert class_contains?(menu_class, "sm:w-80")
+      assert class_contains?(menu_class, "max-w-[calc(100vw-2rem)]")
+      refute class_contains?(menu_class, "w-96")
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+
+      lv
+      |> element("#workout-action-menu-button-#{workout.id}")
+      |> render_click()
+
+      html =
+        lv
+        |> element("#cancel-workout-action-menu-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+    end
+
+    test "closes sibling overlays as workout editor overlays open", %{conn: conn, user: user} do
+      exercise_category = insert(:exercise_category, user: user, name: "Strength")
+      exercise_name = insert(:exercise_name, exercise_category: exercise_category, name: "Bench Press")
+      workout = insert(:workout, user: user, name: "Current Workout")
+
+      exercise =
+        insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: exercise_name.id
+        )
+
+      {:ok, lv, _html} = live(conn, ~p"/workouts/#{workout.id}")
+
+      lv
+      |> element("#open-workout-details")
+      |> render_click()
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{heading: "Current Workout actions"} = workout_action_menu(document, workout.id)
+      assert [] = Floki.find(document, "#workout-details-dialog")
+
+      html =
+        lv
+        |> element("#open-add-exercise-top")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{heading: "Add exercise"} = add_exercise_popover(document)
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{heading: "Current Workout actions"} = workout_action_menu(document, workout.id)
+      assert [] = Floki.find(document, "#add-exercise-popover")
+
+      html =
+        lv
+        |> element("#exercise-action-menu-button-#{exercise.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{heading: "Bench Press actions"} = exercise_action_menu(document, exercise.id)
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{heading: "Current Workout actions"} = workout_action_menu(document, workout.id)
+      assert [] = Floki.find(document, "#exercise-action-menu-#{exercise.id}")
+
+      html =
+        render_click(lv, "open_replace_exercise", %{"exercise_id" => exercise.id})
+
+      document = parse_document!(html)
+
+      assert %{heading: "Replace Bench Press"} = replace_exercise_popover(document, exercise.id)
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert %{heading: "Current Workout actions"} = workout_action_menu(document, workout.id)
+      assert [] = Floki.find(document, "#replace-exercise-popover-#{exercise.id}")
+    end
+
+    test "duplicates the mounted workout from the actions dialog", %{conn: conn, user: user} do
+      exercise_category = insert(:exercise_category, user: user, name: "Strength")
+      bench_press = insert(:exercise_name, exercise_category: exercise_category, name: "Bench Press")
+      row = insert(:exercise_name, exercise_category: exercise_category, name: "Row")
+      workout = insert(:workout, user: user, name: "Push Pull", notes: "Do not copy")
+
+      first_exercise =
+        insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: bench_press.id,
+          notes: "Press note",
+          position: 1
+        )
+
+      second_exercise =
+        insert(:exercise,
+          workout_id: workout.id,
+          exercise_name_id: row.id,
+          notes: "Row note",
+          position: 2
+        )
+
+      insert(:set,
+        exercise_id: first_exercise.id,
+        weight: 135.0,
+        reps: 5,
+        notes: "first set note"
+      )
+
+      insert(:set,
+        exercise_id: first_exercise.id,
+        weight: 155.5,
+        reps: 3,
+        notes: "second set note"
+      )
+
+      insert(:set,
+        exercise_id: second_exercise.id,
+        weight: 95.0,
+        reps: 8,
+        notes: "row set note"
+      )
+
+      {:ok, lv, _html} = live(conn, ~p"/workouts/#{workout.id}")
+
+      lv
+      |> element("#workout-action-menu-button-#{workout.id}")
+      |> render_click()
+
+      result =
+        lv
+        |> element("#duplicate-workout-#{workout.id}")
+        |> render_click()
+
+      workouts = Training.list_workouts(user)
+
+      assert 2 == length(workouts)
+      assert duplicated_workout = Enum.find(workouts, &(&1.id != workout.id))
+
+      duplicated_workout_path = ~p"/workouts/#{duplicated_workout.id}"
+
+      assert {:error, {:live_redirect, %{to: ^duplicated_workout_path}}} = result
+      assert {:ok, _lv, html} = follow_redirect(result, conn, duplicated_workout_path)
+      assert html =~ "Workout duplicated successfully, navigated to new workout"
+
+      bench_press_id = bench_press.id
+      row_id = row.id
+
+      assert {:ok,
+              %{
+                name: "Push Pull",
+                notes: nil,
+                exercises: [
+                  %{
+                    exercise_name_id: ^bench_press_id,
+                    notes: nil,
+                    position: 1,
+                    sets: [
+                      %{weight: 135.0, reps: 5, notes: nil},
+                      %{weight: 155.5, reps: 3, notes: nil}
+                    ]
+                  },
+                  %{
+                    exercise_name_id: ^row_id,
+                    notes: nil,
+                    position: 2,
+                    sets: [
+                      %{weight: 95.0, reps: 8, notes: nil}
+                    ]
+                  }
+                ]
+              }} = Training.get_workout(user, duplicated_workout.id)
+    end
+
+    test "opens and cancels the delete confirmation dialog from the actions dialog", %{conn: conn, user: user} do
+      workout = insert(:workout, user: user, name: "Current Workout")
+      workout_id = workout.id
+      dialog_id = "delete-workout-dialog-#{workout.id}"
+      close_button_id = "cancel-delete-workout-#{workout.id}"
+      confirm_button_id = "confirm-delete-workout-#{workout.id}"
+      cancel_button_id = "cancel-delete-workout-button-#{workout.id}"
+
+      {:ok, lv, _html} = live(conn, ~p"/workouts/#{workout.id}")
+
+      lv
+      |> element("#workout-action-menu-button-#{workout.id}")
+      |> render_click()
+
+      html =
+        lv
+        |> element("#delete-workout-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+
+      assert %{
+               attributes: %{
+                 "id" => ^dialog_id,
+                 "phx-click-away" => "cancel_delete_workout",
+                 "phx-key" => "escape",
+                 "phx-window-keydown" => "cancel_delete_workout"
+               },
+               close_button: %{
+                 attributes: %{
+                   "aria-label" => "Cancel workout delete",
+                   "id" => ^close_button_id,
+                   "phx-click" => "cancel_delete_workout",
+                   "type" => "button"
+                 }
+               },
+               confirm_button: %{
+                 attributes: %{
+                   "id" => ^confirm_button_id,
+                   "phx-click" => "delete_workout",
+                   "phx-value-workout_id" => ^workout_id,
+                   "type" => "button"
+                 }
+               },
+               cancel_button: %{
+                 attributes: %{
+                   "class" => cancel_button_class,
+                   "id" => ^cancel_button_id,
+                   "phx-click" => "cancel_delete_workout",
+                   "type" => "button"
+                 }
+               },
+               heading: "Delete Current Workout?"
+             } = delete_workout_dialog(document, workout.id)
+
+      assert class_contains?(cancel_button_class, "border")
+      assert class_contains?(cancel_button_class, "!bg-transparent")
+      assert class_contains?(cancel_button_class, "!text-zinc-900")
+
+      html =
+        lv
+        |> element("#cancel-delete-workout-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#delete-workout-dialog-#{workout.id}")
+      assert [_workout] = Training.list_workouts(user)
+    end
+
+    test "deletes the mounted workout from the confirmation dialog", %{conn: conn, user: user} do
+      workout = insert(:workout, user: user, name: "Current Workout")
+
+      {:ok, lv, _html} = live(conn, ~p"/workouts/#{workout.id}")
+
+      lv
+      |> element("#workout-action-menu-button-#{workout.id}")
+      |> render_click()
+
+      lv
+      |> element("#delete-workout-#{workout.id}")
+      |> render_click()
+
+      lv
+      |> element("#confirm-delete-workout-#{workout.id}")
+      |> render_click()
+
+      assert [] = Training.list_workouts(user)
+      assert %{"info" => "Workout deleted successfully"} = assert_redirect(lv, ~p"/")
+    end
+  end
+
   describe "anonymous read-only mode" do
     test "renders Zack workout controls disabled and hides mutation controls", %{conn: conn} do
       zack = public_read_only_owner_fixture()
@@ -289,8 +720,11 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       assert [] = Floki.find(document, "#open-add-exercise")
       assert [] = Floki.find(document, "#open-add-exercise-top")
       assert [] = Floki.find(document, "#open-workout-details")
+      assert [] = Floki.find(document, "#workout-action-menu-button-#{workout.id}")
+      assert [] = Floki.find(document, "[data-role=\"workout-action-menu-item\"]")
       assert [] = Floki.find(document, "[draggable=\"true\"]")
       assert [] = Floki.find(document, "button[phx-click=\"open_exercise_action_menu\"]")
+      assert [] = Floki.find(document, "button[phx-click=\"open_workout_action_menu\"]")
 
       assert [exercise_list] = Floki.find(document, "#workout-exercises")
       refute Map.has_key?(node_attributes(exercise_list), "phx-hook")
@@ -312,6 +746,12 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       refute Map.has_key?(delete_button_attributes, "phx-click")
 
       render_change(lv, "maybe_update_workout", %{"workout" => %{"notes" => "Forged notes"}})
+      render_click(lv, "open_workout_action_menu", %{"workout_id" => workout.id})
+      render_click(lv, "cancel_workout_action_menu")
+      render_click(lv, "duplicate_workout", %{"workout_id" => workout.id})
+      render_click(lv, "open_delete_workout", %{"workout_id" => workout.id})
+      render_click(lv, "cancel_delete_workout")
+      render_click(lv, "delete_workout", %{"workout_id" => workout.id})
       render_click(lv, "open_workout_details")
       render_click(lv, "cancel_workout_details")
 
@@ -326,6 +766,14 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       exercise_id = exercise.id
       set_id = set.id
+
+      workout_ids =
+        zack
+        |> Training.list_workouts()
+        |> Enum.map(& &1.id)
+        |> Enum.sort()
+
+      assert Enum.sort([previous_workout.id, workout.id]) == workout_ids
 
       assert {:ok,
               %{
@@ -433,7 +881,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       assert %{
                attributes: %{
                  "id" => "exercise-action-menu-" <> ^current_exercise_id,
-                 "phx-click-away" => "cancel_exercise_action_menu",
                  "phx-key" => "escape",
                  "phx-window-keydown" => "cancel_exercise_action_menu"
                },
@@ -503,8 +950,28 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                ]
              } = exercise_action_menu(document, current_exercise.id)
 
+      assert %{"phx-click-away" => "cancel_exercise_action_menu"} =
+               document
+               |> click_away_wrapper("exercise-action-menu-button-#{current_exercise.id}")
+               |> node_attributes()
+
+      refute Map.has_key?(exercise_action_menu(document, current_exercise.id).attributes, "phx-click-away")
+
       assert [] = Floki.find(document, "#move-exercise-up-#{current_exercise.id}")
       assert [] = Floki.find(document, "#move-exercise-down-#{current_exercise.id}")
+
+      html =
+        lv
+        |> element("#exercise-action-menu-button-#{current_exercise.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#exercise-action-menu-#{current_exercise.id}")
+
+      lv
+      |> element("#exercise-action-menu-button-#{current_exercise.id}")
+      |> render_click()
 
       html =
         lv
@@ -1820,6 +2287,82 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     end)
   end
 
+  defp workout_header_action_area(document) do
+    assert [header | _sections] = Floki.find(document, "section")
+    assert [_title_area, action_area] = element_children(header)
+
+    %{
+      attributes: node_attributes(action_area),
+      controls: element_children(action_area)
+    }
+  end
+
+  defp workout_action_buttons(document) do
+    document
+    |> Floki.find("button[phx-click=\"open_workout_action_menu\"]")
+    |> Enum.map(fn button ->
+      %{
+        attributes: node_attributes(button),
+        icon: button |> Floki.find("span") |> Enum.find(&icon_span?/1) |> attribute!("class")
+      }
+    end)
+  end
+
+  defp workout_action_menu(document, workout_id) do
+    assert [menu] = Floki.find(document, "#workout-action-menu-#{workout_id}")
+
+    %{
+      attributes: node_attributes(menu),
+      close_button: menu |> find_button_by_click!("cancel_workout_action_menu") |> button_details(),
+      heading: menu |> Floki.find("h4") |> text_one!(),
+      items:
+        menu
+        |> Floki.find("[data-role=\"workout-action-menu-item\"]")
+        |> Enum.map(&workout_action_menu_item/1)
+    }
+  end
+
+  defp workout_action_menu_item({"button", attributes, _children} = item) do
+    attributes = Map.new(attributes)
+
+    %{
+      attributes: attributes,
+      disabled?: Map.has_key?(attributes, "disabled"),
+      icon: item |> Floki.find("span") |> Enum.find(&icon_span?/1) |> attribute!("class"),
+      label:
+        item
+        |> Floki.find("[data-role=\"workout-action-menu-item-label\"]")
+        |> Floki.text()
+        |> String.trim()
+    }
+  end
+
+  defp delete_workout_dialog(document, workout_id) do
+    assert [dialog] = Floki.find(document, "#delete-workout-dialog-#{workout_id}")
+    assert [close_button] = Floki.find(dialog, "#cancel-delete-workout-#{workout_id}")
+    assert [confirm_button] = Floki.find(dialog, "#confirm-delete-workout-#{workout_id}")
+    assert [cancel_button] = Floki.find(dialog, "#cancel-delete-workout-button-#{workout_id}")
+
+    %{
+      attributes: node_attributes(dialog),
+      cancel_button: button_details(cancel_button),
+      close_button: button_details(close_button),
+      confirm_button: button_details(confirm_button),
+      heading: dialog |> Floki.find("h4") |> text_one!()
+    }
+  end
+
+  defp click_away_wrapper(document, button_id) do
+    assert [wrapper] =
+             document
+             |> Floki.find("div")
+             |> Enum.filter(fn div ->
+               attribute(div, "phx-click-away") && Floki.find(div, "##{button_id}") != []
+             end)
+
+    wrapper
+  end
+
   defp workout_details_dialog(document) do
     assert [dialog] = Floki.find(document, "#workout-details-dialog")
     assert [close_button] = Floki.find(dialog, "#cancel-workout-details")
@@ -2124,6 +2667,10 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
   defp node_attributes({_tag, attributes, _children}) do
     Map.new(attributes)
+  end
+
+  defp element_children({_tag, _attributes, children}) do
+    Enum.filter(children, &match?({_, _, _}, &1))
   end
 
   defp previous_exercise_select(document, select_id) do

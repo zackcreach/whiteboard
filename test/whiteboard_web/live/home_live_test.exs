@@ -128,7 +128,6 @@ defmodule WhiteboardWeb.HomeLiveTest do
                attributes: %{
                  "class" => menu_class,
                  "id" => ^menu_id,
-                 "phx-click-away" => "cancel_workout_action_menu",
                  "phx-key" => "escape",
                  "phx-window-keydown" => "cancel_workout_action_menu"
                },
@@ -184,9 +183,29 @@ defmodule WhiteboardWeb.HomeLiveTest do
                ]
              } = workout_action_menu(document, workout.id)
 
+      assert %{"phx-click-away" => "cancel_workout_action_menu"} =
+               document
+               |> click_away_wrapper("workout-action-menu-button-#{workout.id}")
+               |> node_attributes()
+
+      refute Map.has_key?(workout_action_menu(document, workout.id).attributes, "phx-click-away")
+
       assert class_contains?(menu_class, "w-72")
       assert class_contains?(menu_class, "sm:w-80")
       refute class_contains?(menu_class, "w-96")
+
+      html =
+        lv
+        |> element("#workout-action-menu-button-#{workout.id}")
+        |> render_click()
+
+      document = parse_document!(html)
+
+      assert [] = Floki.find(document, "#workout-action-menu-#{workout.id}")
+
+      lv
+      |> element("#workout-action-menu-button-#{workout.id}")
+      |> render_click()
 
       html =
         lv
@@ -207,14 +226,20 @@ defmodule WhiteboardWeb.HomeLiveTest do
       |> element("#workout-action-menu-button-#{workout.id}")
       |> render_click()
 
-      lv
-      |> element("#duplicate-workout-#{workout.id}")
-      |> render_click()
+      result =
+        lv
+        |> element("#duplicate-workout-#{workout.id}")
+        |> render_click()
 
       workouts = Training.list_workouts(user)
       assert 2 == length(workouts)
       assert duplicated_workout = Enum.find(workouts, &(&1.id != workout.id))
-      assert_redirect(lv, ~p"/workouts/#{duplicated_workout.id}")
+
+      duplicated_workout_path = ~p"/workouts/#{duplicated_workout.id}"
+
+      assert {:error, {:live_redirect, %{to: ^duplicated_workout_path}}} = result
+      assert {:ok, _lv, html} = follow_redirect(result, conn, duplicated_workout_path)
+      assert html =~ "Workout duplicated successfully, navigated to new workout"
     end
 
     test "opens the existing delete confirmation flow from the actions dialog", %{conn: conn, user: user} do
@@ -543,6 +568,17 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> Floki.text()
         |> String.trim()
     }
+  end
+
+  defp click_away_wrapper(document, button_id) do
+    assert [wrapper] =
+             document
+             |> Floki.find("div")
+             |> Enum.filter(fn div ->
+               attribute(div, "phx-click-away") && Floki.find(div, "##{button_id}") != []
+             end)
+
+    wrapper
   end
 
   defp workout_details_dialog(document) do
