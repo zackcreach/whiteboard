@@ -4,95 +4,66 @@ defmodule WhiteboardWeb.HomeLive do
   """
   use WhiteboardWeb, :live_view
 
-  import PhxComponentHelpers
-
   alias Whiteboard.Accounts
   alias Whiteboard.Accounts.User
   alias Whiteboard.Training
-  alias Whiteboard.Training.ExerciseCategory
-  alias Whiteboard.Training.ExerciseName
   alias Whiteboard.Training.Workout
   alias WhiteboardWeb.Components.ActionMenu
   alias WhiteboardWeb.Components.Card
   alias WhiteboardWeb.Components.FloatingDialog
+  alias WhiteboardWeb.Components.Table
   alias WhiteboardWeb.Components.WorkoutDetailsDialog
   alias WhiteboardWeb.Utils.DateHelpers
   alias WhiteboardWeb.Utils.ExerciseHelpers
 
   def render(assigns) do
-    assigns =
-      assigns
-      |> extend_class("py-2 pr-2 border-b border-zinc-400 dark:border-stone-600 [&:nth-of-type(5)]:text-right",
-        attribute: :previous_workouts_header
-      )
-      |> extend_class("hidden py-2 pr-2 border-b border-zinc-400 dark:border-stone-600 md:block",
-        attribute: :previous_workouts_exercise_header
-      )
-      |> extend_class("py-2 pr-2 border-b border-zinc-300 dark:border-stone-700",
-        attribute: :previous_workouts_cell
-      )
-      |> extend_class("hidden py-2 pr-2 border-b border-zinc-300 dark:border-stone-700 md:block",
-        attribute: :previous_workouts_exercise_cell
-      )
-
     ~H"""
-    <div :if={!@read_only?} class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card.render>
-        <h3>Workouts</h3>
-        <div class="mt-4">
-          <.form for={@create_workout_form} phx-change="validate_workout" phx-submit="create_workout" class="flex flex-col md:flex-row items-center gap-4">
+    <section class="space-y-10">
+      <div class="flex items-center justify-between gap-4">
+        <h1>Workouts</h1>
+      </div>
+
+      <section :if={!@read_only?} id="create-workout-section" class="space-y-4">
+        <h3>Start a new workout</h3>
+        <Card.render padding_class="p-4">
+          <.form
+            id="create-workout-form"
+            for={@create_workout_form}
+            phx-change="validate_workout"
+            phx-submit="create_workout"
+            class="flex flex-col md:flex-row items-center gap-4"
+          >
             <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
-            <.button type="submit" class="cursor-pointer w-full md:w-auto">New workout</.button>
+            <.button id="create-workout-button" type="submit" class="w-full md:w-auto">New workout</.button>
           </.form>
-        </div>
-      </Card.render>
+        </Card.render>
+      </section>
 
-      <Card.render>
-        <h3>Exercises</h3>
-        <div class="mt-4">
-          <.form for={@create_exercise_category_form} phx-change="validate_exercise_category" phx-submit="create_exercise_category" class="flex flex-col md:flex-row items-center gap-4 mb-4 md:mb-0">
-            <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name (e.g. Triceps)" />
-            <.button type="submit" class="cursor-pointer w-full md:w-auto">New exercise category</.button>
-          </.form>
-        </div>
-        <div class="mt-4">
-          <.form for={@create_exercise_name_form} phx-change="validate_exercise_name" phx-submit="create_exercise_name" class="flex flex-col md:flex-row items-center gap-4">
-            <div class="flex w-full">
-              <div class="basis-1/3">
-                <.input type="select" field={@create_exercise_name_form[:exercise_category_id]} options={if @exercise_categories, do: @exercise_categories, else: []} border_variant={:start} placeholder="Exercise categories" />
-              </div>
-              <div class="basis-2/3">
-                <.input field={@create_exercise_name_form[:name]} border_variant={:end} placeholder="Exercise name (e.g. Skullcrushers)" />
-              </div>
-            </div>
-
-            <.button type="submit" class="cursor-pointer w-full md:w-auto">New exercise name</.button>
-          </.form>
-        </div>
-      </Card.render>
-    </div>
-
-    <h3 class="mt-8 mb-4">Previous workouts</h3>
-    <div class={[
-      "grid [&_a]:underline",
-      @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
-      !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
-    ]}>
-      <p {@heex_previous_workouts_header}>Name</p>
-      <p {@heex_previous_workouts_exercise_header}>Exercises</p>
-      <p {@heex_previous_workouts_header}>Created on</p>
-      <p {@heex_previous_workouts_header}>Last updated</p>
-      <p :if={!@read_only?} {@heex_previous_workouts_header}>Actions</p>
-      <div phx-update="stream" id="workouts" class="contents">
-        <%= for {dom_workout_id, workout} <- @streams.workouts do %>
-          <div id={dom_workout_id} class="contents">
-            <a href={~p"/workouts/#{workout.id}"} {@heex_previous_workouts_cell}>{workout.name}</a>
-            <p {@heex_previous_workouts_exercise_cell}>{ExerciseHelpers.render_exercise_names(workout)}</p>
-            <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.inserted_at)}</p>
-            <p {@heex_previous_workouts_cell}>{DateHelpers.render_date(workout.updated_at)}</p>
+      <section id="previous-workouts-section" class="space-y-4">
+        <h3>Previous workouts</h3>
+        <Table.render
+          id="workouts"
+          rows={@streams.workouts}
+          grid_class={[
+            @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
+            !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
+          ]}
+        >
+          <:col :let={workout} label="Name">
+            <a href={~p"/workouts/#{workout.id}"}>{workout.name}</a>
+          </:col>
+          <:col :let={workout} label="Exercises" header_class="hidden md:block" cell_class="hidden md:block">
+            <p>{ExerciseHelpers.render_exercise_names(workout)}</p>
+          </:col>
+          <:col :let={workout} label="Created on">
+            <p>{DateHelpers.render_date(workout.inserted_at)}</p>
+          </:col>
+          <:col :let={workout} label="Last updated">
+            <p>{DateHelpers.render_date(workout.updated_at)}</p>
+          </:col>
+          <:action :let={workout} :if={!@read_only?}>
             <div
-              :if={!@read_only?}
-              class="relative py-1 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start"
+              class="relative flex justify-end"
               phx-click-away={if @workout_action_menu_id == workout.id, do: "cancel_workout_action_menu"}
             >
               <.icon_button
@@ -147,10 +118,10 @@ defmodule WhiteboardWeb.HomeLive do
               />
               <.delete_workout_dialog :if={@delete_workout_id == workout.id} workout={workout} />
             </div>
-          </div>
-        <% end %>
-      </div>
-    </div>
+          </:action>
+        </Table.render>
+      </section>
+    </section>
     """
   end
 
@@ -214,72 +185,6 @@ defmodule WhiteboardWeb.HomeLive do
     """
   end
 
-  #
-  # Exercise categories
-  #
-  def handle_event("create_exercise_category", _params, %{assigns: %{read_only?: true}} = socket) do
-    noreply(socket)
-  end
-
-  def handle_event("validate_exercise_category", %{"exercise_category" => params}, socket) do
-    create_exercise_category_form =
-      %ExerciseCategory{}
-      |> ExerciseCategory.changeset(params)
-      |> to_form(action: :validate)
-
-    {:noreply, assign(socket, create_exercise_category_form: create_exercise_category_form)}
-  end
-
-  def handle_event("create_exercise_category", %{"exercise_category" => params}, socket) do
-    socket =
-      case Training.create_exercise_category(socket.assigns.page_owner, params) do
-        {:ok, %ExerciseCategory{}} ->
-          assign(socket,
-            create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
-            exercise_categories: ExerciseHelpers.list_exercise_categories(socket.assigns.page_owner)
-          )
-
-        {:error, error} ->
-          put_flash(socket, :error, "Error creating workout: #{error}")
-      end
-
-    noreply(socket)
-  end
-
-  #
-  # Exercise names
-  #
-  def handle_event("create_exercise_name", _params, %{assigns: %{read_only?: true}} = socket) do
-    noreply(socket)
-  end
-
-  def handle_event("validate_exercise_name", %{"exercise_name" => params}, socket) do
-    create_exercise_name_form =
-      %ExerciseName{}
-      |> ExerciseName.changeset(params)
-      |> to_form(action: :validate)
-
-    {:noreply, assign(socket, create_exercise_name_form: create_exercise_name_form)}
-  end
-
-  def handle_event("create_exercise_name", %{"exercise_name" => params}, socket) do
-    socket =
-      case Training.create_exercise_name(socket.assigns.page_owner, params) do
-        {:ok, %ExerciseName{}} ->
-          assign(socket,
-            create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{}))
-          )
-
-        {:error, error} ->
-          put_flash(socket, :error, "Error creating exercise name: #{error}")
-      end
-
-    noreply(socket)
-  end
-
-  #
-  # Workouts
-  #
   def handle_event("create_workout", _params, %{assigns: %{read_only?: true}} = socket) do
     noreply(socket)
   end
@@ -514,12 +419,8 @@ defmodule WhiteboardWeb.HomeLive do
       workout_action_menu_id: nil,
       workout_details_workout_id: nil,
       workout_details_form: nil,
-      create_workout_form: to_form(Workout.changeset(%Workout{})),
-      create_exercise_name_form: to_form(ExerciseName.changeset(%ExerciseName{})),
-      create_exercise_category_form: to_form(ExerciseCategory.changeset(%ExerciseCategory{})),
-      exercise_categories: ExerciseHelpers.list_exercise_categories(page_owner)
+      create_workout_form: to_form(Workout.changeset(%Workout{}))
     )
-    # free up server memory by listing workouts as stream vs assigns
     |> stream(:workouts, Training.list_workouts(page_owner))
   end
 

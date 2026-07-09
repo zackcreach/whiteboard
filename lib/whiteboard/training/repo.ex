@@ -181,9 +181,17 @@ defmodule Whiteboard.Training.Repo do
   end
 
   def delete_exercise_name(%User{} = user, id) do
-    with {:ok, exercise_name} <- get_exercise_name(user, id) do
-      delete(exercise_name)
+    fn ->
+      with {:ok, exercise_name} <- get_exercise_name_for_update(user, id),
+           :ok <- validate_exercise_name_not_in_use(exercise_name),
+           {:ok, %ExerciseName{} = deleted_exercise_name} <- delete(exercise_name) do
+        deleted_exercise_name
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
     end
+    |> Repo.transaction()
+    |> transaction_result()
   end
 
   def list_exercise_categories(%User{id: user_id}) do
@@ -210,9 +218,17 @@ defmodule Whiteboard.Training.Repo do
   end
 
   def delete_exercise_category(%User{} = user, id) do
-    with {:ok, exercise_category} <- get_exercise_category(user, id) do
-      delete(exercise_category)
+    fn ->
+      with {:ok, exercise_category} <- get_exercise_category_for_update(user, id),
+           :ok <- validate_exercise_category_not_in_use(exercise_category),
+           {:ok, %ExerciseCategory{} = deleted_exercise_category} <- delete(exercise_category) do
+        deleted_exercise_category
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
     end
+    |> Repo.transaction()
+    |> transaction_result()
   end
 
   def create_set(%User{} = user, params) do
@@ -262,6 +278,29 @@ defmodule Whiteboard.Training.Repo do
   defp result({:error, error}), do: {:error, error}
 
   defp result(struct), do: {:ok, struct}
+
+  defp transaction_result({:ok, result}), do: {:ok, result}
+
+  defp transaction_result({:error, reason}), do: {:error, reason}
+
+  defp get_exercise_name_for_update(%User{id: user_id}, id) do
+    from(en in ExerciseName,
+      where: en.id == ^id and en.user_id == ^user_id,
+      preload: [:exercise_category],
+      lock: "FOR UPDATE"
+    )
+    |> Repo.one()
+    |> result()
+  end
+
+  defp get_exercise_category_for_update(%User{id: user_id}, id) do
+    from(ec in ExerciseCategory,
+      where: ec.id == ^id and ec.user_id == ^user_id,
+      lock: "FOR UPDATE"
+    )
+    |> Repo.one()
+    |> result()
+  end
 
   defp workout_exercises_query do
     from(e in Exercise,
@@ -321,6 +360,24 @@ defmodule Whiteboard.Training.Repo do
   defp validation_result(true, _reason), do: :ok
 
   defp validation_result(false, reason), do: {:error, reason}
+
+  defp validate_exercise_name_not_in_use(%ExerciseName{id: exercise_name_id}) do
+    Exercise
+    |> where([exercise], exercise.exercise_name_id == ^exercise_name_id)
+    |> Repo.exists?()
+    |> in_use_result(:exercise_name_in_use)
+  end
+
+  defp validate_exercise_category_not_in_use(%ExerciseCategory{id: exercise_category_id}) do
+    ExerciseName
+    |> where([exercise_name], exercise_name.exercise_category_id == ^exercise_category_id)
+    |> Repo.exists?()
+    |> in_use_result(:exercise_category_in_use)
+  end
+
+  defp in_use_result(true, reason), do: {:error, reason}
+
+  defp in_use_result(false, _reason), do: :ok
 
   defp exercise_params(params) do
     params

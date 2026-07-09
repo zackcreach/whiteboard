@@ -4,6 +4,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   import Phoenix.LiveViewTest
   import Whiteboard.AccountsFixtures
   import Whiteboard.Factory
+  import WhiteboardWeb.LiveViewHTMLHelpers
 
   alias Whiteboard.Training
 
@@ -2271,11 +2272,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     end
   end
 
-  defp parse_document!(html) do
-    assert {:ok, document} = Floki.parse_document(html)
-    document
-  end
-
   defp workout_edit_buttons(document) do
     document
     |> Floki.find("#open-workout-details")
@@ -2352,17 +2348,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     }
   end
 
-  defp click_away_wrapper(document, button_id) do
-    assert [wrapper] =
-             document
-             |> Floki.find("div")
-             |> Enum.filter(fn div ->
-               attribute(div, "phx-click-away") && Floki.find(div, "##{button_id}") != []
-             end)
-
-    wrapper
-  end
-
   defp workout_details_dialog(document) do
     assert [dialog] = Floki.find(document, "#workout-details-dialog")
     assert [close_button] = Floki.find(dialog, "#cancel-workout-details")
@@ -2403,14 +2388,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       |> attribute("class")
       |> class_contains?("border-t")
     end)
-  end
-
-  defp class_contains?(nil, _class), do: false
-
-  defp class_contains?(class_value, class) do
-    class_value
-    |> String.split()
-    |> Enum.member?(class)
   end
 
   defp create_swappable_workout do
@@ -2563,15 +2540,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     }
   end
 
-  defp icon_span?(span) do
-    span
-    |> attribute("class")
-    |> case do
-      nil -> false
-      class -> String.starts_with?(class, "hero-")
-    end
-  end
-
   defp exercise_name_option({"button", attributes, _children} = option, option_name_role) do
     attributes = Map.new(attributes)
 
@@ -2617,31 +2585,12 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
     end
   end
 
-  defp find_button_by_click!(node, event) do
-    assert [button] =
-             node
-             |> Floki.find("button")
-             |> Enum.filter(&(attribute(&1, "phx-click") == event))
-
-    button
-  end
-
-  defp button_details(button) do
-    %{attributes: node_attributes(button)}
-  end
-
   defp input_one!([input]) do
     input_details(input)
   end
 
   defp input_details(input) do
     %{attributes: node_attributes(input)}
-  end
-
-  defp text_one!([node]) do
-    node
-    |> Floki.text()
-    |> String.trim()
   end
 
   defp node_id_starts?(node, prefix) do
@@ -2651,22 +2600,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       nil -> false
       id -> String.starts_with?(id, prefix)
     end
-  end
-
-  defp attribute!(node, name) do
-    node
-    |> node_attributes()
-    |> Map.fetch!(name)
-  end
-
-  defp attribute(node, name) do
-    node
-    |> node_attributes()
-    |> Map.get(name)
-  end
-
-  defp node_attributes({_tag, attributes, _children}) do
-    Map.new(attributes)
   end
 
   defp element_children({_tag, _attributes, children}) do

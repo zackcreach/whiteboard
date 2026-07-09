@@ -4,6 +4,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
   import Phoenix.LiveViewTest
   import Whiteboard.AccountsFixtures
   import Whiteboard.Factory
+  import WhiteboardWeb.LiveViewHTMLHelpers
 
   alias Whiteboard.Training
 
@@ -19,6 +20,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       refute html =~ "Other workout"
       refute html =~ "New workout"
       refute html =~ "New exercise category"
+      refute html =~ "New exercise name"
       refute html =~ "Actions"
       refute html =~ "Open workout actions"
       refute html =~ "workout-action-menu"
@@ -65,10 +67,12 @@ defmodule WhiteboardWeb.HomeLiveTest do
       assert html =~ workout.name
       refute html =~ "Zack demo workout"
       assert html =~ "New workout"
-      assert html =~ "New exercise category"
+      refute html =~ "New exercise category"
+      refute html =~ "New exercise name"
       assert html =~ "Actions"
 
       document = parse_document!(html)
+      assert [_table] = Floki.find(document, "#workouts-table[data-role=\"table\"]")
       action_button_id = "workout-action-menu-button-#{workout.id}"
       workout_id = workout.id
 
@@ -100,6 +104,24 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
       assert class_contains?(exercise_header_class, "hidden")
       assert class_contains?(exercise_header_class, "md:block")
+    end
+
+    test "renders exercises before settings in authenticated navigation", %{conn: conn} do
+      user = user_fixture()
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/")
+
+      nav_labels =
+        html
+        |> parse_document!()
+        |> Floki.find("header a")
+        |> Enum.map(&text_one!/1)
+        |> Enum.filter(&(&1 in ["Exercises", "Settings"]))
+
+      assert ["Exercises", "Settings"] == nav_labels
     end
   end
 
@@ -525,11 +547,6 @@ defmodule WhiteboardWeb.HomeLiveTest do
     end
   end
 
-  defp parse_document!(html) do
-    assert {:ok, document} = Floki.parse_document(html)
-    document
-  end
-
   defp workout_action_buttons(document) do
     document
     |> Floki.find("button[phx-click=\"open_workout_action_menu\"]")
@@ -568,17 +585,6 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> Floki.text()
         |> String.trim()
     }
-  end
-
-  defp click_away_wrapper(document, button_id) do
-    assert [wrapper] =
-             document
-             |> Floki.find("div")
-             |> Enum.filter(fn div ->
-               attribute(div, "phx-click-away") && Floki.find(div, "##{button_id}") != []
-             end)
-
-    wrapper
   end
 
   defp workout_details_dialog(document) do
@@ -631,19 +637,6 @@ defmodule WhiteboardWeb.HomeLiveTest do
     end)
   end
 
-  defp find_button_by_click!(node, event) do
-    assert [button] =
-             node
-             |> Floki.find("button")
-             |> Enum.filter(&(attribute(&1, "phx-click") == event))
-
-    button
-  end
-
-  defp button_details(button) do
-    %{attributes: node_attributes(button)}
-  end
-
   defp input_details(input) do
     %{attributes: node_attributes(input)}
   end
@@ -663,50 +656,5 @@ defmodule WhiteboardWeb.HomeLiveTest do
       |> attribute("class")
       |> class_contains?("border-t")
     end)
-  end
-
-  defp class_contains?(nil, _class), do: false
-
-  defp class_contains?(class_value, class) do
-    class_value
-    |> String.split()
-    |> Enum.member?(class)
-  end
-
-  defp icon_span?(span) do
-    span
-    |> attribute("class")
-    |> case do
-      nil -> false
-      class -> String.starts_with?(class, "hero-")
-    end
-  end
-
-  defp text_one!([node]) do
-    node
-    |> Floki.text()
-    |> String.trim()
-  end
-
-  defp text_one!(node) do
-    node
-    |> Floki.text()
-    |> String.trim()
-  end
-
-  defp attribute!(node, name) do
-    node
-    |> node_attributes()
-    |> Map.fetch!(name)
-  end
-
-  defp attribute(node, name) do
-    node
-    |> node_attributes()
-    |> Map.get(name)
-  end
-
-  defp node_attributes({_tag, attributes, _children}) do
-    Map.new(attributes)
   end
 end

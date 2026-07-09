@@ -21,6 +21,5 @@ defmodule Whiteboard.Training.ExerciseCategory do
     |> cast(params, [:name, :user_id])
     |> validate_required([:name, :user_id])
     |> unique_constraint(:name, name: :exercise_categories_user_id_name_index)
-    |> cast_assoc(:exercise_names)
   end
 end

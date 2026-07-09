@@ -79,6 +79,7 @@ defmodule WhiteboardWeb.Router do
     live_session :current_user,
       on_mount: [{WhiteboardWeb.UserAuth, :mount_current_user}] do
       live "/", HomeLive
+      live "/exercises", ExercisesLive
       live "/workouts/:workout_id", WorkoutLive
       live "/users/confirm/:token", UserConfirmationLive, :edit
       live "/users/confirm", UserConfirmationInstructionsLive, :new
