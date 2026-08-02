@@ -19,6 +19,16 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+### Docker with Colima
+
+The Nix dev shell includes Docker CLI, Docker Compose, and Colima on macOS. Start the project Colima profile before running Compose:
+
+```bash
+nix develop
+colima start whiteboard-qemu --runtime docker --kubernetes=false --mount-inotify=false --vm-type qemu --mount-type 9p --cpu 4 --memory 6 --disk 60
+docker compose ps
+```
+
 ## Deployment
 
 Whiteboard uses Docker-based deployment with automated continuous deployment. When you push to the main branch, changes are automatically deployed to production within 5 minutes.

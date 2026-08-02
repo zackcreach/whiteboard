@@ -367,6 +367,10 @@ Environment variables are configured in `/home/zack/dev/whiteboard/.env`:
 - `SECRET_KEY_BASE`: Phoenix secret key
 - `GITHUB_TOKEN`: GitHub authentication token
 - `DATABASE_URL`: PostgreSQL connection string
+- `PHX_HOST`: Host used for generated Phoenix URLs
+- `PHX_SCHEME`: External URL scheme, usually `http` or `https`
+- `PHX_PORT`: External URL port, usually `4000` for direct HTTP or `443` for HTTPS
+- `PHX_CHECK_ORIGIN`: Comma-separated websocket origins allowed by Phoenix
 
 To update:
 
@@ -376,6 +380,15 @@ nano /home/zack/dev/whiteboard/.env
 
 # Restart services
 sudo systemctl restart whiteboard
+```
+
+For a friend-facing HTTPS Tailscale URL, set Phoenix to trust that websocket origin:
+
+```bash
+PHX_HOST=symphony.your-tailnet.ts.net
+PHX_SCHEME=https
+PHX_PORT=443
+PHX_CHECK_ORIGIN=https://symphony.your-tailnet.ts.net,http://symphony:4000,http://localhost:4000,//*.ts.net
 ```
 
 ### Docker Compose Configuration

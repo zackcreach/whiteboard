@@ -8,7 +8,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        inherit (pkgs.lib) optional optionals;
+        inherit (pkgs.lib) optional optionals optionalString;
 
         beamBuilder = pkgs.beam.packagesWith (pkgs.beam.interpreters.erlang_27.override {
           version = "27.3.2";
@@ -27,16 +27,26 @@
             nodejs_22
             nodePackages.typescript-language-server
             nodePackages.prettier
+            docker-client
+            docker-compose
             elixir
             (lexical.override { elixir = elixir; })
             postgresql_17_jit
             glibcLocales
           ] ++ optional stdenv.isLinux inotify-tools
-          ++ optional stdenv.isDarwin terminal-notifier
+          ++ optionals stdenv.isDarwin [
+            colima
+            lima
+            terminal-notifier
+          ]
           ++ optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
             CoreFoundation
             CoreServices
           ]);
+
+          shellHook = optionalString stdenv.isDarwin ''
+            export DOCKER_HOST="unix://$HOME/.colima/whiteboard-qemu/docker.sock"
+          '';
         };
       });
 }
