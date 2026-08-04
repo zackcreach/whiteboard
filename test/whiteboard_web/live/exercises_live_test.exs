@@ -374,6 +374,131 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
     end
   end
 
+  describe "exercise catalog pagination" do
+    setup :register_and_log_in_user
+
+    test "loads independent pages, preserves sibling parameters, and keeps complete category options", %{
+      conn: conn,
+      user: user
+    } do
+      {categories, exercise_names} = insert_paginated_catalog(user, 41)
+
+      assert {:ok, lv, html} =
+               live(conn, ~p"/exercises?exercise_categories_page=2&exercise_names_page=2")
+
+      assert html =~ Enum.at(categories, 20).name
+      assert html =~ Enum.at(exercise_names, 20).name
+
+      document = parse_document!(html)
+
+      category_rows =
+        document
+        |> Floki.find("#exercise-categories")
+        |> Floki.text()
+
+      name_rows =
+        document
+        |> Floki.find("#exercise-names")
+        |> Floki.text()
+
+      refute category_rows =~ List.first(categories).name
+      refute category_rows =~ List.last(categories).name
+      refute name_rows =~ List.first(exercise_names).name
+      refute name_rows =~ List.last(exercise_names).name
+
+      category_option_count =
+        document
+        |> Floki.find("#create-exercise-name-form select option")
+        |> Enum.count(fn option -> Floki.attribute(option, "value") != [""] end)
+
+      assert 41 == category_option_count
+
+      assert [category_next] = Floki.find(document, "#exercise-categories-pagination [data-role=pagination-next]")
+      expected_category_next_path = ~p"/exercises?exercise_categories_page=3&exercise_names_page=2"
+
+      assert %{"data-phx-link" => "patch", "href" => ^expected_category_next_path} =
+               node_attributes(category_next)
+
+      assert [name_previous] = Floki.find(document, "#exercise-names-pagination [data-role=pagination-previous]")
+      expected_name_previous_path = ~p"/exercises?exercise_categories_page=2"
+
+      assert %{"data-phx-link" => "patch", "href" => ^expected_name_previous_path} =
+               node_attributes(name_previous)
+
+      lv
+      |> element("#exercise-categories-pagination [data-role=pagination-next]")
+      |> render_click()
+
+      assert_patch(lv, ~p"/exercises?exercise_categories_page=3&exercise_names_page=2")
+    end
+
+    test "keeps mutations on the current page and clamps a deleted last page", %{conn: conn, user: user} do
+      categories =
+        for number <- 1..21 do
+          insert(:exercise_category, user: user, name: catalog_name("Category", number))
+        end
+
+      assert {:ok, lv, _html} = live(conn, ~p"/exercises?exercise_categories_page=2")
+
+      html =
+        lv
+        |> form("#create-exercise-category-form", exercise_category: %{"name" => "Category 20a"})
+        |> render_submit()
+
+      assert html =~ "Category 20a"
+
+      document = parse_document!(html)
+
+      assert [current_page] =
+               Floki.find(document, "#exercise-categories-pagination [aria-current=page]")
+
+      assert %{"aria-current" => "page", "data-role" => "pagination-current"} = node_attributes(current_page)
+      assert "2" == text_one!(current_page)
+
+      last_category = List.last(categories)
+
+      lv
+      |> element("#exercise-category-action-menu-button-#{last_category.id}")
+      |> render_click()
+
+      lv
+      |> element("#delete-exercise-category-#{last_category.id}")
+      |> render_click()
+
+      lv
+      |> element("#confirm-delete-exercise-category-#{last_category.id}")
+      |> render_click()
+
+      assert {:error, :not_found} == Training.get_exercise_category(user, last_category.id)
+
+      second_category_page = Training.paginate_exercise_categories(user, 2)
+
+      assert [%{name: "Category 20a", id: created_category_id}] = second_category_page.entries
+
+      lv
+      |> element("#exercise-category-action-menu-button-#{created_category_id}")
+      |> render_click()
+
+      lv
+      |> element("#delete-exercise-category-#{created_category_id}")
+      |> render_click()
+
+      lv
+      |> element("#confirm-delete-exercise-category-#{created_category_id}")
+      |> render_click()
+
+      assert_patch(lv, ~p"/exercises")
+      assert 20 == length(Training.list_exercise_categories(user))
+    end
+
+    test "normalizes invalid pages while preserving the other valid page", %{conn: conn, user: user} do
+      insert_paginated_catalog(user, 21)
+
+      assert {:error, {:live_redirect, %{to: "/exercises?exercise_names_page=2"}}} =
+               live(conn, ~p"/exercises?exercise_categories_page=invalid&exercise_names_page=99")
+    end
+  end
+
   describe "read-only exercises catalog" do
     test "renders public catalog without forms or actions and ignores forged mutations", %{conn: conn} do
       zack = public_read_only_owner_fixture()
@@ -426,6 +551,43 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       assert ~p"/users/log_in" == path
       assert %{"error" => "You must log in to access this page."} = flash
     end
+
+    test "allows anonymous users to paginate the public catalog without mutation controls", %{conn: conn} do
+      zack = public_read_only_owner_fixture()
+      {categories, exercise_names} = insert_paginated_catalog(zack, 21)
+
+      assert {:ok, _lv, html} =
+               live(conn, ~p"/exercises?exercise_categories_page=2&exercise_names_page=2")
+
+      assert html =~ List.last(categories).name
+      assert html =~ List.last(exercise_names).name
+      refute html =~ "Actions"
+      refute html =~ "create-exercise-category-form"
+      refute html =~ "create-exercise-name-form"
+    end
+  end
+
+  defp insert_paginated_catalog(user, count) do
+    entries =
+      for number <- 1..count do
+        category = insert(:exercise_category, user: user, name: catalog_name("Category", number))
+
+        exercise_name =
+          insert(:exercise_name, user: user, exercise_category: category, name: catalog_name("Exercise", number))
+
+        {category, exercise_name}
+      end
+
+    {Enum.map(entries, &elem(&1, 0)), Enum.map(entries, &elem(&1, 1))}
+  end
+
+  defp catalog_name(prefix, number) do
+    suffix =
+      number
+      |> Integer.to_string()
+      |> String.pad_leading(2, "0")
+
+    "#{prefix} #{suffix}"
   end
 
   defp table_headers(document, id) do

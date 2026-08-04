@@ -6,18 +6,22 @@ defmodule Whiteboard.Training.Repo do
   alias Whiteboard.Training.Exercise
   alias Whiteboard.Training.ExerciseCategory
   alias Whiteboard.Training.ExerciseName
+  alias Whiteboard.Training.Page
   alias Whiteboard.Training.Set
   alias Whiteboard.Training.Workout
 
+  @page_size 20
+
   def list_workouts(%User{id: user_id}) do
-    Repo.all(
-      from(wo in Workout,
-        where: wo.user_id == ^user_id,
-        order_by: [desc: wo.inserted_at],
-        preload: [exercises: ^workout_exercises_query()],
-        limit: 20
-      )
-    )
+    user_id
+    |> workouts_query()
+    |> Repo.all()
+  end
+
+  def paginate_workouts(%User{id: user_id}, requested_page) do
+    user_id
+    |> workouts_query()
+    |> paginate(requested_page)
   end
 
   def get_workout(%User{id: user_id}, id) do
@@ -146,13 +150,15 @@ defmodule Whiteboard.Training.Repo do
   end
 
   def list_exercise_names(%User{id: user_id}) do
-    Repo.all(
-      from(en in ExerciseName,
-        where: en.user_id == ^user_id,
-        order_by: [asc: en.name],
-        preload: [:exercise_category]
-      )
-    )
+    user_id
+    |> exercise_names_query()
+    |> Repo.all()
+  end
+
+  def paginate_exercise_names(%User{id: user_id}, requested_page) do
+    user_id
+    |> exercise_names_query()
+    |> paginate(requested_page)
   end
 
   def get_exercise_name(%User{id: user_id}, id) do
@@ -195,7 +201,15 @@ defmodule Whiteboard.Training.Repo do
   end
 
   def list_exercise_categories(%User{id: user_id}) do
-    Repo.all(from(ec in ExerciseCategory, where: ec.user_id == ^user_id, order_by: [asc: ec.name]))
+    user_id
+    |> exercise_categories_query()
+    |> Repo.all()
+  end
+
+  def paginate_exercise_categories(%User{id: user_id}, requested_page) do
+    user_id
+    |> exercise_categories_query()
+    |> paginate(requested_page)
   end
 
   def get_exercise_category(%User{id: user_id}, id) do
@@ -479,6 +493,61 @@ defmodule Whiteboard.Training.Repo do
       _result -> {:error, :invalid_exercise_order}
     end
   end
+
+  defp workouts_query(user_id) do
+    from(workout in Workout,
+      where: workout.user_id == ^user_id,
+      order_by: [desc: workout.inserted_at, desc: workout.id],
+      preload: [exercises: ^workout_exercises_query()]
+    )
+  end
+
+  defp exercise_names_query(user_id) do
+    from(exercise_name in ExerciseName,
+      where: exercise_name.user_id == ^user_id,
+      order_by: [asc: exercise_name.name, asc: exercise_name.id],
+      preload: [:exercise_category]
+    )
+  end
+
+  defp exercise_categories_query(user_id) do
+    from(exercise_category in ExerciseCategory,
+      where: exercise_category.user_id == ^user_id,
+      order_by: [asc: exercise_category.name, asc: exercise_category.id]
+    )
+  end
+
+  defp paginate(query, requested_page) do
+    total_entries = Repo.aggregate(query, :count)
+    total_pages = max(div(total_entries + @page_size - 1, @page_size), 1)
+
+    current_page =
+      requested_page
+      |> normalize_requested_page()
+      |> min(total_pages)
+
+    page_offset = (current_page - 1) * @page_size
+
+    entries =
+      query
+      |> offset(^page_offset)
+      |> limit(^@page_size)
+      |> Repo.all()
+
+    %Page{
+      entries: entries,
+      current_page: current_page,
+      page_size: @page_size,
+      total_entries: total_entries,
+      total_pages: total_pages
+    }
+  end
+
+  defp normalize_requested_page(requested_page) when is_integer(requested_page) and requested_page > 0 do
+    requested_page
+  end
+
+  defp normalize_requested_page(_requested_page), do: 1
 
   defp get_param(params, key) when is_map(params) do
     Map.get(params, key) || Map.get(params, Atom.to_string(key))

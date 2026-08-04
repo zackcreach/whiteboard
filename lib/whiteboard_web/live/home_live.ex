@@ -15,6 +15,7 @@ defmodule WhiteboardWeb.HomeLive do
   alias WhiteboardWeb.Components.WorkoutDetailsDialog
   alias WhiteboardWeb.Utils.DateHelpers
   alias WhiteboardWeb.Utils.ExerciseHelpers
+  alias WhiteboardWeb.Utils.PaginationHelpers
 
   def render(assigns) do
     ~H"""
@@ -44,6 +45,9 @@ defmodule WhiteboardWeb.HomeLive do
         <Table.render
           id="workouts"
           rows={@streams.workouts}
+          pagination={@workouts_pagination}
+          page_path={fn page -> workouts_page_path(@live_action, @delete_workout_id, page) end}
+          pagination_label="Previous workouts pages"
           grid_class={[
             @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
             !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
@@ -148,6 +152,19 @@ defmodule WhiteboardWeb.HomeLive do
       {:redirect, socket} ->
         ok(socket)
     end
+  end
+
+  def handle_params(params, _uri, socket) do
+    requested_page = PaginationHelpers.parse_page(params["page"])
+    pagination = Training.paginate_workouts(socket.assigns.page_owner, requested_page)
+
+    socket =
+      socket
+      |> assign(workouts_pagination: pagination)
+      |> stream(:workouts, pagination.entries, reset: true)
+      |> normalize_workouts_page(params["page"], pagination.current_page)
+
+    noreply(socket)
   end
 
   defp delete_workout_dialog(assigns) do
@@ -324,7 +341,7 @@ defmodule WhiteboardWeb.HomeLive do
           socket
           |> close_workout_action_menu()
           |> close_workout_details()
-          |> stream(:workouts, Training.list_workouts(socket.assigns.page_owner), reset: true)
+          |> refresh_workouts()
           |> assign(workout_details_form: workout_details_form(updated_workout))
 
         {:error, %Ecto.Changeset{} = changeset} ->
@@ -345,7 +362,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_event("open_delete_workout", %{"workout_id" => workout_id}, socket) do
     socket
-    |> redirect(to: ~p"/delete/#{workout_id}")
+    |> redirect(to: workouts_page_path(:delete, workout_id, current_workouts_page(socket)))
     |> noreply()
   end
 
@@ -356,7 +373,7 @@ defmodule WhiteboardWeb.HomeLive do
   def handle_event("cancel_delete_workout", _params, socket) do
     socket
     |> close_delete_workout()
-    |> redirect(to: ~p"/")
+    |> redirect(to: workouts_page_path(nil, nil, current_workouts_page(socket)))
     |> noreply()
   end
 
@@ -379,9 +396,10 @@ defmodule WhiteboardWeb.HomeLive do
     socket =
       case Training.delete_workout(socket.assigns.page_owner, workout_id) do
         {:ok, %Workout{}} ->
+          pagination = Training.paginate_workouts(socket.assigns.page_owner, current_workouts_page(socket))
+
           socket
-          |> stream(:workouts, Training.list_workouts(socket.assigns.page_owner))
-          |> redirect(to: ~p"/")
+          |> redirect(to: workouts_page_path(nil, nil, pagination.current_page))
           |> put_flash(:info, "Workout deleted successfully")
 
         {:error, error} ->
@@ -411,8 +429,6 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   defp initialize_forms(socket) do
-    page_owner = socket.assigns.page_owner
-
     socket
     |> assign(
       delete_workout_id: nil,
@@ -421,7 +437,7 @@ defmodule WhiteboardWeb.HomeLive do
       workout_details_form: nil,
       create_workout_form: to_form(Workout.changeset(%Workout{}))
     )
-    |> stream(:workouts, Training.list_workouts(page_owner))
+    |> stream(:workouts, [])
   end
 
   defp workout_details_form(%Workout{} = workout) do
@@ -450,8 +466,54 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   defp refresh_workouts(socket) do
-    stream(socket, :workouts, Training.list_workouts(socket.assigns.page_owner), reset: true)
+    requested_page = current_workouts_page(socket)
+    pagination = Training.paginate_workouts(socket.assigns.page_owner, requested_page)
+
+    socket
+    |> assign(workouts_pagination: pagination)
+    |> stream(:workouts, pagination.entries, reset: true)
+    |> clamp_workouts_page(requested_page, pagination.current_page)
   end
+
+  defp current_workouts_page(%{assigns: %{workouts_pagination: pagination}}), do: pagination.current_page
+
+  defp normalize_workouts_page(socket, requested_page, current_page) do
+    normalized_page? =
+      PaginationHelpers.normalized_page_parameter?(requested_page, current_page)
+
+    maybe_patch_workouts_page(socket, normalized_page?, current_page)
+  end
+
+  defp maybe_patch_workouts_page(socket, true, _current_page), do: socket
+
+  defp maybe_patch_workouts_page(socket, false, current_page) do
+    patch_workouts_page(socket, current_page)
+  end
+
+  defp clamp_workouts_page(socket, page, page), do: socket
+
+  defp clamp_workouts_page(socket, _requested_page, current_page) do
+    patch_workouts_page(socket, current_page)
+  end
+
+  defp patch_workouts_page(socket, current_page) do
+    push_patch(socket,
+      to: workouts_page_path(socket.assigns.live_action, socket.assigns.delete_workout_id, current_page),
+      replace: true
+    )
+  end
+
+  defp workouts_page_path(:delete, workout_id, page) when is_binary(workout_id) do
+    ~p"/delete/#{workout_id}?#{workouts_page_params(page)}"
+  end
+
+  defp workouts_page_path(_live_action, _workout_id, page) do
+    ~p"/?#{workouts_page_params(page)}"
+  end
+
+  defp workouts_page_params(1), do: %{}
+
+  defp workouts_page_params(page), do: %{page: page}
 
   defp workout_details_event_params(%{"workout_details" => params}), do: params
 

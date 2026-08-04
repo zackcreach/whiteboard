@@ -7,6 +7,10 @@ defmodule Whiteboard.Training do
     TrainingRepo.list_workouts(user)
   end
 
+  def paginate_workouts(%User{} = user, requested_page) do
+    TrainingRepo.paginate_workouts(user, requested_page)
+  end
+
   def get_workout(%User{} = user, id) do
     TrainingRepo.get_workout(user, id)
   end
@@ -92,6 +96,10 @@ defmodule Whiteboard.Training do
     TrainingRepo.list_exercise_names(user)
   end
 
+  def paginate_exercise_names(%User{} = user, requested_page) do
+    TrainingRepo.paginate_exercise_names(user, requested_page)
+  end
+
   def get_exercise_name(%User{} = user, id) do
     TrainingRepo.get_exercise_name(user, id)
   end
@@ -110,6 +118,10 @@ defmodule Whiteboard.Training do
 
   def list_exercise_categories(%User{} = user) do
     TrainingRepo.list_exercise_categories(user)
+  end
+
+  def paginate_exercise_categories(%User{} = user, requested_page) do
+    TrainingRepo.paginate_exercise_categories(user, requested_page)
   end
 
   def get_exercise_category(%User{} = user, id) do

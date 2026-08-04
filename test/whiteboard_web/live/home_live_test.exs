@@ -125,6 +125,72 @@ defmodule WhiteboardWeb.HomeLiveTest do
     end
   end
 
+  describe "workout pagination" do
+    setup :register_and_log_in_user
+
+    test "loads direct pages and replaces streamed rows through patch navigation", %{conn: conn, user: user} do
+      workouts = insert_paginated_workouts(user, 21)
+      oldest_workout = List.first(workouts)
+      newest_workout = List.last(workouts)
+
+      assert {:ok, lv, html} = live(conn, ~p"/?page=2")
+
+      assert html =~ oldest_workout.name
+      refute html =~ newest_workout.name
+
+      document = parse_document!(html)
+
+      assert [current_page] = Floki.find(document, "#workouts-pagination [aria-current=page]")
+      assert %{"aria-current" => "page", "data-role" => "pagination-current"} = node_attributes(current_page)
+      assert "2" == text_one!(current_page)
+
+      html =
+        lv
+        |> element("#workouts-pagination [data-role=pagination-previous]")
+        |> render_click()
+
+      assert_patch(lv, ~p"/")
+      assert html =~ newest_workout.name
+      refute html =~ oldest_workout.name
+    end
+
+    test "normalizes malformed and excessive pages", %{conn: conn, user: user} do
+      insert_paginated_workouts(user, 21)
+
+      assert {:error, {:live_redirect, %{to: "/"}}} = live(conn, ~p"/?page=invalid")
+
+      assert {:error, {:live_redirect, %{to: "/?page=2"}}} = live(conn, ~p"/?page=99")
+    end
+
+    test "preserves the page in the delete route and clamps after deleting the last row", %{conn: conn, user: user} do
+      assert [oldest_workout | _workouts] = insert_paginated_workouts(user, 21)
+
+      assert {:ok, lv, _html} = live(conn, ~p"/?page=2")
+
+      lv
+      |> element("#workout-action-menu-button-#{oldest_workout.id}")
+      |> render_click()
+
+      delete_path = ~p"/delete/#{oldest_workout.id}?page=2"
+
+      redirect_result =
+        lv
+        |> element("#delete-workout-#{oldest_workout.id}")
+        |> render_click()
+
+      assert {:error, {:redirect, %{to: ^delete_path}}} = redirect_result
+      assert {:ok, delete_live, _html} = live(conn, delete_path)
+
+      delete_result =
+        delete_live
+        |> element("#confirm-delete-workout-#{oldest_workout.id}")
+        |> render_click()
+
+      assert {:error, {:redirect, %{to: "/"}}} = delete_result
+      assert 20 == length(Training.list_workouts(user))
+    end
+  end
+
   describe "workout action menu" do
     setup :register_and_log_in_user
 
@@ -635,6 +701,21 @@ defmodule WhiteboardWeb.HomeLiveTest do
       |> Floki.find("a")
       |> text_one!()
     end)
+  end
+
+  defp insert_paginated_workouts(user, count) do
+    for number <- 1..count do
+      suffix =
+        number
+        |> Integer.to_string()
+        |> String.pad_leading(2, "0")
+
+      insert(:workout,
+        user: user,
+        name: "Workout #{suffix}",
+        inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], number, :day)
+      )
+    end
   end
 
   defp input_details(input) do

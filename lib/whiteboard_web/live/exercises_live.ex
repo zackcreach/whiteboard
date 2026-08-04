@@ -15,6 +15,7 @@ defmodule WhiteboardWeb.ExercisesLive do
   alias WhiteboardWeb.Components.Table
   alias WhiteboardWeb.Utils.DateHelpers
   alias WhiteboardWeb.Utils.ExerciseHelpers
+  alias WhiteboardWeb.Utils.PaginationHelpers
 
   @read_only_events [
     "validate_exercise_category",
@@ -68,6 +69,9 @@ defmodule WhiteboardWeb.ExercisesLive do
         <Table.render
           id="exercise-categories"
           rows={@exercise_categories}
+          pagination={@exercise_categories_pagination}
+          page_path={fn page -> exercises_page_path(page, @exercise_names_pagination.current_page) end}
+          pagination_label="Exercise category pages"
           row_id={fn category -> "exercise-category-row-#{category.id}" end}
           grid_class={[
             @read_only? && "grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_1fr]",
@@ -133,6 +137,9 @@ defmodule WhiteboardWeb.ExercisesLive do
         <Table.render
           id="exercise-names"
           rows={@exercise_names}
+          pagination={@exercise_names_pagination}
+          page_path={fn page -> exercises_page_path(@exercise_categories_pagination.current_page, page) end}
+          pagination_label="Exercise name pages"
           row_id={fn exercise_name -> "exercise-name-row-#{exercise_name.id}" end}
           grid_class={[
             @read_only? && "grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_1fr_1fr]",
@@ -179,6 +186,27 @@ defmodule WhiteboardWeb.ExercisesLive do
     end
   end
 
+  def handle_params(params, _uri, socket) do
+    categories_pagination =
+      Training.paginate_exercise_categories(
+        socket.assigns.page_owner,
+        PaginationHelpers.parse_page(params["exercise_categories_page"])
+      )
+
+    names_pagination =
+      Training.paginate_exercise_names(
+        socket.assigns.page_owner,
+        PaginationHelpers.parse_page(params["exercise_names_page"])
+      )
+
+    socket =
+      socket
+      |> assign_catalog(categories_pagination, names_pagination)
+      |> normalize_catalog_pages(params, categories_pagination.current_page, names_pagination.current_page)
+
+    noreply(socket)
+  end
+
   for event <- @read_only_events do
     def handle_event(unquote(event), _params, %{assigns: %{read_only?: true}} = socket) do
       noreply(socket)
@@ -199,18 +227,18 @@ defmodule WhiteboardWeb.ExercisesLive do
         {:ok, %ExerciseCategory{}} ->
           socket
           |> assign(create_exercise_category_form: new_exercise_category_form(socket.assigns.page_owner))
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:info, "Exercise category created successfully")
 
         {:error, %Ecto.Changeset{} = changeset} ->
           socket
           |> assign(create_exercise_category_form: to_form(changeset, action: :validate))
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:error, "Error creating exercise category: #{catalog_error_message(changeset)}")
 
         {:error, reason} ->
           socket
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:error, "Error creating exercise category: #{catalog_error_message(reason)}")
       end
 
@@ -299,19 +327,19 @@ defmodule WhiteboardWeb.ExercisesLive do
         {:ok, %ExerciseCategory{}} ->
           socket
           |> close_edit_exercise_category()
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:info, "Exercise category updated successfully")
 
         {:error, %Ecto.Changeset{} = changeset} ->
           socket
           |> assign(edit_exercise_category_form: to_form(changeset, as: :exercise_category_edit, action: :validate))
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:error, "Error updating exercise category: #{catalog_error_message(changeset)}")
 
         {:error, reason} ->
           socket
           |> close_edit_exercise_category()
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:error, "Error updating exercise category: #{catalog_error_message(reason)}")
       end
 
@@ -357,13 +385,13 @@ defmodule WhiteboardWeb.ExercisesLive do
         {:ok, %ExerciseCategory{}} ->
           socket
           |> close_delete_exercise_category()
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:info, "Exercise category deleted successfully")
 
         {:error, reason} ->
           socket
           |> close_delete_exercise_category()
-          |> refresh_catalog()
+          |> refresh_catalog_and_category_options()
           |> put_flash(:error, "Error deleting exercise category: #{catalog_error_message(reason)}")
       end
 
@@ -809,8 +837,7 @@ defmodule WhiteboardWeb.ExercisesLive do
   end
 
   defp initialize(socket) do
-    socket
-    |> assign(
+    assign(socket,
       create_exercise_category_form: new_exercise_category_form(socket.assigns.page_owner),
       create_exercise_name_form: new_exercise_name_form(socket.assigns.page_owner),
       exercise_category_action_menu_id: nil,
@@ -820,20 +847,88 @@ defmodule WhiteboardWeb.ExercisesLive do
       edit_exercise_name_id: nil,
       edit_exercise_name_form: nil,
       delete_exercise_category_id: nil,
-      delete_exercise_name_id: nil
+      delete_exercise_name_id: nil,
+      exercise_category_options: exercise_category_options(socket)
     )
-    |> refresh_catalog()
   end
 
   defp refresh_catalog(socket) do
-    page_owner = socket.assigns.page_owner
+    requested_categories_page = socket.assigns.exercise_categories_pagination.current_page
+    requested_names_page = socket.assigns.exercise_names_pagination.current_page
 
-    assign(socket,
-      exercise_categories: Training.list_exercise_categories(page_owner),
-      exercise_category_options: ExerciseHelpers.list_exercise_categories(page_owner),
-      exercise_names: Training.list_exercise_names(page_owner)
+    categories_pagination =
+      Training.paginate_exercise_categories(
+        socket.assigns.page_owner,
+        requested_categories_page
+      )
+
+    names_pagination =
+      Training.paginate_exercise_names(socket.assigns.page_owner, requested_names_page)
+
+    socket
+    |> assign_catalog(categories_pagination, names_pagination)
+    |> clamp_catalog_pages(
+      requested_categories_page,
+      requested_names_page,
+      categories_pagination.current_page,
+      names_pagination.current_page
     )
   end
+
+  defp assign_catalog(socket, categories_pagination, names_pagination) do
+    assign(socket,
+      exercise_categories: categories_pagination.entries,
+      exercise_categories_pagination: categories_pagination,
+      exercise_names: names_pagination.entries,
+      exercise_names_pagination: names_pagination
+    )
+  end
+
+  defp refresh_catalog_and_category_options(socket) do
+    socket
+    |> refresh_catalog()
+    |> assign(exercise_category_options: ExerciseHelpers.list_exercise_categories(socket.assigns.page_owner))
+  end
+
+  defp exercise_category_options(%{assigns: %{read_only?: true}}), do: []
+
+  defp exercise_category_options(socket) do
+    ExerciseHelpers.list_exercise_categories(socket.assigns.page_owner)
+  end
+
+  defp normalize_catalog_pages(socket, params, categories_page, names_page) when is_map(params) do
+    normalized_pages? =
+      {PaginationHelpers.normalized_page_parameter?(params["exercise_categories_page"], categories_page),
+       PaginationHelpers.normalized_page_parameter?(params["exercise_names_page"], names_page)}
+
+    normalize_catalog_pages(socket, normalized_pages?, categories_page, names_page)
+  end
+
+  defp normalize_catalog_pages(socket, {true, true}, _categories_page, _names_page), do: socket
+
+  defp normalize_catalog_pages(socket, _normalized_pages, categories_page, names_page) do
+    push_patch(socket, to: exercises_page_path(categories_page, names_page), replace: true)
+  end
+
+  defp clamp_catalog_pages(socket, categories_page, names_page, categories_page, names_page), do: socket
+
+  defp clamp_catalog_pages(socket, _requested_categories_page, _requested_names_page, categories_page, names_page) do
+    push_patch(socket, to: exercises_page_path(categories_page, names_page), replace: true)
+  end
+
+  defp exercises_page_path(categories_page, names_page) do
+    ~p"/exercises?#{exercise_page_params(categories_page, names_page)}"
+  end
+
+  defp exercise_page_params(categories_page, names_page) do
+    %{}
+    |> put_page_param(:exercise_categories_page, categories_page)
+    |> put_page_param(:exercise_names_page, names_page)
+  end
+
+  defp put_page_param(params, _name, 1), do: params
+
+  defp put_page_param(params, name, page), do: Map.put(params, name, page)
 
   defp new_exercise_category_form(%User{} = user, params \\ %{}, action \\ nil) do
     %ExerciseCategory{user_id: user.id}

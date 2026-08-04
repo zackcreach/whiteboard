@@ -46,12 +46,72 @@ defmodule Whiteboard.TrainingTest do
       assert [%{id: ^newer_workout_id}, %{id: ^older_workout_id}] = Training.list_workouts(user)
     end
 
-    test "limits workout lists per user", %{user: user, other_user: other_user} do
+    test "returns complete workout lists per user", %{user: user, other_user: other_user} do
       Factory.insert_list(21, :workout, user: user)
       Factory.insert_list(5, :workout, user: other_user)
 
-      assert 20 == length(Training.list_workouts(user))
+      assert 21 == length(Training.list_workouts(user))
       assert 5 == length(Training.list_workouts(other_user))
+    end
+
+    test "paginates workouts with totals, ordering, preloads, isolation, and clamping", %{
+      user: user,
+      other_user: other_user
+    } do
+      workouts =
+        for number <- 1..45 do
+          Factory.insert(:workout,
+            user: user,
+            name: "Workout #{number}",
+            inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], number, :day)
+          )
+        end
+
+      Factory.insert_list(3, :workout, user: other_user)
+
+      expected_ids =
+        workouts
+        |> Enum.reverse()
+        |> Enum.map(& &1.id)
+
+      expected_second_page_ids =
+        expected_ids
+        |> Enum.drop(20)
+        |> Enum.take(20)
+
+      expected_first_page_ids = Enum.take(expected_ids, 20)
+      expected_last_page_ids = Enum.drop(expected_ids, 40)
+
+      assert %{
+               entries: first_page_entries,
+               current_page: 1,
+               page_size: 20,
+               total_entries: 45,
+               total_pages: 3
+             } = Training.paginate_workouts(user, 1)
+
+      assert %{
+               entries: second_page_entries,
+               current_page: 2,
+               page_size: 20,
+               total_entries: 45,
+               total_pages: 3
+             } = Training.paginate_workouts(user, 2)
+
+      assert %{
+               entries: last_page_entries,
+               current_page: 3,
+               page_size: 20,
+               total_entries: 45,
+               total_pages: 3
+             } = Training.paginate_workouts(user, 99)
+
+      assert ^expected_first_page_ids = Enum.map(first_page_entries, & &1.id)
+      assert ^expected_second_page_ids = Enum.map(second_page_entries, & &1.id)
+      assert ^expected_last_page_ids = Enum.map(last_page_entries, & &1.id)
+      assert true == Enum.all?(first_page_entries, &Ecto.assoc_loaded?(&1.exercises))
+      assert %{current_page: 1} = Training.paginate_workouts(user, 0)
+      assert %{total_entries: 3} = Training.paginate_workouts(other_user, 1)
     end
 
     test "gets workouts only for the owner", %{user: user, other_user: other_user} do
@@ -167,6 +227,60 @@ defmodule Whiteboard.TrainingTest do
 
       assert {:error, :not_found} == Training.get_exercise_category(other_user, exercise_category.id)
       assert {:error, :not_found} == Training.get_exercise_name(other_user, exercise_name.id)
+    end
+
+    test "paginates categories and names independently with complete totals and preloads", %{
+      user: user,
+      exercise_category: exercise_category
+    } do
+      for number <- 1..44 do
+        suffix =
+          number
+          |> Integer.to_string()
+          |> String.pad_leading(2, "0")
+
+        Factory.insert(:exercise_category, user: user, name: "Category #{suffix}")
+        Factory.insert(:exercise_name, user: user, exercise_category: exercise_category, name: "Exercise #{suffix}")
+      end
+
+      expected_category_ids =
+        user
+        |> Training.list_exercise_categories()
+        |> Enum.map(& &1.id)
+
+      expected_name_ids =
+        user
+        |> Training.list_exercise_names()
+        |> Enum.map(& &1.id)
+
+      expected_category_page_ids =
+        expected_category_ids
+        |> Enum.drop(20)
+        |> Enum.take(20)
+
+      expected_name_page_ids = Enum.drop(expected_name_ids, 40)
+
+      assert %{
+               entries: category_page_entries,
+               current_page: 2,
+               page_size: 20,
+               total_entries: 45,
+               total_pages: 3
+             } = Training.paginate_exercise_categories(user, 2)
+
+      assert %{
+               entries: name_page_entries,
+               current_page: 3,
+               page_size: 20,
+               total_entries: 45,
+               total_pages: 3
+             } = Training.paginate_exercise_names(user, 3)
+
+      assert ^expected_category_page_ids = Enum.map(category_page_entries, & &1.id)
+      assert ^expected_name_page_ids = Enum.map(name_page_entries, & &1.id)
+      assert true == Enum.all?(name_page_entries, &Ecto.assoc_loaded?(&1.exercise_category))
+      assert %{current_page: 3} = Training.paginate_exercise_categories(user, 100)
+      assert %{current_page: 1} = Training.paginate_exercise_names(user, -1)
     end
 
     test "allows duplicate category and exercise names across users", %{
