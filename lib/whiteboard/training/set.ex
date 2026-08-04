@@ -1,6 +1,6 @@
 defmodule Whiteboard.Training.Set do
   @moduledoc false
-  use Whiteboard.Schema, prefix: "set"
+  use Whiteboard.Schema, key: :set
 
   import Ecto.Changeset
 
@@ -11,7 +11,7 @@ defmodule Whiteboard.Training.Set do
     field :reps, :integer
     field :notes, :string
 
-    belongs_to :exercise, Training.Exercise
+    belongs_to_uxid(:exercise, Training.Exercise, :exercise)
 
     timestamps()
   end

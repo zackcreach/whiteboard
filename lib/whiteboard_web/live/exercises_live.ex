@@ -4,7 +4,7 @@ defmodule WhiteboardWeb.ExercisesLive do
   """
   use WhiteboardWeb, :live_view
 
-  alias Whiteboard.Accounts
+  alias Whiteboard.Accounts.Scope
   alias Whiteboard.Accounts.User
   alias Whiteboard.Training
   alias Whiteboard.Training.ExerciseCategory
@@ -44,138 +44,140 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def render(assigns) do
     ~H"""
-    <section class="space-y-10">
-      <div class="flex items-center justify-between gap-4">
-        <h1>Exercises</h1>
-      </div>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <section class="space-y-10">
+        <div class="flex items-center justify-between gap-4">
+          <h1>Exercises</h1>
+        </div>
 
-      <section id="exercise-categories-section" class="space-y-4">
-        <h3>Exercise categories</h3>
-        <Card.render :if={!@read_only?} padding_class="p-4">
-          <.form
-            id="create-exercise-category-form"
-            for={@create_exercise_category_form}
-            phx-change="validate_exercise_category"
-            phx-submit="create_exercise_category"
-            class="flex flex-col md:flex-row items-center gap-4"
+        <section id="exercise-categories-section" class="space-y-4">
+          <h3>Exercise categories</h3>
+          <Card.render :if={!@read_only?} padding_class="p-4">
+            <.form
+              id="create-exercise-category-form"
+              for={@create_exercise_category_form}
+              phx-change="validate_exercise_category"
+              phx-submit="create_exercise_category"
+              class="flex flex-col md:flex-row items-center gap-4"
+            >
+              <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name" />
+              <.button id="create-exercise-category-button" type="submit" class="w-full md:w-auto">
+                New exercise category
+              </.button>
+            </.form>
+          </Card.render>
+
+          <Table.render
+            id="exercise-categories"
+            rows={@exercise_categories}
+            pagination={@exercise_categories_pagination}
+            page_path={fn page -> exercises_page_path(page, @exercise_names_pagination.current_page) end}
+            pagination_label="Exercise category pages"
+            row_id={fn category -> "exercise-category-row-#{category.id}" end}
+            grid_class={[
+              @read_only? && "grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_1fr]",
+              !@read_only? && "grid-cols-[1fr_1fr_0.5fr] md:grid-cols-[1fr_1fr_1fr_0.5fr]"
+            ]}
           >
-            <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name" />
-            <.button id="create-exercise-category-button" type="submit" class="w-full md:w-auto">
-              New exercise category
-            </.button>
-          </.form>
-        </Card.render>
+            <:col :let={category} label="Name">
+              <p>{category.name}</p>
+            </:col>
+            <:col :let={category} label="Created on">
+              <p>{DateHelpers.render_date(category.inserted_at)}</p>
+            </:col>
+            <:col :let={category} label="Last updated" header_class="hidden md:block" cell_class="hidden md:block">
+              <p>{DateHelpers.render_date(category.updated_at)}</p>
+            </:col>
+            <:action :let={category} :if={!@read_only?}>
+              <.exercise_category_action_control
+                category={category}
+                exercise_category_action_menu_id={@exercise_category_action_menu_id}
+                edit_exercise_category_id={@edit_exercise_category_id}
+                edit_exercise_category_form={@edit_exercise_category_form}
+                delete_exercise_category_id={@delete_exercise_category_id}
+              />
+            </:action>
+          </Table.render>
+        </section>
 
-        <Table.render
-          id="exercise-categories"
-          rows={@exercise_categories}
-          pagination={@exercise_categories_pagination}
-          page_path={fn page -> exercises_page_path(page, @exercise_names_pagination.current_page) end}
-          pagination_label="Exercise category pages"
-          row_id={fn category -> "exercise-category-row-#{category.id}" end}
-          grid_class={[
-            @read_only? && "grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_1fr]",
-            !@read_only? && "grid-cols-[1fr_1fr_0.5fr] md:grid-cols-[1fr_1fr_1fr_0.5fr]"
-          ]}
-        >
-          <:col :let={category} label="Name">
-            <p>{category.name}</p>
-          </:col>
-          <:col :let={category} label="Created on">
-            <p>{DateHelpers.render_date(category.inserted_at)}</p>
-          </:col>
-          <:col :let={category} label="Last updated" header_class="hidden md:block" cell_class="hidden md:block">
-            <p>{DateHelpers.render_date(category.updated_at)}</p>
-          </:col>
-          <:action :let={category} :if={!@read_only?}>
-            <.exercise_category_action_control
-              category={category}
-              exercise_category_action_menu_id={@exercise_category_action_menu_id}
-              edit_exercise_category_id={@edit_exercise_category_id}
-              edit_exercise_category_form={@edit_exercise_category_form}
-              delete_exercise_category_id={@delete_exercise_category_id}
-            />
-          </:action>
-        </Table.render>
-      </section>
+        <section id="exercise-names-section" class="space-y-4">
+          <h3>Exercises</h3>
+          <Card.render :if={!@read_only?} padding_class="p-4">
+            <.form
+              id="create-exercise-name-form"
+              for={@create_exercise_name_form}
+              phx-change="validate_exercise_name"
+              phx-submit="create_exercise_name"
+              class="flex flex-col md:flex-row items-center gap-4"
+            >
+              <div class="flex w-full">
+                <div class="basis-1/3">
+                  <.input
+                    type="select"
+                    field={@create_exercise_name_form[:exercise_category_id]}
+                    options={@exercise_category_options}
+                    border_variant={:start}
+                    prompt="Category"
+                  />
+                </div>
+                <div class="basis-2/3">
+                  <.input
+                    field={@create_exercise_name_form[:name]}
+                    border_variant={:end}
+                    placeholder="Exercise name"
+                  />
+                </div>
+              </div>
 
-      <section id="exercise-names-section" class="space-y-4">
-        <h3>Exercises</h3>
-        <Card.render :if={!@read_only?} padding_class="p-4">
-          <.form
-            id="create-exercise-name-form"
-            for={@create_exercise_name_form}
-            phx-change="validate_exercise_name"
-            phx-submit="create_exercise_name"
-            class="flex flex-col md:flex-row items-center gap-4"
+              <.button id="create-exercise-name-button" type="submit" class="w-full md:w-auto">
+                New exercise name
+              </.button>
+            </.form>
+          </Card.render>
+
+          <Table.render
+            id="exercise-names"
+            rows={@exercise_names}
+            pagination={@exercise_names_pagination}
+            page_path={fn page -> exercises_page_path(@exercise_categories_pagination.current_page, page) end}
+            pagination_label="Exercise name pages"
+            row_id={fn exercise_name -> "exercise-name-row-#{exercise_name.id}" end}
+            grid_class={[
+              @read_only? && "grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_1fr_1fr]",
+              !@read_only? && "grid-cols-[1fr_1fr_0.5fr] md:grid-cols-[1fr_1fr_1fr_1fr_0.5fr]"
+            ]}
           >
-            <div class="flex w-full">
-              <div class="basis-1/3">
-                <.input
-                  type="select"
-                  field={@create_exercise_name_form[:exercise_category_id]}
-                  options={@exercise_category_options}
-                  border_variant={:start}
-                  prompt="Category"
-                />
-              </div>
-              <div class="basis-2/3">
-                <.input
-                  field={@create_exercise_name_form[:name]}
-                  border_variant={:end}
-                  placeholder="Exercise name"
-                />
-              </div>
-            </div>
-
-            <.button id="create-exercise-name-button" type="submit" class="w-full md:w-auto">
-              New exercise name
-            </.button>
-          </.form>
-        </Card.render>
-
-        <Table.render
-          id="exercise-names"
-          rows={@exercise_names}
-          pagination={@exercise_names_pagination}
-          page_path={fn page -> exercises_page_path(@exercise_categories_pagination.current_page, page) end}
-          pagination_label="Exercise name pages"
-          row_id={fn exercise_name -> "exercise-name-row-#{exercise_name.id}" end}
-          grid_class={[
-            @read_only? && "grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_1fr_1fr]",
-            !@read_only? && "grid-cols-[1fr_1fr_0.5fr] md:grid-cols-[1fr_1fr_1fr_1fr_0.5fr]"
-          ]}
-        >
-          <:col :let={exercise_name} label="Name">
-            <p>{exercise_name.name}</p>
-          </:col>
-          <:col :let={exercise_name} label="Category">
-            <p>{exercise_name_category_name(exercise_name)}</p>
-          </:col>
-          <:col :let={exercise_name} label="Created on" header_class="hidden md:block" cell_class="hidden md:block">
-            <p>{DateHelpers.render_date(exercise_name.inserted_at)}</p>
-          </:col>
-          <:col :let={exercise_name} label="Last updated" header_class="hidden md:block" cell_class="hidden md:block">
-            <p>{DateHelpers.render_date(exercise_name.updated_at)}</p>
-          </:col>
-          <:action :let={exercise_name} :if={!@read_only?}>
-            <.exercise_name_action_control
-              exercise_name={exercise_name}
-              exercise_category_options={@exercise_category_options}
-              exercise_name_action_menu_id={@exercise_name_action_menu_id}
-              edit_exercise_name_id={@edit_exercise_name_id}
-              edit_exercise_name_form={@edit_exercise_name_form}
-              delete_exercise_name_id={@delete_exercise_name_id}
-            />
-          </:action>
-        </Table.render>
+            <:col :let={exercise_name} label="Name">
+              <p>{exercise_name.name}</p>
+            </:col>
+            <:col :let={exercise_name} label="Category">
+              <p>{exercise_name_category_name(exercise_name)}</p>
+            </:col>
+            <:col :let={exercise_name} label="Created on" header_class="hidden md:block" cell_class="hidden md:block">
+              <p>{DateHelpers.render_date(exercise_name.inserted_at)}</p>
+            </:col>
+            <:col :let={exercise_name} label="Last updated" header_class="hidden md:block" cell_class="hidden md:block">
+              <p>{DateHelpers.render_date(exercise_name.updated_at)}</p>
+            </:col>
+            <:action :let={exercise_name} :if={!@read_only?}>
+              <.exercise_name_action_control
+                exercise_name={exercise_name}
+                exercise_category_options={@exercise_category_options}
+                exercise_name_action_menu_id={@exercise_name_action_menu_id}
+                edit_exercise_name_id={@edit_exercise_name_id}
+                edit_exercise_name_form={@edit_exercise_name_form}
+                delete_exercise_name_id={@delete_exercise_name_id}
+              />
+            </:action>
+          </Table.render>
+        </section>
       </section>
-    </section>
+    </Layouts.app>
     """
   end
 
   def mount(_params, _session, socket) do
-    case assign_page_owner(socket) do
+    case assign_current_scope(socket) do
       {:ok, socket} ->
         socket
         |> initialize()
@@ -189,13 +191,13 @@ defmodule WhiteboardWeb.ExercisesLive do
   def handle_params(params, _uri, socket) do
     categories_pagination =
       Training.paginate_exercise_categories(
-        socket.assigns.page_owner,
+        socket.assigns.current_scope,
         PaginationHelpers.parse_page(params["exercise_categories_page"])
       )
 
     names_pagination =
       Training.paginate_exercise_names(
-        socket.assigns.page_owner,
+        socket.assigns.current_scope,
         PaginationHelpers.parse_page(params["exercise_names_page"])
       )
 
@@ -215,7 +217,9 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("validate_exercise_category", %{"exercise_category" => params}, socket) do
     socket
-    |> assign(create_exercise_category_form: new_exercise_category_form(socket.assigns.page_owner, params, :validate))
+    |> assign(
+      create_exercise_category_form: new_exercise_category_form(socket.assigns.current_scope, params, :validate)
+    )
     |> noreply()
   end
 
@@ -223,10 +227,10 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("create_exercise_category", %{"exercise_category" => params}, socket) do
     socket =
-      case Training.create_exercise_category(socket.assigns.page_owner, params) do
+      case Training.create_exercise_category(socket.assigns.current_scope, params) do
         {:ok, %ExerciseCategory{}} ->
           socket
-          |> assign(create_exercise_category_form: new_exercise_category_form(socket.assigns.page_owner))
+          |> assign(create_exercise_category_form: new_exercise_category_form(socket.assigns.current_scope))
           |> refresh_catalog_and_category_options()
           |> put_flash(:info, "Exercise category created successfully")
 
@@ -272,7 +276,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("open_edit_exercise_category", %{"exercise_category_id" => exercise_category_id}, socket) do
     socket =
-      case Training.get_exercise_category(socket.assigns.page_owner, exercise_category_id) do
+      case Training.get_exercise_category(socket.assigns.current_scope, exercise_category_id) do
         {:ok, %ExerciseCategory{} = exercise_category} ->
           socket
           |> close_catalog_controls()
@@ -298,7 +302,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("validate_edit_exercise_category", %{"exercise_category_edit" => params}, socket) do
     socket =
-      case Training.get_exercise_category(socket.assigns.page_owner, socket.assigns.edit_exercise_category_id) do
+      case Training.get_exercise_category(socket.assigns.current_scope, socket.assigns.edit_exercise_category_id) do
         {:ok, %ExerciseCategory{} = exercise_category} ->
           assign(socket,
             edit_exercise_category_form: edit_exercise_category_form(exercise_category, params, :validate)
@@ -320,7 +324,7 @@ defmodule WhiteboardWeb.ExercisesLive do
   def handle_event("update_exercise_category", %{"exercise_category_edit" => params}, socket) do
     socket =
       case Training.update_exercise_category(
-             socket.assigns.page_owner,
+             socket.assigns.current_scope,
              socket.assigns.edit_exercise_category_id,
              params
            ) do
@@ -356,7 +360,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("open_delete_exercise_category", %{"exercise_category_id" => exercise_category_id}, socket) do
     socket =
-      case Training.get_exercise_category(socket.assigns.page_owner, exercise_category_id) do
+      case Training.get_exercise_category(socket.assigns.current_scope, exercise_category_id) do
         {:ok, %ExerciseCategory{} = exercise_category} ->
           socket
           |> close_catalog_controls()
@@ -381,7 +385,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("delete_exercise_category", %{"exercise_category_id" => exercise_category_id}, socket) do
     socket =
-      case Training.delete_exercise_category(socket.assigns.page_owner, exercise_category_id) do
+      case Training.delete_exercise_category(socket.assigns.current_scope, exercise_category_id) do
         {:ok, %ExerciseCategory{}} ->
           socket
           |> close_delete_exercise_category()
@@ -402,7 +406,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("validate_exercise_name", %{"exercise_name" => params}, socket) do
     socket
-    |> assign(create_exercise_name_form: new_exercise_name_form(socket.assigns.page_owner, params, :validate))
+    |> assign(create_exercise_name_form: new_exercise_name_form(socket.assigns.current_scope, params, :validate))
     |> noreply()
   end
 
@@ -410,10 +414,10 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("create_exercise_name", %{"exercise_name" => params}, socket) do
     socket =
-      case Training.create_exercise_name(socket.assigns.page_owner, params) do
+      case Training.create_exercise_name(socket.assigns.current_scope, params) do
         {:ok, %ExerciseName{}} ->
           socket
-          |> assign(create_exercise_name_form: new_exercise_name_form(socket.assigns.page_owner))
+          |> assign(create_exercise_name_form: new_exercise_name_form(socket.assigns.current_scope))
           |> refresh_catalog()
           |> put_flash(:info, "Exercise name created successfully")
 
@@ -459,7 +463,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("open_edit_exercise_name", %{"exercise_name_id" => exercise_name_id}, socket) do
     socket =
-      case Training.get_exercise_name(socket.assigns.page_owner, exercise_name_id) do
+      case Training.get_exercise_name(socket.assigns.current_scope, exercise_name_id) do
         {:ok, %ExerciseName{} = exercise_name} ->
           socket
           |> close_catalog_controls()
@@ -485,7 +489,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("validate_edit_exercise_name", %{"exercise_name_edit" => params}, socket) do
     socket =
-      case Training.get_exercise_name(socket.assigns.page_owner, socket.assigns.edit_exercise_name_id) do
+      case Training.get_exercise_name(socket.assigns.current_scope, socket.assigns.edit_exercise_name_id) do
         {:ok, %ExerciseName{} = exercise_name} ->
           assign(socket, edit_exercise_name_form: edit_exercise_name_form(exercise_name, params, :validate))
 
@@ -504,7 +508,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("update_exercise_name", %{"exercise_name_edit" => params}, socket) do
     socket =
-      case Training.update_exercise_name(socket.assigns.page_owner, socket.assigns.edit_exercise_name_id, params) do
+      case Training.update_exercise_name(socket.assigns.current_scope, socket.assigns.edit_exercise_name_id, params) do
         {:ok, %ExerciseName{}} ->
           socket
           |> close_edit_exercise_name()
@@ -537,7 +541,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("open_delete_exercise_name", %{"exercise_name_id" => exercise_name_id}, socket) do
     socket =
-      case Training.get_exercise_name(socket.assigns.page_owner, exercise_name_id) do
+      case Training.get_exercise_name(socket.assigns.current_scope, exercise_name_id) do
         {:ok, %ExerciseName{} = exercise_name} ->
           socket
           |> close_catalog_controls()
@@ -562,7 +566,7 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   def handle_event("delete_exercise_name", %{"exercise_name_id" => exercise_name_id}, socket) do
     socket =
-      case Training.delete_exercise_name(socket.assigns.page_owner, exercise_name_id) do
+      case Training.delete_exercise_name(socket.assigns.current_scope, exercise_name_id) do
         {:ok, %ExerciseName{}} ->
           socket
           |> close_delete_exercise_name()
@@ -817,16 +821,17 @@ defmodule WhiteboardWeb.ExercisesLive do
     """
   end
 
-  defp assign_page_owner(%{assigns: %{current_user: %User{} = current_user}} = socket) do
-    {:ok, assign(socket, page_owner: current_user, read_only?: false)}
+  defp assign_current_scope(%{assigns: %{current_user: %User{} = current_user}} = socket) do
+    current_scope = Scope.authenticated(current_user)
+    {:ok, assign(socket, current_scope: current_scope, read_only?: Scope.read_only?(current_scope))}
   end
 
-  defp assign_page_owner(socket) do
-    case Accounts.get_public_read_only_owner() do
-      %User{} = user ->
-        {:ok, assign(socket, page_owner: user, read_only?: true)}
+  defp assign_current_scope(socket) do
+    case Scope.public() do
+      {:ok, current_scope} ->
+        {:ok, assign(socket, current_scope: current_scope, read_only?: Scope.read_only?(current_scope))}
 
-      nil ->
+      {:error, :public_owner_not_found} ->
         socket =
           socket
           |> put_flash(:error, "You must log in to access this page.")
@@ -838,8 +843,8 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   defp initialize(socket) do
     assign(socket,
-      create_exercise_category_form: new_exercise_category_form(socket.assigns.page_owner),
-      create_exercise_name_form: new_exercise_name_form(socket.assigns.page_owner),
+      create_exercise_category_form: new_exercise_category_form(socket.assigns.current_scope),
+      create_exercise_name_form: new_exercise_name_form(socket.assigns.current_scope),
       exercise_category_action_menu_id: nil,
       exercise_name_action_menu_id: nil,
       edit_exercise_category_id: nil,
@@ -858,12 +863,12 @@ defmodule WhiteboardWeb.ExercisesLive do
 
     categories_pagination =
       Training.paginate_exercise_categories(
-        socket.assigns.page_owner,
+        socket.assigns.current_scope,
         requested_categories_page
       )
 
     names_pagination =
-      Training.paginate_exercise_names(socket.assigns.page_owner, requested_names_page)
+      Training.paginate_exercise_names(socket.assigns.current_scope, requested_names_page)
 
     socket
     |> assign_catalog(categories_pagination, names_pagination)
@@ -887,13 +892,13 @@ defmodule WhiteboardWeb.ExercisesLive do
   defp refresh_catalog_and_category_options(socket) do
     socket
     |> refresh_catalog()
-    |> assign(exercise_category_options: ExerciseHelpers.list_exercise_categories(socket.assigns.page_owner))
+    |> assign(exercise_category_options: ExerciseHelpers.list_exercise_categories(socket.assigns.current_scope))
   end
 
   defp exercise_category_options(%{assigns: %{read_only?: true}}), do: []
 
   defp exercise_category_options(socket) do
-    ExerciseHelpers.list_exercise_categories(socket.assigns.page_owner)
+    ExerciseHelpers.list_exercise_categories(socket.assigns.current_scope)
   end
 
   defp normalize_catalog_pages(socket, params, categories_page, names_page) when is_map(params) do
@@ -930,8 +935,8 @@ defmodule WhiteboardWeb.ExercisesLive do
 
   defp put_page_param(params, name, page), do: Map.put(params, name, page)
 
-  defp new_exercise_category_form(%User{} = user, params \\ %{}, action \\ nil) do
-    %ExerciseCategory{user_id: user.id}
+  defp new_exercise_category_form(%Scope{data_owner: %User{id: user_id}}, params \\ %{}, action \\ nil) do
+    %ExerciseCategory{user_id: user_id}
     |> ExerciseCategory.changeset(params)
     |> to_form(action: action)
   end
@@ -942,8 +947,8 @@ defmodule WhiteboardWeb.ExercisesLive do
     |> to_form(as: :exercise_category_edit, action: action)
   end
 
-  defp new_exercise_name_form(%User{} = user, params \\ %{}, action \\ nil) do
-    %ExerciseName{user_id: user.id}
+  defp new_exercise_name_form(%Scope{data_owner: %User{id: user_id}}, params \\ %{}, action \\ nil) do
+    %ExerciseName{user_id: user_id}
     |> ExerciseName.changeset(params)
     |> to_form(action: action)
   end

@@ -7,7 +7,7 @@ defmodule WhiteboardWeb.Components.WorkoutDetailsDialog do
   attr :open, :boolean, required: true
   attr :form, :any, required: true
   attr :title, :string, default: "Edit workout"
-  attr :position_class, :string, default: "left-0 top-full mt-4"
+  attr :position_class, :string, default: "inset-s-0 top-full mt-4"
 
   def render(%{open: false} = assigns) do
     ~H"""

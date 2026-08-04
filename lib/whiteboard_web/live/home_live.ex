@@ -4,7 +4,7 @@ defmodule WhiteboardWeb.HomeLive do
   """
   use WhiteboardWeb, :live_view
 
-  alias Whiteboard.Accounts
+  alias Whiteboard.Accounts.Scope
   alias Whiteboard.Accounts.User
   alias Whiteboard.Training
   alias Whiteboard.Training.Workout
@@ -19,118 +19,120 @@ defmodule WhiteboardWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <section class="space-y-10">
-      <div class="flex items-center justify-between gap-4">
-        <h1>Workouts</h1>
-      </div>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <section class="space-y-10">
+        <div class="flex items-center justify-between gap-4">
+          <h1>Workouts</h1>
+        </div>
 
-      <section :if={!@read_only?} id="create-workout-section" class="space-y-4">
-        <h3>Start a new workout</h3>
-        <Card.render padding_class="p-4">
-          <.form
-            id="create-workout-form"
-            for={@create_workout_form}
-            phx-change="validate_workout"
-            phx-submit="create_workout"
-            class="flex flex-col md:flex-row items-center gap-4"
-          >
-            <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
-            <.button id="create-workout-button" type="submit" class="w-full md:w-auto">New workout</.button>
-          </.form>
-        </Card.render>
-      </section>
-
-      <section id="previous-workouts-section" class="space-y-4">
-        <h3>Previous workouts</h3>
-        <Table.render
-          id="workouts"
-          rows={@streams.workouts}
-          pagination={@workouts_pagination}
-          page_path={fn page -> workouts_page_path(@live_action, @delete_workout_id, page) end}
-          pagination_label="Previous workouts pages"
-          grid_class={[
-            @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
-            !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
-          ]}
-        >
-          <:col :let={workout} label="Name">
-            <a href={~p"/workouts/#{workout.id}"}>{workout.name}</a>
-          </:col>
-          <:col :let={workout} label="Exercises" header_class="hidden md:block" cell_class="hidden md:block">
-            <p>{ExerciseHelpers.render_exercise_names(workout)}</p>
-          </:col>
-          <:col :let={workout} label="Created on">
-            <p>{DateHelpers.render_date(workout.inserted_at)}</p>
-          </:col>
-          <:col :let={workout} label="Last updated">
-            <p>{DateHelpers.render_date(workout.updated_at)}</p>
-          </:col>
-          <:action :let={workout} :if={!@read_only?}>
-            <div
-              class="relative flex justify-end"
-              phx-click-away={if @workout_action_menu_id == workout.id, do: "cancel_workout_action_menu"}
+        <section :if={!@read_only?} id="create-workout-section" class="space-y-4">
+          <h3>Start a new workout</h3>
+          <Card.render padding_class="p-4">
+            <.form
+              id="create-workout-form"
+              for={@create_workout_form}
+              phx-change="validate_workout"
+              phx-submit="create_workout"
+              class="flex flex-col md:flex-row items-center gap-4"
             >
-              <.icon_button
-                id={"workout-action-menu-button-#{workout.id}"}
-                label="Open workout actions"
-                icon="hero-ellipsis-vertical size-5"
-                phx-click="open_workout_action_menu"
-                phx-value-workout_id={workout.id}
-                class="h-8 w-8 justify-center text-zinc-900 dark:text-white"
-                hover_class="after:h-8 after:w-8 after:rounded-lg"
-              />
-              <ActionMenu.render
-                :if={@workout_action_menu_id == workout.id}
-                id={"workout-action-menu-#{workout.id}"}
-                title={"#{workout.name} actions"}
-                close_event="cancel_workout_action_menu"
-                close_id={"cancel-workout-action-menu-#{workout.id}"}
-                close_label="Close workout actions"
-                width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
-                row_role="workout-action-menu-item"
-                row_label_role="workout-action-menu-item-label"
-                click_away={false}
+              <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
+              <.button id="create-workout-button" type="submit" class="w-full md:w-auto">New workout</.button>
+            </.form>
+          </Card.render>
+        </section>
+
+        <section id="previous-workouts-section" class="space-y-4">
+          <h3>Previous workouts</h3>
+          <Table.render
+            id="workouts"
+            rows={@streams.workouts}
+            pagination={@workouts_pagination}
+            page_path={fn page -> workouts_page_path(@live_action, @delete_workout_id, page) end}
+            pagination_label="Previous workouts pages"
+            grid_class={[
+              @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
+              !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
+            ]}
+          >
+            <:col :let={workout} label="Name">
+              <a href={~p"/workouts/#{workout.id}"}>{workout.name}</a>
+            </:col>
+            <:col :let={workout} label="Exercises" header_class="hidden md:block" cell_class="hidden md:block">
+              <p>{ExerciseHelpers.render_exercise_names(workout)}</p>
+            </:col>
+            <:col :let={workout} label="Created on">
+              <p>{DateHelpers.render_date(workout.inserted_at)}</p>
+            </:col>
+            <:col :let={workout} label="Last updated">
+              <p>{DateHelpers.render_date(workout.updated_at)}</p>
+            </:col>
+            <:action :let={workout} :if={!@read_only?}>
+              <div
+                class="relative flex justify-end"
+                phx-click-away={if @workout_action_menu_id == workout.id, do: "cancel_workout_action_menu"}
               >
-                <:row
-                  id={"duplicate-workout-#{workout.id}"}
-                  label="Duplicate workout"
-                  icon="hero-document-duplicate size-5"
-                  click="duplicate_workout"
-                  values={%{workout_id: workout.id}}
+                <.icon_button
+                  id={"workout-action-menu-button-#{workout.id}"}
+                  label="Open workout actions"
+                  icon="hero-ellipsis-vertical size-5"
+                  phx-click="open_workout_action_menu"
+                  phx-value-workout_id={workout.id}
+                  class="h-8 w-8 justify-center text-zinc-900 dark:text-white"
+                  hover_class="after:h-8 after:w-8 after:rounded-lg"
                 />
-                <:row
-                  id={"delete-workout-#{workout.id}"}
-                  label="Delete workout"
-                  icon="hero-trash size-5"
-                  click="open_delete_workout"
-                  values={%{workout_id: workout.id}}
+                <ActionMenu.render
+                  :if={@workout_action_menu_id == workout.id}
+                  id={"workout-action-menu-#{workout.id}"}
+                  title={"#{workout.name} actions"}
+                  close_event="cancel_workout_action_menu"
+                  close_id={"cancel-workout-action-menu-#{workout.id}"}
+                  close_label="Close workout actions"
+                  width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+                  row_role="workout-action-menu-item"
+                  row_label_role="workout-action-menu-item-label"
+                  click_away={false}
+                >
+                  <:row
+                    id={"duplicate-workout-#{workout.id}"}
+                    label="Duplicate workout"
+                    icon="hero-document-duplicate size-5"
+                    click="duplicate_workout"
+                    values={%{workout_id: workout.id}}
+                  />
+                  <:row
+                    id={"delete-workout-#{workout.id}"}
+                    label="Delete workout"
+                    icon="hero-trash size-5"
+                    click="open_delete_workout"
+                    values={%{workout_id: workout.id}}
+                  />
+                  <:row
+                    id={"edit-workout-#{workout.id}"}
+                    label="Edit workout"
+                    icon="hero-pencil-square size-5"
+                    click="open_workout_details"
+                    values={%{workout_id: workout.id}}
+                  />
+                </ActionMenu.render>
+                <WorkoutDetailsDialog.render
+                  :if={@workout_details_workout_id == workout.id}
+                  open={true}
+                  form={@workout_details_form}
+                  title={"Edit #{workout.name}"}
+                  position_class="right-0 top-full mt-4"
                 />
-                <:row
-                  id={"edit-workout-#{workout.id}"}
-                  label="Edit workout"
-                  icon="hero-pencil-square size-5"
-                  click="open_workout_details"
-                  values={%{workout_id: workout.id}}
-                />
-              </ActionMenu.render>
-              <WorkoutDetailsDialog.render
-                :if={@workout_details_workout_id == workout.id}
-                open={true}
-                form={@workout_details_form}
-                title={"Edit #{workout.name}"}
-                position_class="right-0 top-full mt-4"
-              />
-              <.delete_workout_dialog :if={@delete_workout_id == workout.id} workout={workout} />
-            </div>
-          </:action>
-        </Table.render>
+                <.delete_workout_dialog :if={@delete_workout_id == workout.id} workout={workout} />
+              </div>
+            </:action>
+          </Table.render>
+        </section>
       </section>
-    </section>
+    </Layouts.app>
     """
   end
 
   def mount(%{"workout_id" => workout_id}, _session, %{assigns: %{live_action: :delete}} = socket) do
-    case assign_page_owner(socket) do
+    case assign_current_scope(socket) do
       {:ok, socket} ->
         socket
         |> initialize_forms()
@@ -143,7 +145,7 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   def mount(_params, _session, socket) do
-    case assign_page_owner(socket) do
+    case assign_current_scope(socket) do
       {:ok, socket} ->
         socket
         |> initialize_forms()
@@ -156,7 +158,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_params(params, _uri, socket) do
     requested_page = PaginationHelpers.parse_page(params["page"])
-    pagination = Training.paginate_workouts(socket.assigns.page_owner, requested_page)
+    pagination = Training.paginate_workouts(socket.assigns.current_scope, requested_page)
 
     socket =
       socket
@@ -253,7 +255,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_event("create_workout", %{"workout" => params}, socket) do
     socket =
-      case Training.create_workout(socket.assigns.page_owner, params) do
+      case Training.create_workout(socket.assigns.current_scope, params) do
         {:ok, %Workout{id: id}} ->
           redirect(socket, to: ~p"/workouts/#{id}")
 
@@ -295,7 +297,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_event("open_workout_details", %{"workout_id" => workout_id}, socket) do
     socket =
-      case Training.get_workout(socket.assigns.page_owner, workout_id) do
+      case Training.get_workout(socket.assigns.current_scope, workout_id) do
         {:ok, %Workout{} = workout} ->
           socket
           |> assign(workout_details_workout_id: workout.id)
@@ -333,7 +335,7 @@ defmodule WhiteboardWeb.HomeLive do
   def handle_event("update_workout_details", params, socket) do
     socket =
       case Training.update_workout_details(
-             socket.assigns.page_owner,
+             socket.assigns.current_scope,
              socket.assigns.workout_details_workout_id,
              workout_details_event_params(params)
            ) do
@@ -379,7 +381,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_event("duplicate_workout", %{"workout_id" => workout_id}, socket) do
     socket =
-      case Training.duplicate_workout(socket.assigns.page_owner, workout_id) do
+      case Training.duplicate_workout(socket.assigns.current_scope, workout_id) do
         {:ok, %Workout{id: id}} ->
           socket
           |> put_flash(:info, "Workout duplicated successfully, navigated to new workout")
@@ -394,9 +396,9 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_event("delete_workout", %{"workout_id" => workout_id}, socket) do
     socket =
-      case Training.delete_workout(socket.assigns.page_owner, workout_id) do
+      case Training.delete_workout(socket.assigns.current_scope, workout_id) do
         {:ok, %Workout{}} ->
-          pagination = Training.paginate_workouts(socket.assigns.page_owner, current_workouts_page(socket))
+          pagination = Training.paginate_workouts(socket.assigns.current_scope, current_workouts_page(socket))
 
           socket
           |> redirect(to: workouts_page_path(nil, nil, pagination.current_page))
@@ -409,16 +411,17 @@ defmodule WhiteboardWeb.HomeLive do
     noreply(socket)
   end
 
-  defp assign_page_owner(%{assigns: %{current_user: %User{} = current_user}} = socket) do
-    {:ok, assign(socket, page_owner: current_user, read_only?: false)}
+  defp assign_current_scope(%{assigns: %{current_user: %User{} = current_user}} = socket) do
+    current_scope = Scope.authenticated(current_user)
+    {:ok, assign(socket, current_scope: current_scope, read_only?: Scope.read_only?(current_scope))}
   end
 
-  defp assign_page_owner(socket) do
-    case Accounts.get_public_read_only_owner() do
-      %User{} = user ->
-        {:ok, assign(socket, page_owner: user, read_only?: true)}
+  defp assign_current_scope(socket) do
+    case Scope.public() do
+      {:ok, current_scope} ->
+        {:ok, assign(socket, current_scope: current_scope, read_only?: Scope.read_only?(current_scope))}
 
-      nil ->
+      {:error, :public_owner_not_found} ->
         socket =
           socket
           |> put_flash(:error, "You must log in to access this page.")
@@ -467,7 +470,7 @@ defmodule WhiteboardWeb.HomeLive do
 
   defp refresh_workouts(socket) do
     requested_page = current_workouts_page(socket)
-    pagination = Training.paginate_workouts(socket.assigns.page_owner, requested_page)
+    pagination = Training.paginate_workouts(socket.assigns.current_scope, requested_page)
 
     socket
     |> assign(workouts_pagination: pagination)

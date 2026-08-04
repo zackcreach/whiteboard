@@ -10,13 +10,13 @@ defmodule WhiteboardWeb.Components.Table do
   attr :pagination, :any, default: nil
   attr :page_path, :any, default: nil
   attr :pagination_label, :string, default: "Table pagination"
-  attr :header_class, :any, default: "py-2 pr-2 border-b border-zinc-400 dark:border-stone-600"
-  attr :cell_class, :any, default: "py-2 pr-2 border-b border-zinc-300 dark:border-stone-700"
+  attr :header_class, :any, default: "py-2 pe-2 border-b border-zinc-400 dark:border-stone-600"
+  attr :cell_class, :any, default: "py-2 pe-2 border-b border-zinc-300 dark:border-stone-700"
 
-  attr :action_header_class, :any, default: "py-2 pr-2 border-b border-zinc-400 dark:border-stone-600 text-right"
+  attr :action_header_class, :any, default: "py-2 pe-2 border-b border-zinc-400 dark:border-stone-600 text-end"
 
   attr :action_cell_class, :any,
-    default: "relative py-1 border-b border-zinc-300 dark:border-stone-700 text-right flex justify-end items-start"
+    default: "relative py-1 border-b border-zinc-300 dark:border-stone-700 text-end flex justify-end items-start"
 
   slot :col, required: true do
     attr :label, :string, required: true

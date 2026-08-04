@@ -22,6 +22,7 @@ export default ({ matchComponents, theme }) => {
         const content = readFileSync(fullPath)
           .toString()
           .replace(/\r?\n|\r/g, '')
+        const encodedContent = encodeURIComponent(content)
         let size = theme('spacing.6')
         if (name.endsWith('-mini')) {
           size = theme('spacing.5')
@@ -29,7 +30,7 @@ export default ({ matchComponents, theme }) => {
           size = theme('spacing.4')
         }
         return {
-          [`--hero-${name}`]: `url('data:image/svg+xml;utf8,${content}')`,
+          [`--hero-${name}`]: `url('data:image/svg+xml;utf8,${encodedContent}')`,
           '-webkit-mask': `var(--hero-${name})`,
           mask: `var(--hero-${name})`,
           'mask-repeat': 'no-repeat',

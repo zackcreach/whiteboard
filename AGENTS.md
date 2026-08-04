@@ -4,11 +4,11 @@
 Whiteboard is a Phoenix LiveView-based fitness tracking application that allows users to manage workouts, exercises, and sets. Users can create workouts, add exercises with weights and reps, track their progress, and duplicate previous workouts.
 
 ## Tech Stack
-- **Backend**: Elixir 1.18.3 with Phoenix 1.7.14
+- **Backend**: Elixir 1.20.2 with Phoenix 1.8.9
 - **Frontend**: Phoenix LiveView with TailwindCSS
 - **Database**: PostgreSQL with Ecto
 - **Development**: Nix flake environment
-- **Runtime**: Erlang 27.3.2
+- **Runtime**: Erlang 29.0.4
 - **Deployment**: Fly.io (fly.toml present)
 
 ## Key Development Commands
@@ -78,16 +78,16 @@ mix assets.deploy           # Build minified assets for production
 ### Configuration
 - `config/` - Application configuration files
 - `flake.nix` - Nix development environment
-- `assets/tailwind.config.js` - Tailwind configuration
+- `assets/css/app.css` - Tailwind CSS-first configuration
 
 ## Development Environment
 
 ### Nix Setup
 The project uses a Nix flake for consistent development environments:
-- Elixir 1.18.3
-- Erlang 27.3.2
-- Node.js 22
-- PostgreSQL 16
+- Elixir 1.20.2
+- Erlang 29.0.4
+- Node.js 24.18.1
+- PostgreSQL 18.4
 - Language servers (Lexical, TypeScript, Tailwind)
 
 ### Dependencies

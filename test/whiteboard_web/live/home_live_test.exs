@@ -6,6 +6,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
   import Whiteboard.Factory
   import WhiteboardWeb.LiveViewHTMLHelpers
 
+  alias Whiteboard.Accounts.Scope
   alias Whiteboard.Training
 
   describe "home" do
@@ -41,7 +42,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       render_click(lv, "duplicate_workout", %{"workout_id" => workout.id})
       render_click(lv, "delete_workout", %{"workout_id" => workout.id})
 
-      assert [%{name: "Zack demo workout"}] = Training.list_workouts(zack)
+      assert [%{name: "Zack demo workout"}] = Training.list_workouts(Scope.authenticated(zack))
     end
 
     test "redirects anonymous users when the public owner does not exist", %{conn: conn} do
@@ -187,7 +188,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> render_click()
 
       assert {:error, {:redirect, %{to: "/"}}} = delete_result
-      assert 20 == length(Training.list_workouts(user))
+      assert 20 == length(Training.list_workouts(Scope.authenticated(user)))
     end
   end
 
@@ -319,7 +320,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> element("#duplicate-workout-#{workout.id}")
         |> render_click()
 
-      workouts = Training.list_workouts(user)
+      workouts = Training.list_workouts(Scope.authenticated(user))
       assert 2 == length(workouts)
       assert duplicated_workout = Enum.find(workouts, &(&1.id != workout.id))
 
@@ -487,7 +488,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
                 inserted_at: ~U[2024-03-20 18:45:30.000000Z],
                 name: "Pull day",
                 notes: "Rows and pullups"
-              }} = Training.get_workout(user, older_workout.id)
+              }} = Training.get_workout(Scope.authenticated(user), older_workout.id)
     end
 
     test "keeps the dialog open and does not persist invalid workout details", %{conn: conn, user: user} do
@@ -524,7 +525,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
                 inserted_at: ~U[2024-01-15 18:45:30.000000Z],
                 name: "Back day",
                 notes: "Pull volume"
-              }} = Training.get_workout(user, workout.id)
+              }} = Training.get_workout(Scope.authenticated(user), workout.id)
     end
   end
 
@@ -608,7 +609,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       |> element("#confirm-delete-workout-#{workout.id}")
       |> render_click()
 
-      assert [] = Training.list_workouts(user)
+      assert [] = Training.list_workouts(Scope.authenticated(user))
       assert_redirect(lv, ~p"/")
     end
   end
@@ -713,7 +714,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       insert(:workout,
         user: user,
         name: "Workout #{suffix}",
-        inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], number, :day)
+        inserted_at: DateTime.shift(~U[2024-01-01 00:00:00.000000Z], day: number)
       )
     end
   end

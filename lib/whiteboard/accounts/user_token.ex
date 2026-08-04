@@ -1,7 +1,6 @@
 defmodule Whiteboard.Accounts.UserToken do
   @moduledoc false
-  use Ecto.Schema
-  use Whiteboard.Schema, prefix: "user_token"
+  use Whiteboard.Schema, key: :user_token
 
   import Ecto.Query
 
@@ -21,7 +20,7 @@ defmodule Whiteboard.Accounts.UserToken do
     field :token, :binary
     field :context, :string
     field :sent_to, :string
-    belongs_to :user, Whiteboard.Accounts.User
+    belongs_to_uxid(:user, Whiteboard.Accounts.User, :user)
 
     timestamps(type: :utc_datetime, updated_at: false)
   end

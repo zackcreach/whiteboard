@@ -53,7 +53,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
             autocomplete="off"
             phx-change={@filter_event}
             phx-debounce="150"
-            class="block w-full appearance-none rounded-lg border border-zinc-300 bg-white p-2.5 pr-9 text-sm text-zinc-900 focus:border-zinc-400 focus:ring-0 [&::-webkit-search-cancel-button]:hidden dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 dark:focus:border-stone-500"
+            class="block w-full appearance-none rounded-lg border border-zinc-300 bg-white p-2.5 pe-9 text-sm text-zinc-900 focus:border-zinc-400 focus:ring-0 [&::-webkit-search-cancel-button]:hidden dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 dark:focus:border-stone-500"
           />
           <.icon_button
             :if={clear_search?(@query)}
@@ -62,7 +62,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
             icon="hero-x-mark size-4"
             phx-click={@filter_event}
             phx-value-value=""
-            class="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 justify-center text-zinc-500 hover:text-zinc-900 dark:text-stone-300 dark:hover:text-stone-100"
+            class="absolute inset-e-2 top-1/2 h-6 w-6 -translate-y-1/2 justify-center text-zinc-500 hover:text-zinc-900 dark:text-stone-300 dark:hover:text-stone-100"
             hover_class="after:h-6 after:w-6 after:rounded"
           />
         </div>

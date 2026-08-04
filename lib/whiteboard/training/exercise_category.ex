@@ -1,6 +1,6 @@
 defmodule Whiteboard.Training.ExerciseCategory do
   @moduledoc false
-  use Whiteboard.Schema, prefix: "ex_category"
+  use Whiteboard.Schema, key: :exercise_category
 
   import Ecto.Changeset
 
@@ -10,7 +10,7 @@ defmodule Whiteboard.Training.ExerciseCategory do
   schema "exercise_categories" do
     field :name, :string
 
-    belongs_to :user, Accounts.User
+    belongs_to_uxid(:user, Accounts.User, :user)
     has_many :exercise_names, Training.ExerciseName
 
     timestamps()

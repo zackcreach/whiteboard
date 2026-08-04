@@ -6,6 +6,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   import Whiteboard.Factory
   import WhiteboardWeb.LiveViewHTMLHelpers
 
+  alias Whiteboard.Accounts.Scope
   alias Whiteboard.Training
 
   describe "authentication" do
@@ -28,6 +29,9 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
         |> live(~p"/workouts/#{workout.id}")
 
       document = parse_document!(html)
+
+      assert [_header] = Floki.find(document, "header #dark-mode-toggle")
+      assert [_main] = Floki.find(document, "main h1")
 
       assert [^workout_name] =
                document
@@ -210,7 +214,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                 inserted_at: ~U[2024-02-20 18:45:30.000000Z],
                 name: "Pull day",
                 notes: "Rows and pullups"
-              }} = Training.get_workout(default_user(), workout.id)
+              }} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
     end
 
     test "keeps the dialog open and does not persist invalid workout details", %{conn: conn} do
@@ -247,7 +251,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                   inserted_at: ~U[2024-01-15 18:45:30.000000Z],
                   name: "Back day",
                   notes: "Pull volume"
-                }} = Training.get_workout(default_user(), workout.id)
+                }} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
       end
     end
   end
@@ -283,7 +287,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       action_menu_wrapper_class = attribute!(action_menu_wrapper, "class")
 
-      for class <- ["relative", "ml-1.5", "h-[42px]", "w-[42px]", "shrink-0"] do
+      for class <- ["relative", "ms-1.5", "h-[42px]", "w-[42px]", "shrink-0"] do
         assert class_contains?(action_menu_wrapper_class, class)
       end
 
@@ -327,6 +331,13 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
         |> render_click()
 
       document = parse_document!(html)
+
+      assert [first_menu_item | _menu_items] =
+               Floki.find(document, "[data-role=\"workout-action-menu-item\"]")
+
+      assert first_menu_item
+             |> attribute!("class")
+             |> class_contains?("text-left")
 
       assert %{
                attributes: %{
@@ -549,7 +560,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
         |> element("#duplicate-workout-#{workout.id}")
         |> render_click()
 
-      workouts = Training.list_workouts(user)
+      workouts = Training.list_workouts(Scope.authenticated(user))
 
       assert 2 == length(workouts)
       assert duplicated_workout = Enum.find(workouts, &(&1.id != workout.id))
@@ -586,7 +597,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                     ]
                   }
                 ]
-              }} = Training.get_workout(user, duplicated_workout.id)
+              }} = Training.get_workout(Scope.authenticated(user), duplicated_workout.id)
     end
 
     test "opens and cancels the delete confirmation dialog from the actions dialog", %{conn: conn, user: user} do
@@ -658,7 +669,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       document = parse_document!(html)
 
       assert [] = Floki.find(document, "#delete-workout-dialog-#{workout.id}")
-      assert [_workout] = Training.list_workouts(user)
+      assert [_workout] = Training.list_workouts(Scope.authenticated(user))
     end
 
     test "deletes the mounted workout from the confirmation dialog", %{conn: conn, user: user} do
@@ -678,7 +689,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       |> element("#confirm-delete-workout-#{workout.id}")
       |> render_click()
 
-      assert [] = Training.list_workouts(user)
+      assert [] = Training.list_workouts(Scope.authenticated(user))
       assert %{"info" => "Workout deleted successfully"} = assert_redirect(lv, ~p"/")
     end
   end
@@ -770,6 +781,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       workout_ids =
         zack
+        |> Scope.authenticated()
         |> Training.list_workouts()
         |> Enum.map(& &1.id)
         |> Enum.sort()
@@ -786,7 +798,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                     sets: [%{id: ^set_id, weight: 45.0, reps: 8, notes: "warmup"}]
                   }
                 ]
-              }} = Training.get_workout(zack, workout.id)
+              }} = Training.get_workout(Scope.authenticated(zack), workout.id)
     end
   end
 
@@ -994,7 +1006,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                }
              ] = previous_exercise_set_rows(document)
 
-      assert {:ok, updated_workout} = Training.get_workout(default_user(), current_workout.id)
+      assert {:ok, updated_workout} = Training.get_workout(Scope.authenticated(default_user()), current_workout.id)
       assert [%{id: ^current_exercise_id, sets: []}] = updated_workout.exercises
     end
 
@@ -1085,7 +1097,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                   %{id: ^middle_exercise_id, exercise_name: %{name: "Dips"}, sets: []},
                   %{id: ^last_exercise_id, exercise_name: %{name: "Squat"}}
                 ]
-              }} = Training.get_workout(default_user(), workout.id)
+              }} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
     end
 
     test "does not clear sets for exercises outside the current workout", %{conn: conn} do
@@ -1133,7 +1145,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                     sets: [%{weight: 95.0, reps: 5, notes: "keep"}]
                   }
                 ]
-              }} = Training.get_workout(default_user(), other_workout.id)
+              }} = Training.get_workout(Scope.authenticated(default_user()), other_workout.id)
     end
 
     test "deletes the current exercise from the action menu", %{conn: conn} do
@@ -1189,7 +1201,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert [] = Floki.find(document, "#exercise-action-menu-#{current_exercise.id}")
 
-      assert {:ok, updated_workout} = Training.get_workout(default_user(), current_workout.id)
+      assert {:ok, updated_workout} = Training.get_workout(Scope.authenticated(default_user()), current_workout.id)
 
       assert [
                %{id: ^first_exercise_id, exercise_name: %{name: "Squat"}},
@@ -1286,7 +1298,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                %{id: "exercise-card-" <> ^last_exercise_id, title: "Row"}
              ] = exercise_cards(document)
 
-      assert {:ok, updated_workout} = Training.get_workout(default_user(), current_workout.id)
+      assert {:ok, updated_workout} = Training.get_workout(Scope.authenticated(default_user()), current_workout.id)
 
       assert [
                %{id: ^first_exercise_id, exercise_name: %{name: "Squat"}},
@@ -1690,7 +1702,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                   %{id: ^first_exercise_id, position: 2},
                   %{id: ^last_exercise_id, position: 3}
                 ]
-              }} = Training.get_workout(default_user(), workout.id)
+              }} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
 
       lv
       |> element("#exercise-action-menu-button-#{middle_exercise.id}")
@@ -1753,7 +1765,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                   %{id: ^first_exercise_id, position: 2},
                   %{id: ^middle_exercise_id, position: 3}
                 ]
-              }} = Training.get_workout(default_user(), workout.id)
+              }} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
     end
 
     test "attaches drag and drop markup only to exercise titles", %{conn: conn} do
@@ -1771,7 +1783,8 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       assert %{
                "class" => "grid grid-cols-1 gap-4",
                "id" => "workout-exercises",
-               "phx-hook" => "ExerciseReorder"
+               "phx-hook" => ".ExerciseReorder",
+               "phx-r" => ""
              } = node_attributes(exercise_list)
 
       assert [] = Floki.find(document, "[data-role=\"exercise-card\"][draggable]")
@@ -2026,7 +2039,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                }
              ] = previous_exercise_set_rows(document)
 
-      assert {:ok, updated_workout} = Training.get_workout(default_user(), workout.id)
+      assert {:ok, updated_workout} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
 
       assert [
                %{id: ^first_exercise_id, exercise_name: %{name: "Pushups"}},
@@ -2082,7 +2095,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                 exercises: [
                   %{id: ^other_exercise_id, exercise_name: %{name: "Bench Press"}}
                 ]
-              }} = Training.get_workout(default_user(), other_workout.id)
+              }} = Training.get_workout(Scope.authenticated(default_user()), other_workout.id)
     end
 
     test "canceling closes the popover without changing the exercise", %{conn: conn} do
@@ -2129,7 +2142,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert [] = Floki.find(document, "#replace-exercise-popover-#{middle_exercise.id}")
 
-      assert {:ok, updated_workout} = Training.get_workout(default_user(), workout.id)
+      assert {:ok, updated_workout} = Training.get_workout(Scope.authenticated(default_user()), workout.id)
 
       assert [
                _first_exercise,
@@ -2438,7 +2451,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       workout_id: workout.id,
       exercise_name_id: exercise_name.id,
       position: index,
-      inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], index, :second)
+      inserted_at: DateTime.shift(~U[2024-01-01 00:00:00.000000Z], second: index)
     ]
 
     insert(:exercise, Keyword.merge(default_attrs, attrs))

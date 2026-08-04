@@ -53,8 +53,7 @@ defmodule WhiteboardWeb do
 
   def live_view do
     quote do
-      use Phoenix.LiveView,
-        layout: {WhiteboardWeb.Layouts, :app}
+      use Phoenix.LiveView, layout: false
 
       unquote(html_helpers())
 
@@ -105,6 +104,7 @@ defmodule WhiteboardWeb do
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
+      alias WhiteboardWeb.Layouts
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

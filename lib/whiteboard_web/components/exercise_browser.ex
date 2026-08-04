@@ -11,7 +11,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
 
   attr :workout_id, :string, required: true
   attr :exercise_name_id, :string, required: true
-  attr :page_owner, :any, required: true
+  attr :current_scope, :any, required: true
   attr :read_only?, :boolean, default: false
   attr :container_class, :string, required: false, default: ""
 
@@ -58,7 +58,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
         } = params,
         socket
       ) do
-    case Training.list_previous_exercises(params.page_owner, workout_id, exercise_name_id) do
+    case Training.list_previous_exercises(params.current_scope, workout_id, exercise_name_id) do
       [first_exercise | _rest] = exercises ->
         params[:selected_previous_exercise_id]
         |> find_selected_exercise(exercises)
@@ -100,7 +100,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
       current_exercise_id: current_exercise_id,
       current_exercise_name: current_exercise_name,
       current_exercise_name_id: exercise_name_id,
-      page_owner: params.page_owner,
+      current_scope: params.current_scope,
       read_only?: params.read_only?,
       container_class: params[:container_class]
     )

@@ -56,7 +56,7 @@ defmodule WhiteboardWeb.CoreComponents do
               phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
               class="shadow-zinc-700/10 ring-zinc-700/10 dark:ring-stone-600/50 relative hidden rounded-2xl bg-white dark:bg-stone-800 p-14 shadow-lg dark:shadow-none ring-1 transition-colors duration-200"
             >
-              <div class="absolute top-6 right-5">
+              <div class="absolute top-6 inset-e-5">
                 <button phx-click={JS.exec("data-cancel", to: "##{@id}")} type="button" class="-m-3 flex-none p-3 opacity-20 hover:opacity-40 cursor-pointer" aria-label={gettext("close")}>
                   <.icon name="hero-x-mark-solid" class="h-5 w-5" />
                 </button>
@@ -110,7 +110,7 @@ defmodule WhiteboardWeb.CoreComponents do
         {@title}
       </p>
       <p class="mt-2 text-sm leading-5">{msg}</p>
-      <button type="button" class="group absolute top-1 right-1 p-2 cursor-pointer" aria-label={gettext("close")}>
+      <button type="button" class="group absolute top-1 inset-e-1 p-2 cursor-pointer" aria-label={gettext("close")}>
         <.icon name="hero-x-mark-solid" class="h-5 w-5 opacity-40 group-hover:opacity-70" />
       </button>
     </div>
@@ -134,12 +134,12 @@ defmodule WhiteboardWeb.CoreComponents do
       <.flash kind={:error} title={gettext("Error!")} flash={@flash} />
       <.flash id="client-error" kind={:error} title={gettext("We can't find the internet")} phx-disconnected={show(".phx-client-error #client-error")} phx-connected={hide("#client-error")} hidden>
         {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
+        <.icon name="hero-arrow-path" class="ms-1 h-3 w-3 animate-spin" />
       </.flash>
 
       <.flash id="server-error" kind={:error} title={gettext("Something went wrong!")} phx-disconnected={show(".phx-server-error #server-error")} phx-connected={hide("#server-error")} hidden>
         {gettext("Hang in there while we get back on track")}
-        <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
+        <.icon name="hero-arrow-path" class="ms-1 h-3 w-3 animate-spin" />
       </.flash>
     </div>
     """
@@ -191,9 +191,12 @@ defmodule WhiteboardWeb.CoreComponents do
   ## Examples
 
       <.button>Send!</.button>
-      <.button phx-click="go" class="ml-2">Send!</.button>
+      <.button phx-click="go" class="ms-2">Send!</.button>
   """
   attr :type, :string, default: nil
+  attr :variant, :atom, default: :solid, values: [:solid, :text]
+  attr :href, :string, default: nil
+  attr :method, :string, default: "get"
   attr :class, :any, default: nil
   attr :rest, :global, include: ~w(disabled form name value)
 
@@ -201,13 +204,19 @@ defmodule WhiteboardWeb.CoreComponents do
 
   def button(assigns) do
     ~H"""
+    <.link
+      :if={@href}
+      href={@href}
+      method={@method}
+      class={button_classes(@variant, @class)}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </.link>
     <button
+      :if={!@href}
       type={@type}
-      class={[
-        "whitespace-nowrap phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 dark:bg-stone-100 hover:bg-zinc-700 dark:hover:bg-stone-200 py-2 px-3 transition-colors duration-200 cursor-pointer",
-        "text-sm font-semibold leading-6 text-white dark:text-stone-900 active:text-white/80 dark:active:text-stone-700",
-        @class
-      ]}
+      class={button_classes(@variant, @class)}
       {@rest}
     >
       {render_slot(@inner_block)}
@@ -335,7 +344,7 @@ defmodule WhiteboardWeb.CoreComponents do
           id={@id}
           name={@name}
           class={[
-            "appearance-none block w-full rounded-lg border border-zinc-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-zinc-900 dark:text-stone-100 focus:border-zinc-400 dark:focus:border-stone-500 focus:ring-0 sm:text-sm p-2.5 pr-9 transition-colors duration-200",
+            "appearance-none block w-full rounded-lg border border-zinc-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-zinc-900 dark:text-stone-100 focus:border-zinc-400 dark:focus:border-stone-500 focus:ring-0 sm:text-sm p-2.5 pe-9 transition-colors duration-200",
             get_border_variant_classes(@border_variant)
           ]}
           multiple={@multiple}
@@ -344,7 +353,7 @@ defmodule WhiteboardWeb.CoreComponents do
           <option :if={@prompt} value="" class="">{@prompt}</option>
           {Phoenix.HTML.Form.options_for_select(@options, @value)}
         </select>
-        <.icon name="hero-chevron-down" class="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-900 dark:text-stone-100" />
+        <.icon name="hero-chevron-down" class="pointer-events-none absolute inset-e-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-900 dark:text-stone-100" />
       </div>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -359,7 +368,7 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         name={@name}
         class={[
-          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 border focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem] p-2.5 pr-1.5 transition-colors duration-200",
+          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 border focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem] p-2.5 pe-1.5 transition-colors duration-200",
           @errors == [] && "border-zinc-300 dark:border-stone-600 focus:border-zinc-400 dark:focus:border-stone-500",
           @errors != [] && "border-rose-400 focus:border-rose-400"
         ]}
@@ -381,7 +390,7 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 focus:ring-0 sm:text-sm p-2.5 pr-1.5 transition-colors duration-200",
+          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 focus:ring-0 sm:text-sm p-2.5 pe-1.5 transition-colors duration-200",
           @errors == [] && "border border-zinc-300 dark:border-stone-600 focus:border-zinc-400 dark:focus:border-stone-500",
           @errors != [] && "border border-rose-400 focus:border-rose-400",
           get_border_variant_classes(@border_variant),
@@ -481,9 +490,9 @@ defmodule WhiteboardWeb.CoreComponents do
     ~H"""
     <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
       <table class="w-[40rem] mt-11 sm:w-full">
-        <thead class="text-sm text-left leading-6 text-zinc-500">
+        <thead class="text-sm text-start leading-6 text-zinc-500">
           <tr>
-            <th :for={col <- @col} class="p-0 pb-4 pr-6 font-normal">{col[:label]}</th>
+            <th :for={col <- @col} class="p-0 pb-4 pe-6 font-normal">{col[:label]}</th>
             <th :if={@action != []} class="relative p-0 pb-4">
               <span class="sr-only">{gettext("Actions")}</span>
             </th>
@@ -492,17 +501,17 @@ defmodule WhiteboardWeb.CoreComponents do
         <tbody id={@id} phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"} class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700">
           <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-50 dark:hover:bg-stone-800">
             <td :for={{col, i} <- Enum.with_index(@col)} phx-click={@row_click && @row_click.(row)} class={["relative p-0", @row_click && "hover:cursor-pointer"]}>
-              <div class="block py-4 pr-6">
-                <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 dark:group-hover:bg-stone-800 sm:rounded-l-xl" />
+              <div class="block py-4 pe-6">
+                <span class="absolute -inset-y-px inset-e-0 -left-4 group-hover:bg-zinc-50 dark:group-hover:bg-stone-800 sm:rounded-s-xl" />
                 <span class={["relative", i == 0 && "font-semibold text-zinc-900"]}>
                   {render_slot(col, @row_item.(row))}
                 </span>
               </div>
             </td>
             <td :if={@action != []} class="relative w-14 p-0">
-              <div class="relative whitespace-nowrap py-4 text-right text-sm font-medium">
-                <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-zinc-50 dark:group-hover:bg-stone-800 sm:rounded-r-xl" />
-                <span :for={action <- @action} class="relative ml-4 font-semibold leading-6 text-zinc-900 hover:text-zinc-700">
+              <div class="relative whitespace-nowrap py-4 text-end text-sm font-medium">
+                <span class="absolute -inset-y-px -right-4 inset-s-0 group-hover:bg-zinc-50 dark:group-hover:bg-stone-800 sm:rounded-e-xl" />
+                <span :for={action <- @action} class="relative ms-4 font-semibold leading-6 text-zinc-900 hover:text-zinc-700">
                   {render_slot(action, @row_item.(row))}
                 </span>
               </div>
@@ -578,7 +587,7 @@ defmodule WhiteboardWeb.CoreComponents do
   ## Examples
 
       <.icon name="hero-x-mark-solid" />
-      <.icon name="hero-arrow-path" class="ml-1 w-3 h-3 animate-spin" />
+      <.icon name="hero-arrow-path" class="ms-1 w-3 h-3 animate-spin" />
   """
   attr :name, :string, required: true
   attr :class, :string, default: nil
@@ -664,11 +673,22 @@ defmodule WhiteboardWeb.CoreComponents do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
 
+  defp button_classes(variant, class) do
+    [
+      "whitespace-nowrap text-sm font-semibold leading-6 transition-colors duration-200 cursor-pointer",
+      variant == :solid &&
+        "rounded-lg bg-zinc-900 px-3 py-2 text-white hover:bg-zinc-700 active:text-white/80 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200 dark:active:text-stone-700 phx-submit-loading:opacity-75",
+      variant == :text &&
+        "inline-flex items-center justify-center text-rose-600 hover:text-rose-700 active:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 dark:active:text-rose-200",
+      class
+    ]
+  end
+
   defp get_border_variant_classes(variant) do
     [
-      variant == :start && "border-r-0 border-r-none rounded-r-none",
-      variant == :middle && "border-r-0 rounded-r-none rounded-l-none",
-      variant == :end && "rounded-l-none"
+      variant == :start && "border-e-0 border-e-none rounded-e-none",
+      variant == :middle && "border-e-0 rounded-e-none rounded-s-none",
+      variant == :end && "rounded-s-none"
     ]
   end
 end

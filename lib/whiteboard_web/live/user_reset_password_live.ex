@@ -7,38 +7,40 @@ defmodule WhiteboardWeb.UserResetPasswordLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto w-full sm:w-[400px]">
-      <Card.render>
-        <h3>Reset Password</h3>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <div class="mx-auto w-full sm:w-[400px]">
+        <Card.render>
+          <h3>Reset Password</h3>
 
-        <.simple_form
-          for={@form}
-          id="reset_password_form"
-          phx-submit="reset_password"
-          phx-change="validate"
-          class="flex flex-col gap-y-4"
-        >
-          <.error :if={@form.errors != []}>
-            Oops, something went wrong! Please check the errors below.
-          </.error>
+          <.simple_form
+            for={@form}
+            id="reset_password_form"
+            phx-submit="reset_password"
+            phx-change="validate"
+            class="flex flex-col gap-y-4"
+          >
+            <.error :if={@form.errors != []}>
+              Oops, something went wrong! Please check the errors below.
+            </.error>
 
-          <.input field={@form[:password]} type="password" placeholder="New password" required />
-          <.input
-            field={@form[:password_confirmation]}
-            type="password"
-            placeholder="Confirm new password"
-            required
-          />
-          <:actions>
-            <.button phx-disable-with="Resetting..." class="w-full">Reset Password</.button>
-          </:actions>
-        </.simple_form>
+            <.input field={@form[:password]} type="password" placeholder="New password" required />
+            <.input
+              field={@form[:password_confirmation]}
+              type="password"
+              placeholder="Confirm new password"
+              required
+            />
+            <:actions>
+              <.button phx-disable-with="Resetting..." class="w-full">Reset Password</.button>
+            </:actions>
+          </.simple_form>
 
-        <p class="text-center text-sm mt-4">
-          <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
-        </p>
-      </Card.render>
-    </div>
+          <p class="text-center text-sm mt-4">
+            <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
+          </p>
+        </Card.render>
+      </div>
+    </Layouts.app>
     """
   end
 

@@ -6,6 +6,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
   import Whiteboard.Factory
   import WhiteboardWeb.LiveViewHTMLHelpers
 
+  alias Whiteboard.Accounts.Scope
   alias Whiteboard.Training
 
   describe "exercises catalog" do
@@ -20,6 +21,8 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
 
       document = parse_document!(html)
 
+      assert [_header] = Floki.find(document, "header #dark-mode-toggle")
+      assert [_main] = Floki.find(document, "main #exercise-categories-section")
       assert [_form] = Floki.find(document, "#create-exercise-category-form")
       assert [_form] = Floki.find(document, "#create-exercise-name-form")
       assert ["Name", "Created on", "Last updated", "Actions"] == table_headers(document, "exercise-categories")
@@ -68,7 +71,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         |> render_submit()
 
       assert html =~ "Exercise category created successfully"
-      assert [%{name: "Pull"} = category] = Training.list_exercise_categories(user)
+      assert [%{name: "Pull"} = category] = Training.list_exercise_categories(Scope.authenticated(user))
 
       html =
         lv
@@ -78,7 +81,10 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         |> render_submit()
 
       assert html =~ "Exercise name created successfully"
-      assert [%{name: "Lat Pulldown", exercise_category_id: exercise_category_id}] = Training.list_exercise_names(user)
+
+      assert [%{name: "Lat Pulldown", exercise_category_id: exercise_category_id}] =
+               Training.list_exercise_names(Scope.authenticated(user))
+
       assert category.id == exercise_category_id
     end
 
@@ -97,9 +103,11 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         }
       })
 
-      assert [%{name: "Forged category"}, %{name: "Push"}] = Training.list_exercise_categories(user)
-      assert [] = Training.list_exercise_names(user)
-      assert [] = Training.list_exercise_names(other_user)
+      assert [%{name: "Forged category"}, %{name: "Push"}] =
+               Training.list_exercise_categories(Scope.authenticated(user))
+
+      assert [] = Training.list_exercise_names(Scope.authenticated(user))
+      assert [] = Training.list_exercise_names(Scope.authenticated(other_user))
 
       lv
       |> element("#exercise-category-action-menu-button-#{category.id}")
@@ -122,9 +130,9 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         }
       })
 
-      assert {:ok, %{name: "Upper Body"}} = Training.get_exercise_category(user, category.id)
-      assert [] = Training.list_exercise_names(user)
-      assert [] = Training.list_exercise_names(other_user)
+      assert {:ok, %{name: "Upper Body"}} = Training.get_exercise_category(Scope.authenticated(user), category.id)
+      assert [] = Training.list_exercise_names(Scope.authenticated(user))
+      assert [] = Training.list_exercise_names(Scope.authenticated(other_user))
     end
 
     test "opens, toggles, and cancels action menus for both tables", %{conn: conn, user: user} do
@@ -214,7 +222,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
 
       assert html =~ "Exercise category updated successfully"
       assert html =~ "Upper Body"
-      assert {:ok, %{name: "Upper Body"}} = Training.get_exercise_category(user, push.id)
+      assert {:ok, %{name: "Upper Body"}} = Training.get_exercise_category(Scope.authenticated(user), push.id)
 
       lv
       |> element("#exercise-name-action-menu-button-#{exercise_name.id}")
@@ -238,7 +246,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       assert html =~ "Lat Pulldown"
 
       assert {:ok, %{name: "Lat Pulldown", exercise_category_id: exercise_category_id}} =
-               Training.get_exercise_name(user, exercise_name.id)
+               Training.get_exercise_name(Scope.authenticated(user), exercise_name.id)
 
       assert pull.id == exercise_category_id
     end
@@ -270,7 +278,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       |> element("#cancel-delete-exercise-category-button-#{unused_category.id}")
       |> render_click()
 
-      assert {:ok, %{name: "Unused"}} = Training.get_exercise_category(user, unused_category.id)
+      assert {:ok, %{name: "Unused"}} = Training.get_exercise_category(Scope.authenticated(user), unused_category.id)
 
       lv
       |> element("#exercise-category-action-menu-button-#{unused_category.id}")
@@ -286,7 +294,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         |> render_click()
 
       assert html =~ "Exercise category deleted successfully"
-      assert {:error, :not_found} = Training.get_exercise_category(user, unused_category.id)
+      assert {:error, :not_found} = Training.get_exercise_category(Scope.authenticated(user), unused_category.id)
 
       lv
       |> element("#exercise-name-action-menu-button-#{unused_exercise_name.id}")
@@ -306,7 +314,8 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       |> element("#cancel-delete-exercise-name-button-#{unused_exercise_name.id}")
       |> render_click()
 
-      assert {:ok, %{name: "Cable Fly"}} = Training.get_exercise_name(user, unused_exercise_name.id)
+      assert {:ok, %{name: "Cable Fly"}} =
+               Training.get_exercise_name(Scope.authenticated(user), unused_exercise_name.id)
 
       lv
       |> element("#exercise-name-action-menu-button-#{unused_exercise_name.id}")
@@ -322,7 +331,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         |> render_click()
 
       assert html =~ "Exercise name deleted successfully"
-      assert {:error, :not_found} = Training.get_exercise_name(user, unused_exercise_name.id)
+      assert {:error, :not_found} = Training.get_exercise_name(Scope.authenticated(user), unused_exercise_name.id)
     end
 
     test "blocks deletes for rows in use", %{conn: conn, user: user} do
@@ -353,8 +362,8 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         |> render_click()
 
       assert html =~ "exercise category is in use"
-      assert {:ok, %{name: "Push"}} = Training.get_exercise_category(user, category.id)
-      assert {:ok, %{name: "Bench Press"}} = Training.get_exercise_name(user, exercise_name.id)
+      assert {:ok, %{name: "Push"}} = Training.get_exercise_category(Scope.authenticated(user), category.id)
+      assert {:ok, %{name: "Bench Press"}} = Training.get_exercise_name(Scope.authenticated(user), exercise_name.id)
 
       lv
       |> element("#exercise-name-action-menu-button-#{exercise_name.id}")
@@ -370,7 +379,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
         |> render_click()
 
       assert html =~ "exercise name is in use"
-      assert {:ok, %{name: "Bench Press"}} = Training.get_exercise_name(user, exercise_name.id)
+      assert {:ok, %{name: "Bench Press"}} = Training.get_exercise_name(Scope.authenticated(user), exercise_name.id)
     end
   end
 
@@ -469,9 +478,9 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       |> element("#confirm-delete-exercise-category-#{last_category.id}")
       |> render_click()
 
-      assert {:error, :not_found} == Training.get_exercise_category(user, last_category.id)
+      assert {:error, :not_found} == Training.get_exercise_category(Scope.authenticated(user), last_category.id)
 
-      second_category_page = Training.paginate_exercise_categories(user, 2)
+      second_category_page = Training.paginate_exercise_categories(Scope.authenticated(user), 2)
 
       assert [%{name: "Category 20a", id: created_category_id}] = second_category_page.entries
 
@@ -488,7 +497,7 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       |> render_click()
 
       assert_patch(lv, ~p"/exercises")
-      assert 20 == length(Training.list_exercise_categories(user))
+      assert 20 == length(Training.list_exercise_categories(Scope.authenticated(user)))
     end
 
     test "normalizes invalid pages while preserving the other valid page", %{conn: conn, user: user} do
@@ -540,8 +549,8 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
       render_click(lv, "open_delete_exercise_name", %{"exercise_name_id" => exercise_name.id})
       render_click(lv, "delete_exercise_name", %{"exercise_name_id" => exercise_name.id})
 
-      assert [%{name: "Zack category"}] = Training.list_exercise_categories(zack)
-      assert [%{name: "Zack exercise"}] = Training.list_exercise_names(zack)
+      assert [%{name: "Zack category"}] = Training.list_exercise_categories(Scope.authenticated(zack))
+      assert [%{name: "Zack exercise"}] = Training.list_exercise_names(Scope.authenticated(zack))
     end
 
     test "redirects anonymous users when the public owner does not exist", %{conn: conn} do

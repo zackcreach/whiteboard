@@ -1,6 +1,6 @@
 defmodule Whiteboard.Training.Workout do
   @moduledoc false
-  use Whiteboard.Schema, prefix: "wo"
+  use Whiteboard.Schema, key: :workout
 
   import Ecto.Changeset
 
@@ -14,7 +14,7 @@ defmodule Whiteboard.Training.Workout do
     field :notes, :string
     field :date, :date, virtual: true
 
-    belongs_to :user, Accounts.User
+    belongs_to_uxid(:user, Accounts.User, :user)
     has_many :exercises, Training.Exercise, on_replace: :delete_if_exists
 
     timestamps()
@@ -27,6 +27,13 @@ defmodule Whiteboard.Training.Workout do
     |> cast_assoc(:exercises)
   end
 
+  def aggregate_changeset(workout, params) do
+    workout
+    |> changeset(params)
+    |> force_exercise_positions()
+    |> reorder_assoc(:exercises)
+  end
+
   def details_changeset(workout, params \\ %{}) do
     workout
     |> cast(params, [:name, :notes, :date])
@@ -36,7 +43,7 @@ defmodule Whiteboard.Training.Workout do
 
   def local_date(%DateTime{} = datetime) do
     datetime
-    |> DateTime.add(@display_timezone_offset_seconds, :second)
+    |> DateTime.shift(second: @display_timezone_offset_seconds)
     |> DateTime.to_date()
   end
 
@@ -47,16 +54,26 @@ defmodule Whiteboard.Training.Workout do
     end
   end
 
+  defp force_exercise_positions(%Ecto.Changeset{} = changeset) do
+    exercises =
+      changeset
+      |> get_change(:exercises, [])
+      |> Enum.with_index(1)
+      |> Enum.map(fn {exercise_changeset, position} -> put_change(exercise_changeset, :position, position) end)
+
+    %{changeset | changes: Map.put(changeset.changes, :exercises, exercises)}
+  end
+
   defp inserted_at_for_local_date(%__MODULE__{inserted_at: %DateTime{} = inserted_at}, %Date{} = date) do
     inserted_at
     |> local_time()
     |> then(&DateTime.new!(date, &1, "Etc/UTC"))
-    |> DateTime.add(-@display_timezone_offset_seconds, :second)
+    |> DateTime.shift(second: -@display_timezone_offset_seconds)
   end
 
   defp local_time(%DateTime{} = datetime) do
     datetime
-    |> DateTime.add(@display_timezone_offset_seconds, :second)
+    |> DateTime.shift(second: @display_timezone_offset_seconds)
     |> DateTime.to_time()
   end
 end

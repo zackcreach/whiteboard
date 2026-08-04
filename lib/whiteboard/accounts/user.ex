@@ -1,9 +1,10 @@
 defmodule Whiteboard.Accounts.User do
   @moduledoc false
-  use Ecto.Schema
-  use Whiteboard.Schema, prefix: "user"
+  use Whiteboard.Schema, key: :user
 
   import Ecto.Changeset
+
+  @type t :: %__MODULE__{id: String.t() | nil, email: String.t() | nil}
 
   schema "users" do
     field :email, :string

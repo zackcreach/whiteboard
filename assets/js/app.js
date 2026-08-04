@@ -21,22 +21,22 @@ import 'phoenix_html'
 // Establish Phoenix Socket and LiveView configuration.
 import { Socket } from 'phoenix'
 import { LiveSocket } from 'phoenix_live_view'
+import { hooks as colocatedHooks } from 'phoenix-colocated/whiteboard'
 import topbar from '../vendor/topbar'
 
 // Hooks
-import { ExerciseReorder } from './exerciseReorder'
 import { ThemeSwitcher } from './themeSwitcher'
 
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute('content')
 
-const Hooks = { ExerciseReorder, ThemeSwitcher }
+const hooks = { ...colocatedHooks, ThemeSwitcher }
 
 const liveSocket = new LiveSocket('/live', Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
-  hooks: Hooks,
+  hooks,
 })
 
 // Show progress bar on live navigation and form submits
@@ -45,14 +45,6 @@ window.addEventListener('phx:page-loading-start', (_info) => topbar.show(300))
 window.addEventListener('phx:page-loading-stop', (_info) => topbar.hide())
 
 // iex logs in console
-window.addEventListener('phx:live_reload:attached', ({ detail: reloader }) => {
-  // enable server logs in browser console by default
-  reloader.enableServerLogs()
-
-  // uncomment if you want to toggle this on per session with window.liveReloader.enable() in browser console
-  // window.liveReloader = reloader
-})
-
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
@@ -61,3 +53,30 @@ liveSocket.connect()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
+
+if (process.env.NODE_ENV === 'development') {
+  window.addEventListener('phx:live_reload:attached', ({ detail: reloader }) => {
+    reloader.enableServerLogs()
+
+    let keyDown
+    window.addEventListener('keydown', (event) => (keyDown = event.key))
+    window.addEventListener('keyup', () => (keyDown = null))
+    window.addEventListener(
+      'click',
+      (event) => {
+        if (keyDown === 'c') {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          reloader.openEditorAtCaller(event.target)
+        } else if (keyDown === 'd') {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          reloader.openEditorAtDef(event.target)
+        }
+      },
+      true
+    )
+
+    window.liveReloader = reloader
+  })
+}

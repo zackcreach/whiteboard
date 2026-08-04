@@ -8,40 +8,42 @@ defmodule WhiteboardWeb.UserRegistrationLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto w-full sm:w-[400px]">
-      <Card.render>
-        <h3>Register</h3>
-        <p class="text-sm mt-2 mb-4">
-          Already registered?
-          <.link navigate={~p"/users/log_in"} class="font-semibold text-brand hover:underline">
-            Log in
-          </.link>
-          to your account now.
-        </p>
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <div class="mx-auto w-full sm:w-[400px]">
+        <Card.render>
+          <h3>Register</h3>
+          <p class="text-sm mt-2 mb-4">
+            Already registered?
+            <.link navigate={~p"/users/log_in"} class="font-semibold text-brand hover:underline">
+              Log in
+            </.link>
+            to your account now.
+          </p>
 
-        <.simple_form
-          for={@form}
-          id="registration_form"
-          phx-submit="save"
-          phx-change="validate"
-          phx-trigger-action={@trigger_submit}
-          action={~p"/users/log_in?_action=registered"}
-          method="post"
-          class="flex flex-col gap-y-4"
-        >
-          <.error :if={@check_errors}>
-            Oops, something went wrong! Please check the errors below.
-          </.error>
+          <.simple_form
+            for={@form}
+            id="registration_form"
+            phx-submit="save"
+            phx-change="validate"
+            phx-trigger-action={@trigger_submit}
+            action={~p"/users/log_in?_action=registered"}
+            method="post"
+            class="flex flex-col gap-y-4"
+          >
+            <.error :if={@check_errors}>
+              Oops, something went wrong! Please check the errors below.
+            </.error>
 
-          <.input field={@form[:email]} type="email" placeholder="Email" required />
-          <.input field={@form[:password]} type="password" placeholder="Password" required />
+            <.input field={@form[:email]} type="email" placeholder="Email" required />
+            <.input field={@form[:password]} type="password" placeholder="Password" required />
 
-          <:actions>
-            <.button phx-disable-with="Creating account..." class="w-full">Create an account</.button>
-          </:actions>
-        </.simple_form>
-      </Card.render>
-    </div>
+            <:actions>
+              <.button phx-disable-with="Creating account..." class="w-full">Create an account</.button>
+            </:actions>
+          </.simple_form>
+        </Card.render>
+      </div>
+    </Layouts.app>
     """
   end
 

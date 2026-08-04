@@ -1,6 +1,6 @@
 defmodule Whiteboard.Training.Exercise do
   @moduledoc false
-  use Whiteboard.Schema, prefix: "ex"
+  use Whiteboard.Schema, key: :exercise
 
   import Ecto.Changeset
 
@@ -10,8 +10,8 @@ defmodule Whiteboard.Training.Exercise do
     field :notes, :string
     field :position, :integer
 
-    belongs_to :workout, Training.Workout
-    belongs_to :exercise_name, Training.ExerciseName
+    belongs_to_uxid(:workout, Training.Workout, :workout)
+    belongs_to_uxid(:exercise_name, Training.ExerciseName, :exercise_name)
 
     has_many :sets, Whiteboard.Training.Set, on_replace: :delete_if_exists
 

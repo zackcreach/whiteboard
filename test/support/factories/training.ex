@@ -23,6 +23,14 @@ defmodule Whiteboard.Factories.Training do
           }
           |> merge_attributes(attrs)
           |> evaluate_lazy_attributes()
+          |> then(fn workout ->
+            exercises =
+              workout.exercises
+              |> Enum.with_index(1)
+              |> Enum.map(fn {exercise, position} -> %{exercise | position: position} end)
+
+            %{workout | exercises: exercises}
+          end)
           |> Workout.changeset()
 
         if changeset.valid? do
@@ -37,7 +45,7 @@ defmodule Whiteboard.Factories.Training do
 
         changeset =
           %Exercise{
-            position: 1,
+            position: sequence("exercise_position", & &1),
             sets: []
           }
           |> merge_attributes(attrs)
