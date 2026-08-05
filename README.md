@@ -2,6 +2,8 @@
 
 Fitness tracking application to keep track of workouts > exercises > sets per user
 
+Built with Phoenix 1.8.9 and LiveView 1.2.8 on Elixir 1.20.2, OTP 29.0.4, Node.js 24.18.1, and PostgreSQL 18.4.
+
 ## Features
 
 - Create and manage workouts

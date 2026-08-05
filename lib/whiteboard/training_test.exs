@@ -63,7 +63,7 @@ defmodule Whiteboard.TrainingTest do
           Factory.insert(:workout,
             user: user,
             name: "Workout #{number}",
-            inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], number, :day)
+            inserted_at: DateTime.shift(~U[2024-01-01 00:00:00.000000Z], day: number)
           )
         end
 

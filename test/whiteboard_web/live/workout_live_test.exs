@@ -2438,7 +2438,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       workout_id: workout.id,
       exercise_name_id: exercise_name.id,
       position: index,
-      inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], index, :second)
+      inserted_at: DateTime.shift(~U[2024-01-01 00:00:00.000000Z], second: index)
     ]
 
     insert(:exercise, Keyword.merge(default_attrs, attrs))

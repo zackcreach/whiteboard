@@ -62,7 +62,7 @@ defmodule WhiteboardWeb.WorkoutLive do
       </div>
     </section>
 
-    <.form for={@workout_form} phx-change={unless @read_only?, do: "maybe_update_workout"}>
+    <.form id="workout-form" for={@workout_form} phx-change={unless @read_only?, do: "maybe_update_workout"}>
       <% exercise_count = length(@workout_form.data.exercises) %>
       <section id="workout-exercises" class="grid grid-cols-1 gap-4" phx-hook={unless @read_only?, do: "ExerciseReorder"}>
         <.inputs_for :let={exercise} field={@workout_form[:exercises]}>

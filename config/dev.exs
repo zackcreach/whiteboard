@@ -1,10 +1,7 @@
 import Config
 
-# Auto recompile
-config :exsync, addition_dirs: ["/priv"]
-
 # Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :default_formatter, format: "[$level] $message\n"
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
@@ -14,8 +11,9 @@ config :phoenix, :plug_init_mode, :runtime
 config :phoenix, :stacktrace_depth, 20
 
 config :phoenix_live_view,
-  # Include HEEx debug annotations as HTML comments in rendered markup
+  # Include debug annotations and locations in rendered markup
   debug_heex_annotations: true,
+  debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
 
@@ -80,7 +78,8 @@ config :whiteboard, WhiteboardWeb.Endpoint,
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/whiteboard_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/whiteboard_web/(controllers|live|components)/.*(ex|heex)$",
+      ~r"lib/whiteboard_web/router.ex$"
     ]
   ]
 

@@ -36,7 +36,7 @@ defmodule Whiteboard.Training.Workout do
 
   def local_date(%DateTime{} = datetime) do
     datetime
-    |> DateTime.add(@display_timezone_offset_seconds, :second)
+    |> DateTime.shift(second: @display_timezone_offset_seconds)
     |> DateTime.to_date()
   end
 
@@ -51,12 +51,12 @@ defmodule Whiteboard.Training.Workout do
     inserted_at
     |> local_time()
     |> then(&DateTime.new!(date, &1, "Etc/UTC"))
-    |> DateTime.add(-@display_timezone_offset_seconds, :second)
+    |> DateTime.shift(second: -@display_timezone_offset_seconds)
   end
 
   defp local_time(%DateTime{} = datetime) do
     datetime
-    |> DateTime.add(@display_timezone_offset_seconds, :second)
+    |> DateTime.shift(second: @display_timezone_offset_seconds)
     |> DateTime.to_time()
   end
 end

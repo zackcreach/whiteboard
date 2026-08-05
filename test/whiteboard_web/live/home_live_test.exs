@@ -713,7 +713,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       insert(:workout,
         user: user,
         name: "Workout #{suffix}",
-        inserted_at: DateTime.add(~U[2024-01-01 00:00:00.000000Z], number, :day)
+        inserted_at: DateTime.shift(~U[2024-01-01 00:00:00.000000Z], day: number)
       )
     end
   end
