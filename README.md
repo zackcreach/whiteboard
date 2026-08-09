@@ -16,42 +16,28 @@ Built with Phoenix 1.8.9 and LiveView 1.2.8 on Elixir 1.20.2, OTP 29.0.4, Node.j
 
 To start your Phoenix server:
 
-- Run `mix setup` to install and setup dependencies
-- Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+```bash
+nix develop
+mix setup
+iex -S mix phx.server
+```
+
+The Nix development shell provides the pinned Erlang, Elixir, Node, PostgreSQL client, and asset tooling. A PostgreSQL server must be running locally.
+
+Without Nix, use [`flake.nix`](flake.nix) as the source of truth for tool versions and install matching Erlang, Elixir, Node, PostgreSQL, and asset tooling with mise, asdf, or equivalent tooling before running `mix setup`.
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
-### Docker with Colima
-
-The Nix dev shell includes Docker CLI, Docker Compose, and Colima on macOS. Start the project Colima profile before running Compose:
-
-```bash
-nix develop
-colima start whiteboard-qemu --runtime docker --kubernetes=false --mount-inotify=false --vm-type qemu --mount-type 9p --cpu 4 --memory 6 --disk 60
-docker compose ps
-```
-
 ## Deployment
 
-Whiteboard uses Docker-based deployment with automated continuous deployment. When you push to the main branch, changes are automatically deployed to production within 5 minutes.
+Whiteboard is built as an immutable Nix Mix release and runs as `whiteboard-native.service` on Symphony. PostgreSQL 18.4 is managed by NixOS and accessed through `/run/postgresql`.
 
-For detailed deployment documentation, including how to access logs, IEx console, and the database, see **[docs/deploy.md](docs/deploy.md)**.
+Deployments are intentional NixOS generation updates rather than automatic application rebuilds. See **[docs/deploy.md](docs/deploy.md)** for deployment, logs, database, backup, and rollback operations.
 
 ### Quick Deployment Commands
 
 ```bash
-# View running containers
-docker compose ps
-
-# View application logs
-docker compose logs whiteboard -f
-
-# Access IEx console
-docker exec -it whiteboard /app/bin/whiteboard remote
-
-# Access database
-docker exec -it whiteboard_db psql -U postgres -d whiteboard_prod
-
-# Trigger manual deployment
-sudo systemctl start whiteboard-deploy
+systemctl status whiteboard-native
+journalctl -u whiteboard-native -f
+curl --fail https://whiteboard.prominent.tools
 ```

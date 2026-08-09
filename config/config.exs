@@ -9,6 +9,8 @@ import Config
 
 # Configure esbuild (the version is required)
 config :esbuild,
+  path: System.get_env("MIX_ESBUILD_PATH"),
+  version_check: System.get_env("MIX_ESBUILD_PATH") == nil,
   version: "0.28.1",
   whiteboard: [
     args:
@@ -30,6 +32,7 @@ config :phoenix_live_view,
 
 # Configure tailwind (the version is required)
 config :tailwind,
+  path: System.get_env("MIX_TAILWIND_PATH"),
   version: "4.3.3",
   whiteboard: [
     args: ~w(

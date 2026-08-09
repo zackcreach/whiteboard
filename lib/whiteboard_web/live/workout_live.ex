@@ -5,7 +5,6 @@ defmodule WhiteboardWeb.WorkoutLive do
   use WhiteboardWeb, :live_view
 
   alias Phoenix.HTML.Form
-  alias Whiteboard.Accounts
   alias Whiteboard.Accounts.User
   alias Whiteboard.Training
   alias Whiteboard.Training.Exercise
@@ -418,36 +417,30 @@ defmodule WhiteboardWeb.WorkoutLive do
   end
 
   def mount(%{"workout_id" => workout_id}, _session, socket) do
-    case workout_page_owner(socket, workout_id) do
-      {:ok, page_owner, read_only?} ->
-        case get_workout_form(page_owner, workout_id) do
-          {:ok, workout_form} ->
-            socket
-            |> assign(page_owner: page_owner)
-            |> assign(read_only?: read_only?)
-            |> assign(workout_form: workout_form)
-            |> assign(workout_details_open?: false)
-            |> assign(workout_details_form: workout_details_form(workout_form.data))
-            |> assign(exercise_names: Training.list_exercise_names(page_owner))
-            |> assign(
-              selected_previous_exercise_ids: selected_previous_exercise_ids(page_owner, workout_form.data, %{})
-            )
-            |> assign(replace_exercise_id: nil)
-            |> assign(replace_exercise_query: "")
-            |> assign(add_exercise_open: false)
-            |> assign(add_exercise_position: nil)
-            |> assign(add_exercise_query: "")
-            |> assign(action_menu_exercise_id: nil)
-            |> assign(workout_action_menu_id: nil)
-            |> assign(delete_workout_open?: false)
-            |> ok()
+    page_owner = socket.assigns.current_user
 
-          {:error, :not_found} ->
-            not_found()
-        end
+    case get_workout_form(page_owner, workout_id) do
+      {:ok, workout_form} ->
+        socket
+        |> assign(page_owner: page_owner)
+        |> assign(read_only?: false)
+        |> assign(workout_form: workout_form)
+        |> assign(workout_details_open?: false)
+        |> assign(workout_details_form: workout_details_form(workout_form.data))
+        |> assign(exercise_names: Training.list_exercise_names(page_owner))
+        |> assign(selected_previous_exercise_ids: selected_previous_exercise_ids(page_owner, workout_form.data, %{}))
+        |> assign(replace_exercise_id: nil)
+        |> assign(replace_exercise_query: "")
+        |> assign(add_exercise_open: false)
+        |> assign(add_exercise_position: nil)
+        |> assign(add_exercise_query: "")
+        |> assign(action_menu_exercise_id: nil)
+        |> assign(workout_action_menu_id: nil)
+        |> assign(delete_workout_open?: false)
+        |> ok()
 
-      {:redirect, socket} ->
-        ok(socket)
+      {:error, :not_found} ->
+        not_found()
     end
   end
 
@@ -931,29 +924,6 @@ defmodule WhiteboardWeb.WorkoutLive do
       end
 
     noreply(case_result)
-  end
-
-  defp workout_page_owner(%{assigns: %{current_user: %User{} = current_user}}, _workout_id) do
-    {:ok, current_user, false}
-  end
-
-  defp workout_page_owner(socket, workout_id) do
-    case Accounts.get_public_read_only_owner() do
-      %User{} = user ->
-        case Training.get_workout(user, workout_id) do
-          {:ok, %Workout{}} -> {:ok, user, true}
-          {:error, :not_found} -> {:redirect, redirect_to_login(socket)}
-        end
-
-      nil ->
-        {:redirect, redirect_to_login(socket)}
-    end
-  end
-
-  defp redirect_to_login(socket) do
-    socket
-    |> put_flash(:error, "You must log in to access this page.")
-    |> redirect(to: ~p"/users/log_in")
   end
 
   defp not_found do

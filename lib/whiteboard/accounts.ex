@@ -10,15 +10,7 @@ defmodule Whiteboard.Accounts do
   alias Whiteboard.Accounts.UserToken
   alias Whiteboard.Repo
 
-  @public_read_only_owner_email "zackcreach@gmail.com"
-
   ## Database getters
-
-  def public_read_only_owner_email, do: @public_read_only_owner_email
-
-  def get_public_read_only_owner do
-    get_user_by_email(@public_read_only_owner_email)
-  end
 
   @doc """
   Gets a user by email.

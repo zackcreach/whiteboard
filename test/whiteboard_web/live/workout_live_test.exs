@@ -9,7 +9,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   alias Whiteboard.Training
 
   describe "authentication" do
-    test "redirects anonymous users when the public owner does not exist", %{conn: conn} do
+    test "redirects anonymous users", %{conn: conn} do
       workout = insert(:workout)
       assert {:error, redirect} = live(conn, ~p"/workouts/#{workout.id}")
 
@@ -33,17 +33,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                document
                |> Floki.find("h1")
                |> Enum.map(&Floki.text/1)
-    end
-
-    test "redirects anonymous users from non-Zack workouts", %{conn: conn} do
-      public_read_only_owner_fixture()
-      workout = insert(:workout)
-
-      assert {:error, redirect} = live(conn, ~p"/workouts/#{workout.id}")
-
-      assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert ~p"/users/log_in" == path
-      assert %{"error" => "You must log in to access this page."} = flash
     end
 
     test "returns 404 for authenticated users requesting another user's workout", %{conn: conn} do
@@ -680,113 +669,6 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert [] = Training.list_workouts(user)
       assert %{"info" => "Workout deleted successfully"} = assert_redirect(lv, ~p"/")
-    end
-  end
-
-  describe "anonymous read-only mode" do
-    test "renders Zack workout controls disabled and hides mutation controls", %{conn: conn} do
-      zack = public_read_only_owner_fixture()
-      exercise_category = insert(:exercise_category, user: zack, name: "Strength")
-      exercise_name = insert(:exercise_name, user: zack, name: "Bench Press", exercise_category: exercise_category)
-      workout = insert(:workout, user: zack, name: "Zack demo workout")
-
-      exercise =
-        insert(:exercise,
-          workout_id: workout.id,
-          exercise_name_id: exercise_name.id
-        )
-
-      set =
-        insert(:set,
-          exercise_id: exercise.id,
-          weight: 45.0,
-          reps: 8,
-          notes: "warmup"
-        )
-
-      previous_workout = insert(:workout, user: zack, name: "Previous workout")
-      previous_exercise = insert(:exercise, workout_id: previous_workout.id, exercise_name_id: exercise_name.id)
-      insert(:set, exercise_id: previous_exercise.id, weight: 55.0, reps: 5)
-
-      {:ok, lv, html} = live(conn, ~p"/workouts/#{workout.id}")
-
-      document = parse_document!(html)
-      workout_name = workout.name
-
-      assert [^workout_name] =
-               document
-               |> Floki.find("h1")
-               |> Enum.map(&Floki.text/1)
-
-      assert [] = Floki.find(document, "#open-add-exercise")
-      assert [] = Floki.find(document, "#open-add-exercise-top")
-      assert [] = Floki.find(document, "#open-workout-details")
-      assert [] = Floki.find(document, "#workout-action-menu-button-#{workout.id}")
-      assert [] = Floki.find(document, "[data-role=\"workout-action-menu-item\"]")
-      assert [] = Floki.find(document, "[draggable=\"true\"]")
-      assert [] = Floki.find(document, "button[phx-click=\"open_exercise_action_menu\"]")
-      assert [] = Floki.find(document, "button[phx-click=\"open_workout_action_menu\"]")
-
-      assert [exercise_list] = Floki.find(document, "#workout-exercises")
-      refute Map.has_key?(node_attributes(exercise_list), "phx-hook")
-
-      text_inputs = Floki.find(document, "input[type=\"text\"]")
-      assert length(text_inputs) > 0
-
-      for input <- text_inputs do
-        assert Map.has_key?(node_attributes(input), "disabled")
-      end
-
-      for select <- Floki.find(document, "select") do
-        assert Map.has_key?(node_attributes(select), "disabled")
-      end
-
-      assert [delete_button] = Floki.find(document, "[data-role=\"workout-set-row\"] button")
-      delete_button_attributes = node_attributes(delete_button)
-      assert delete_button_attributes["class"] =~ "invisible"
-      refute Map.has_key?(delete_button_attributes, "phx-click")
-
-      render_change(lv, "maybe_update_workout", %{"workout" => %{"notes" => "Forged notes"}})
-      render_click(lv, "open_workout_action_menu", %{"workout_id" => workout.id})
-      render_click(lv, "cancel_workout_action_menu")
-      render_click(lv, "duplicate_workout", %{"workout_id" => workout.id})
-      render_click(lv, "open_delete_workout", %{"workout_id" => workout.id})
-      render_click(lv, "cancel_delete_workout")
-      render_click(lv, "delete_workout", %{"workout_id" => workout.id})
-      render_click(lv, "open_workout_details")
-      render_click(lv, "cancel_workout_details")
-
-      render_submit(lv, "update_workout_details", %{
-        "workout_details" => %{"date" => "2024-02-20", "name" => "Forged workout", "notes" => "Forged notes"}
-      })
-
-      render_click(lv, "create_set", %{"exercise_id" => exercise.id})
-      render_click(lv, "delete_set", %{"set_id" => set.id})
-      render_click(lv, "delete_exercise", %{"exercise_id" => exercise.id})
-      render_click(lv, "create_exercise", %{"exercise_name_id" => exercise_name.id})
-
-      exercise_id = exercise.id
-      set_id = set.id
-
-      workout_ids =
-        zack
-        |> Training.list_workouts()
-        |> Enum.map(& &1.id)
-        |> Enum.sort()
-
-      assert Enum.sort([previous_workout.id, workout.id]) == workout_ids
-
-      assert {:ok,
-              %{
-                name: "Zack demo workout",
-                notes: nil,
-                exercises: [
-                  %{
-                    id: ^exercise_id,
-                    sets: [%{id: ^set_id, weight: 45.0, reps: 8, notes: "warmup"}]
-                  }
-                ]
-              }} = Training.get_workout(zack, workout.id)
     end
   end
 

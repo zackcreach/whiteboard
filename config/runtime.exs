@@ -50,7 +50,7 @@ if config_env() == :prod do
   config :whiteboard, Whiteboard.Repo,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    socket_options: [:inet] ++ maybe_ipv6
+    socket_options: maybe_ipv6
 
   config :whiteboard, WhiteboardWeb.Endpoint,
     url: [host: host, port: url_port, scheme: scheme],

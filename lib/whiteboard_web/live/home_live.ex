@@ -4,7 +4,6 @@ defmodule WhiteboardWeb.HomeLive do
   """
   use WhiteboardWeb, :live_view
 
-  alias Whiteboard.Accounts
   alias Whiteboard.Accounts.User
   alias Whiteboard.Training
   alias Whiteboard.Training.Workout
@@ -130,28 +129,18 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   def mount(%{"workout_id" => workout_id}, _session, %{assigns: %{live_action: :delete}} = socket) do
-    case assign_page_owner(socket) do
-      {:ok, socket} ->
-        socket
-        |> initialize_forms()
-        |> assign(delete_workout_id: workout_id)
-        |> ok()
-
-      {:redirect, socket} ->
-        ok(socket)
-    end
+    socket
+    |> assign_page_owner()
+    |> initialize_forms()
+    |> assign(delete_workout_id: workout_id)
+    |> ok()
   end
 
   def mount(_params, _session, socket) do
-    case assign_page_owner(socket) do
-      {:ok, socket} ->
-        socket
-        |> initialize_forms()
-        |> ok()
-
-      {:redirect, socket} ->
-        ok(socket)
-    end
+    socket
+    |> assign_page_owner()
+    |> initialize_forms()
+    |> ok()
   end
 
   def handle_params(params, _uri, socket) do
@@ -410,22 +399,7 @@ defmodule WhiteboardWeb.HomeLive do
   end
 
   defp assign_page_owner(%{assigns: %{current_user: %User{} = current_user}} = socket) do
-    {:ok, assign(socket, page_owner: current_user, read_only?: false)}
-  end
-
-  defp assign_page_owner(socket) do
-    case Accounts.get_public_read_only_owner() do
-      %User{} = user ->
-        {:ok, assign(socket, page_owner: user, read_only?: true)}
-
-      nil ->
-        socket =
-          socket
-          |> put_flash(:error, "You must log in to access this page.")
-          |> redirect(to: ~p"/users/log_in")
-
-        {:redirect, socket}
-    end
+    assign(socket, page_owner: current_user, read_only?: false)
   end
 
   defp initialize_forms(socket) do

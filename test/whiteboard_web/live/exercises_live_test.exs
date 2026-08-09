@@ -499,71 +499,13 @@ defmodule WhiteboardWeb.ExercisesLiveTest do
     end
   end
 
-  describe "read-only exercises catalog" do
-    test "renders public catalog without forms or actions and ignores forged mutations", %{conn: conn} do
-      zack = public_read_only_owner_fixture()
-      category = insert(:exercise_category, user: zack, name: "Zack category")
-      exercise_name = insert(:exercise_name, user: zack, exercise_category: category, name: "Zack exercise")
-      insert(:exercise_category, name: "Other category")
-
-      {:ok, lv, html} = live(conn, ~p"/exercises")
-
-      assert html =~ "Zack category"
-      assert html =~ "Zack exercise"
-      refute html =~ "Other category"
-      refute html =~ "create-exercise-category-form"
-      refute html =~ "create-exercise-name-form"
-      refute html =~ "New exercise category"
-      refute html =~ "New exercise name"
-      refute html =~ "Actions"
-      refute html =~ "Open exercise category actions"
-      refute html =~ "Open exercise name actions"
-
-      render_submit(lv, "create_exercise_category", %{"exercise_category" => %{"name" => "Forged category"}})
-
-      render_submit(lv, "create_exercise_name", %{
-        "exercise_name" => %{"exercise_category_id" => category.id, "name" => "Forged exercise"}
-      })
-
-      render_click(lv, "open_exercise_category_action_menu", %{"exercise_category_id" => category.id})
-      render_click(lv, "open_edit_exercise_category", %{"exercise_category_id" => category.id})
-      render_submit(lv, "update_exercise_category", %{"exercise_category_edit" => %{"name" => "Forged category"}})
-      render_click(lv, "open_delete_exercise_category", %{"exercise_category_id" => category.id})
-      render_click(lv, "delete_exercise_category", %{"exercise_category_id" => category.id})
-      render_click(lv, "open_exercise_name_action_menu", %{"exercise_name_id" => exercise_name.id})
-      render_click(lv, "open_edit_exercise_name", %{"exercise_name_id" => exercise_name.id})
-
-      render_submit(lv, "update_exercise_name", %{
-        "exercise_name_edit" => %{"exercise_category_id" => category.id, "name" => "Forged exercise"}
-      })
-
-      render_click(lv, "open_delete_exercise_name", %{"exercise_name_id" => exercise_name.id})
-      render_click(lv, "delete_exercise_name", %{"exercise_name_id" => exercise_name.id})
-
-      assert [%{name: "Zack category"}] = Training.list_exercise_categories(zack)
-      assert [%{name: "Zack exercise"}] = Training.list_exercise_names(zack)
-    end
-
-    test "redirects anonymous users when the public owner does not exist", %{conn: conn} do
+  describe "authentication" do
+    test "redirects anonymous users", %{conn: conn} do
       assert {:error, redirect} = live(conn, ~p"/exercises")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
       assert ~p"/users/log_in" == path
       assert %{"error" => "You must log in to access this page."} = flash
-    end
-
-    test "allows anonymous users to paginate the public catalog without mutation controls", %{conn: conn} do
-      zack = public_read_only_owner_fixture()
-      {categories, exercise_names} = insert_paginated_catalog(zack, 21)
-
-      assert {:ok, _lv, html} =
-               live(conn, ~p"/exercises?exercise_categories_page=2&exercise_names_page=2")
-
-      assert html =~ List.last(categories).name
-      assert html =~ List.last(exercise_names).name
-      refute html =~ "Actions"
-      refute html =~ "create-exercise-category-form"
-      refute html =~ "create-exercise-name-form"
     end
   end
 

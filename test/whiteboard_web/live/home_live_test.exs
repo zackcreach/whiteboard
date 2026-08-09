@@ -9,42 +9,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
   alias Whiteboard.Training
 
   describe "home" do
-    test "renders Zack's workouts read-only for anonymous users", %{conn: conn} do
-      zack = public_read_only_owner_fixture()
-      workout = insert(:workout, user: zack, name: "Zack demo workout")
-      insert(:workout, name: "Other workout")
-
-      {:ok, lv, html} = live(conn, ~p"/")
-
-      assert html =~ workout.name
-      refute html =~ "Other workout"
-      refute html =~ "New workout"
-      refute html =~ "New exercise category"
-      refute html =~ "New exercise name"
-      refute html =~ "Actions"
-      refute html =~ "Open workout actions"
-      refute html =~ "workout-action-menu"
-      refute html =~ "workout-details-dialog"
-
-      render_submit(lv, "create_workout", %{"workout" => %{"name" => "Forged workout"}})
-      render_click(lv, "open_workout_action_menu", %{"workout_id" => workout.id})
-      render_click(lv, "cancel_workout_action_menu")
-      render_click(lv, "open_delete_workout", %{"workout_id" => workout.id})
-      render_click(lv, "cancel_delete_workout")
-      render_click(lv, "open_workout_details", %{"workout_id" => workout.id})
-      render_click(lv, "cancel_workout_details")
-
-      render_submit(lv, "update_workout_details", %{
-        "workout_details" => %{"date" => "2024-02-20", "name" => "Forged workout", "notes" => "Forged notes"}
-      })
-
-      render_click(lv, "duplicate_workout", %{"workout_id" => workout.id})
-      render_click(lv, "delete_workout", %{"workout_id" => workout.id})
-
-      assert [%{name: "Zack demo workout"}] = Training.list_workouts(zack)
-    end
-
-    test "redirects anonymous users when the public owner does not exist", %{conn: conn} do
+    test "redirects anonymous users", %{conn: conn} do
       assert {:error, redirect} = live(conn, ~p"/")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
@@ -53,10 +18,10 @@ defmodule WhiteboardWeb.HomeLiveTest do
     end
 
     test "renders only the authenticated user's workouts with write controls", %{conn: conn} do
-      zack = public_read_only_owner_fixture()
+      other_user = user_fixture()
       user = user_fixture()
 
-      insert(:workout, user: zack, name: "Zack demo workout")
+      insert(:workout, user: other_user, name: "Other workout")
       workout = insert(:workout, user: user, name: "User workout")
 
       {:ok, _lv, html} =
@@ -65,7 +30,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> live(~p"/")
 
       assert html =~ workout.name
-      refute html =~ "Zack demo workout"
+      refute html =~ "Other workout"
       assert html =~ "New workout"
       refute html =~ "New exercise category"
       refute html =~ "New exercise name"
