@@ -396,6 +396,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
       assert %{
                attributes: %{
+                 "class" => dialog_class,
                  "id" => "workout-details-dialog",
                  "phx-click-away" => "cancel_workout_details",
                  "phx-key" => "escape",
@@ -448,6 +449,10 @@ defmodule WhiteboardWeb.HomeLiveTest do
                  }
                }
              } = workout_details_dialog(document)
+
+      assert class_contains?(dialog_class, "w-fit")
+      assert class_contains?(dialog_class, "min-w-60")
+      assert class_contains?(dialog_class, "max-w-[calc(100vw-2rem)]")
 
       html =
         lv

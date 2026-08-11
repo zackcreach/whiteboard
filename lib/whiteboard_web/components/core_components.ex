@@ -84,6 +84,7 @@ defmodule WhiteboardWeb.CoreComponents do
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+  attr :auto_dismiss, :boolean, default: false
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
@@ -95,12 +96,14 @@ defmodule WhiteboardWeb.CoreComponents do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
+      phx-hook={if @auto_dismiss, do: "FlashAutoDismiss"}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
+      data-dismiss-after={if @auto_dismiss, do: "5000"}
       role="alert"
       class={[
         "fixed top-2 left-1/2 z-50 w-[calc(100vw-1rem)] max-w-sm -translate-x-1/2 rounded-lg p-3 ring-1 sm:max-w-md",
-        @kind == :info && "bg-emerald-50 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 ring-emerald-500 fill-cyan-900",
-        @kind == :error && "bg-rose-50 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 shadow-md ring-rose-500 fill-rose-900"
+        @kind == :info && "bg-emerald-50 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 ring-emerald-500 fill-cyan-900",
+        @kind == :error && "bg-rose-50 dark:bg-rose-900 text-rose-900 dark:text-rose-200 shadow-md ring-rose-500 fill-rose-900"
       ]}
       {@rest}
     >
@@ -130,8 +133,8 @@ defmodule WhiteboardWeb.CoreComponents do
   def flash_group(assigns) do
     ~H"""
     <div id={@id}>
-      <.flash kind={:info} title={gettext("Success!")} flash={@flash} />
-      <.flash kind={:error} title={gettext("Error!")} flash={@flash} />
+      <.flash kind={:info} title={gettext("Success!")} flash={@flash} auto_dismiss={true} />
+      <.flash kind={:error} title={gettext("Error!")} flash={@flash} auto_dismiss={true} />
       <.flash id="client-error" kind={:error} title={gettext("We can't find the internet")} phx-disconnected={show(".phx-client-error #client-error")} phx-connected={hide("#client-error")} hidden>
         {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
@@ -365,6 +368,36 @@ defmodule WhiteboardWeb.CoreComponents do
         ]}
         {@rest}
       ><%= Phoenix.HTML.Form.normalize_value("textarea", @value) %></textarea>
+      <.error :for={msg <- @errors}>{msg}</.error>
+    </div>
+    """
+  end
+
+  def input(%{type: "date"} = assigns) do
+    ~H"""
+    <div class="w-full">
+      <.label for={@id}>{@label}</.label>
+      <div
+        data-role="date-input-frame"
+        class={[
+          "w-full rounded-lg border bg-white p-2.5 pr-1.5 text-base leading-6 text-zinc-900 transition-colors duration-200 focus-within:ring-0 dark:bg-stone-700 dark:text-stone-100",
+          @errors == [] && "border-zinc-300 focus-within:border-zinc-400 dark:border-stone-600 dark:focus-within:border-stone-500",
+          @errors != [] && "border-rose-400 focus-within:border-rose-400",
+          get_border_variant_classes(@border_variant)
+        ]}
+      >
+        <input
+          type={@type}
+          name={@name}
+          id={@id}
+          value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+          class={[
+            "block w-full min-w-0 border-0 bg-transparent p-0 leading-6 text-zinc-900 focus:outline-none focus:ring-0 dark:text-stone-100",
+            @class
+          ]}
+          {@rest}
+        />
+      </div>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
     """
