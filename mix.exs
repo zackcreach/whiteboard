@@ -44,6 +44,7 @@ defmodule Whiteboard.MixProject do
     [
       {:bcrypt_elixir, "~> 3.3.2"},
       {:bandit, "~> 1.12.4"},
+      {:decimal, "~> 3.0", override: true},
       {:ecto_sql, "~> 3.14.0"},
       {:esbuild, "~> 0.10.0", runtime: Mix.env() == :dev},
       {:ex_machina, "~> 2.8.2", only: :test},
@@ -60,6 +61,7 @@ defmodule Whiteboard.MixProject do
       {:phoenix_live_dashboard, "~> 0.8.7"},
       {:phoenix_live_reload, "~> 1.7.0", only: :dev},
       {:phoenix_live_view, "~> 1.2.8"},
+      {:plox, "~> 0.3.0"},
       {:postgrex, "~> 0.22.3"},
       {:publicist, "1.1.0"},
       {:styler, "~> 1.12.2", only: [:dev, :test], runtime: false},
@@ -80,6 +82,7 @@ defmodule Whiteboard.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
+      "deps.nix": ["deps.get", "cmd nix build .#default --no-link"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],

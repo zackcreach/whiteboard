@@ -10,7 +10,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
   describe "home" do
     test "redirects anonymous users", %{conn: conn} do
-      assert {:error, redirect} = live(conn, ~p"/")
+      assert {:error, redirect} = live(conn, ~p"/workouts")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
       assert ~p"/users/log_in" == path
@@ -27,7 +27,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       {:ok, _lv, html} =
         conn
         |> log_in_user(user)
-        |> live(~p"/")
+        |> live(~p"/workouts")
 
       assert html =~ workout.name
       refute html =~ "Other workout"
@@ -57,7 +57,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       refute html =~ "Duplicate workout"
       refute html =~ "duplicate_workout"
       refute html =~ "open_delete_workout"
-      refute html =~ ~p"/delete/#{workout.id}"
+      refute html =~ ~p"/workouts/delete/#{workout.id}"
       assert [] = Floki.find(document, "[data-role=\"workout-action-menu-item\"]")
 
       assert [exercise_header] =
@@ -95,7 +95,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       {:ok, _lv, html} =
         conn
         |> log_in_user(user)
-        |> live(~p"/")
+        |> live(~p"/workouts")
 
       nav_labels =
         html
@@ -118,7 +118,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       oldest_workout = List.first(workouts)
       newest_workout = List.last(workouts)
 
-      assert {:ok, lv, html} = live(conn, ~p"/?page=2")
+      assert {:ok, lv, html} = live(conn, ~p"/workouts?page=2")
 
       assert html =~ oldest_workout.name
       refute html =~ newest_workout.name
@@ -134,7 +134,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> element("#workouts-pagination [data-role=pagination-previous]")
         |> render_click()
 
-      assert_patch(lv, ~p"/")
+      assert_patch(lv, ~p"/workouts")
       assert html =~ newest_workout.name
       refute html =~ oldest_workout.name
     end
@@ -142,21 +142,21 @@ defmodule WhiteboardWeb.HomeLiveTest do
     test "normalizes malformed and excessive pages", %{conn: conn, user: user} do
       insert_paginated_workouts(user, 21)
 
-      assert {:error, {:live_redirect, %{to: "/"}}} = live(conn, ~p"/?page=invalid")
+      assert {:error, {:live_redirect, %{to: "/workouts"}}} = live(conn, ~p"/workouts?page=invalid")
 
-      assert {:error, {:live_redirect, %{to: "/?page=2"}}} = live(conn, ~p"/?page=99")
+      assert {:error, {:live_redirect, %{to: "/workouts?page=2"}}} = live(conn, ~p"/workouts?page=99")
     end
 
     test "preserves the page in the delete route and clamps after deleting the last row", %{conn: conn, user: user} do
       assert [oldest_workout | _workouts] = insert_paginated_workouts(user, 21)
 
-      assert {:ok, lv, _html} = live(conn, ~p"/?page=2")
+      assert {:ok, lv, _html} = live(conn, ~p"/workouts?page=2")
 
       lv
       |> element("#workout-action-menu-button-#{oldest_workout.id}")
       |> render_click()
 
-      delete_path = ~p"/delete/#{oldest_workout.id}?page=2"
+      delete_path = ~p"/workouts/delete/#{oldest_workout.id}?page=2"
 
       redirect_result =
         lv
@@ -171,7 +171,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> element("#confirm-delete-workout-#{oldest_workout.id}")
         |> render_click()
 
-      assert {:error, {:redirect, %{to: "/"}}} = delete_result
+      assert {:error, {:redirect, %{to: "/workouts"}}} = delete_result
       assert 20 == length(Training.list_workouts(user))
     end
 
@@ -221,7 +221,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       delete_id = "delete-workout-#{workout.id}"
       edit_id = "edit-workout-#{workout.id}"
 
-      {:ok, lv, _html} = live(conn, ~p"/")
+      {:ok, lv, _html} = live(conn, ~p"/workouts")
 
       html =
         lv
@@ -328,7 +328,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
     test "duplicates a workout from the actions dialog", %{conn: conn, user: user} do
       workout = insert(:workout, user: user, name: "User workout")
 
-      {:ok, lv, _html} = live(conn, ~p"/")
+      {:ok, lv, _html} = live(conn, ~p"/workouts")
 
       lv
       |> element("#workout-action-menu-button-#{workout.id}")
@@ -353,7 +353,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
     test "opens the existing delete confirmation flow from the actions dialog", %{conn: conn, user: user} do
       workout = insert(:workout, user: user, name: "User workout")
 
-      {:ok, lv, _html} = live(conn, ~p"/")
+      {:ok, lv, _html} = live(conn, ~p"/workouts")
 
       lv
       |> element("#workout-action-menu-button-#{workout.id}")
@@ -363,7 +363,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       |> element("#delete-workout-#{workout.id}")
       |> render_click()
 
-      assert_redirect(lv, ~p"/delete/#{workout.id}")
+      assert_redirect(lv, ~p"/workouts/delete/#{workout.id}")
     end
   end
 
@@ -379,7 +379,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
           inserted_at: ~U[2024-01-15 18:45:30.000000Z]
         )
 
-      {:ok, lv, _html} = live(conn, ~p"/")
+      {:ok, lv, _html} = live(conn, ~p"/workouts")
 
       lv
       |> element("#workout-action-menu-button-#{workout.id}")
@@ -480,7 +480,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
           inserted_at: ~U[2024-02-01 18:45:30.000000Z]
         )
 
-      {:ok, lv, _html} = live(conn, ~p"/")
+      {:ok, lv, _html} = live(conn, ~p"/workouts")
 
       lv
       |> element("#workout-action-menu-button-#{older_workout.id}")
@@ -524,7 +524,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
           inserted_at: ~U[2024-01-15 18:45:30.000000Z]
         )
 
-      {:ok, lv, _html} = live(conn, ~p"/")
+      {:ok, lv, _html} = live(conn, ~p"/workouts")
 
       lv
       |> element("#workout-action-menu-button-#{workout.id}")
@@ -558,7 +558,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
     test "redirects if user is not logged in for delete dialog" do
       conn = build_conn()
-      assert {:error, redirect} = live(conn, ~p"/delete/workout_123")
+      assert {:error, redirect} = live(conn, ~p"/workouts/delete/workout_123")
 
       assert {:redirect, %{to: path, flash: flash}} = redirect
       assert path == ~p"/users/log_in"
@@ -573,7 +573,7 @@ defmodule WhiteboardWeb.HomeLiveTest do
       confirm_button_id = "confirm-delete-workout-#{workout.id}"
       cancel_button_id = "cancel-delete-workout-button-#{workout.id}"
 
-      {:ok, lv, html} = live(conn, ~p"/delete/#{workout.id}")
+      {:ok, lv, html} = live(conn, ~p"/workouts/delete/#{workout.id}")
 
       document = parse_document!(html)
 
@@ -621,20 +621,20 @@ defmodule WhiteboardWeb.HomeLiveTest do
       |> element("#cancel-delete-workout-button-#{workout.id}")
       |> render_click()
 
-      assert_redirect(lv, ~p"/")
+      assert_redirect(lv, ~p"/workouts")
     end
 
     test "deletes a workout from the delete dialog", %{conn: conn, user: user} do
       workout = insert(:workout, user: user, name: "Back day")
 
-      {:ok, lv, _html} = live(conn, ~p"/delete/#{workout.id}")
+      {:ok, lv, _html} = live(conn, ~p"/workouts/delete/#{workout.id}")
 
       lv
       |> element("#confirm-delete-workout-#{workout.id}")
       |> render_click()
 
       assert [] = Training.list_workouts(user)
-      assert_redirect(lv, ~p"/")
+      assert_redirect(lv, ~p"/workouts")
     end
   end
 

@@ -162,7 +162,9 @@ defmodule WhiteboardWeb.WorkoutLive do
     </.form>
 
     <section class="mt-auto flex justify-between items-end pt-8">
-      <p class="text-xs font-extralight">Autosaved on {DateHelpers.render_date(Form.input_value(@workout_form, :updated_at), include_time: true)}</p>
+      <p :if={!@read_only?} class="text-xs font-extralight">
+        Autosaved on {DateHelpers.render_date(Form.input_value(@workout_form, :updated_at), include_time: true)}
+      </p>
       <div :if={!@read_only?} class="relative">
         <.button id="open-add-exercise" type="button" phx-click="open_add_exercise" phx-value-position="bottom">Add exercise</.button>
         <.add_exercise_dialog
@@ -420,13 +422,17 @@ defmodule WhiteboardWeb.WorkoutLive do
   end
 
   def mount(%{"workout_id" => workout_id}, _session, socket) do
-    page_owner = socket.assigns.current_user
+    current_user = socket.assigns.current_user
 
-    case get_workout_form(page_owner, workout_id) do
-      {:ok, workout_form} ->
+    case Training.get_workout_for_viewer(current_user, workout_id) do
+      {:ok, %Workout{} = workout} ->
+        page_owner = workout.user
+        workout_form = to_form(Workout.changeset(workout))
+        read_only? = is_nil(current_user) or page_owner.id != current_user.id
+
         socket
         |> assign(page_owner: page_owner)
-        |> assign(read_only?: false)
+        |> assign(read_only?: read_only?)
         |> assign(workout_form: workout_form)
         |> assign(workout_details_open?: false)
         |> assign(workout_details_form: workout_details_form(workout_form.data))
@@ -654,10 +660,6 @@ defmodule WhiteboardWeb.WorkoutLive do
   #
   # Exercises
   #
-  def handle_event("update_selected_exercise", _params, %{assigns: %{read_only?: true}} = socket) do
-    noreply(socket)
-  end
-
   def handle_event("update_selected_exercise", %{"previous_exercise" => previous_exercise}, socket) do
     previous_exercise
     |> Enum.find(fn {_exercise_id, _previous_exercise_id} -> true end)

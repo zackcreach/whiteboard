@@ -26,7 +26,7 @@ defmodule WhiteboardWeb.UserAuth do
   disconnected on log out. The line can be safely removed
   if you are not using LiveView.
   """
-  def log_in_user(conn, user, params \\ %{}) do
+  def log_in_user(conn, user, params \\ %{}, fallback_path \\ ~p"/") do
     token = Accounts.generate_user_session_token(user)
     user_return_to = get_session(conn, :user_return_to)
 
@@ -34,7 +34,7 @@ defmodule WhiteboardWeb.UserAuth do
     |> renew_session()
     |> put_token_in_session(token)
     |> maybe_write_remember_me_cookie(token, params)
-    |> redirect(to: user_return_to || signed_in_path(conn))
+    |> redirect(to: user_return_to || fallback_path)
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
@@ -225,6 +225,5 @@ defmodule WhiteboardWeb.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
-
   defp signed_in_path(_conn), do: ~p"/"
 end

@@ -9,13 +9,16 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   alias Whiteboard.Training
 
   describe "authentication" do
-    test "redirects anonymous users", %{conn: conn} do
+    test "renders anonymous users a read-only workout page", %{conn: conn} do
       workout = insert(:workout)
-      assert {:error, redirect} = live(conn, ~p"/workouts/#{workout.id}")
+      assert {:ok, live_view, html} = live(conn, ~p"/workouts/#{workout.id}")
 
-      assert {:redirect, %{to: path, flash: flash}} = redirect
-      assert ~p"/users/log_in" == path
-      assert %{"error" => "You must log in to access this page."} = flash
+      assert html =~ workout.name
+      refute html =~ "Edit workout"
+      refute html =~ "Add exercise"
+
+      html = render_hook(live_view, "create_set", %{"exercise_id" => "forged"})
+      refute html =~ "Error saving workout"
     end
 
     test "renders workout page when authenticated", %{conn: conn} do
@@ -35,16 +38,38 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                |> Enum.map(&Floki.text/1)
     end
 
-    test "returns 404 for authenticated users requesting another user's workout", %{conn: conn} do
+    test "renders another user's workout without edit controls", %{conn: conn} do
       owner = insert(:user)
       other_user = insert(:user)
       workout = insert(:workout, user: owner)
+      exercise_name = insert(:exercise_name, user: owner)
+      exercise = insert(:exercise, workout: workout, exercise_name: exercise_name)
+      previous_workout = insert(:workout, user: owner)
+      previous_exercise = insert(:exercise, workout: previous_workout, exercise_name: exercise_name)
 
-      logged_conn = log_in_user(conn, other_user)
+      assert {:ok, live_view, html} =
+               conn
+               |> log_in_user(other_user)
+               |> live(~p"/workouts/#{workout.id}")
 
-      assert_error_sent 404, fn ->
-        get(logged_conn, ~p"/workouts/#{workout.id}")
-      end
+      assert html =~ workout.name
+      refute html =~ "Edit workout"
+      refute html =~ "Add exercise"
+      refute html =~ "Open workout actions"
+      refute html =~ "Autosaved on"
+
+      selector = "#previous-exercise-#{exercise.id}"
+      refute html |> parse_document!() |> Floki.find("#{selector}[disabled]") |> Enum.any?()
+
+      html =
+        live_view
+        |> element(selector)
+        |> render_change(%{"previous_exercise" => %{exercise.id => previous_exercise.id}})
+
+      assert html =~ previous_workout.name
+
+      html = render_hook(live_view, "create_set", %{"exercise_id" => "forged"})
+      refute html =~ "Error saving workout"
     end
   end
 

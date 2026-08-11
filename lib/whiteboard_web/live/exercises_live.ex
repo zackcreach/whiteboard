@@ -49,7 +49,7 @@ defmodule WhiteboardWeb.ExercisesLive do
       </div>
 
       <section id="exercise-categories-section" class="space-y-4">
-        <h3>Exercise categories</h3>
+        <h2>Exercise categories</h2>
         <Card.render :if={!@read_only?} padding_class="p-4">
           <.form
             id="create-exercise-category-form"
@@ -99,7 +99,7 @@ defmodule WhiteboardWeb.ExercisesLive do
       </section>
 
       <section id="exercise-names-section" class="space-y-4">
-        <h3>Exercises</h3>
+        <h2>Exercises</h2>
         <Card.render :if={!@read_only?} padding_class="p-4">
           <.form
             id="create-exercise-name-form"

@@ -24,7 +24,7 @@ defmodule WhiteboardWeb.HomeLive do
       </div>
 
       <section :if={!@read_only?} id="create-workout-section" class="space-y-4">
-        <h3>Start a new workout</h3>
+        <h2>Start a new workout</h2>
         <Card.render padding_class="p-4">
           <.form
             id="create-workout-form"
@@ -40,20 +40,20 @@ defmodule WhiteboardWeb.HomeLive do
       </section>
 
       <section id="previous-workouts-section" class="space-y-4">
-        <h3>Previous workouts</h3>
+        <h2>Previous workouts</h2>
         <Table.render
           id="workouts"
           rows={@streams.workouts}
           pagination={@workouts_pagination}
           page_path={fn page -> workouts_page_path(@workouts_path, @live_action, @delete_workout_id, page) end}
           pagination_label="Previous workouts pages"
-          grid_class={[
-            @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
-            !@read_only? && "grid-cols-[1fr_1fr_1fr_0.5fr] md:grid-cols-[1fr_2fr_1fr_1fr_0.5fr]"
-          ]}
+          grid_class="grid-cols-[1fr_1.2fr_1fr_0.5fr] md:grid-cols-[1fr_1.2fr_2fr_1fr_0.5fr] lg:grid-cols-[1fr_1.2fr_2fr_1fr_1fr_0.5fr]"
         >
           <:col :let={workout} label="Name">
             <a href={~p"/workouts/#{workout.id}"}>{workout.name}</a>
+          </:col>
+          <:col :let={workout} label="User">
+            <p class="truncate" title={workout.user.email}>{workout.user.email}</p>
           </:col>
           <:col :let={workout} label="Exercises" header_class="hidden md:block" cell_class="hidden md:block">
             <p>{ExerciseHelpers.render_exercise_names(workout)}</p>
@@ -61,7 +61,7 @@ defmodule WhiteboardWeb.HomeLive do
           <:col :let={workout} label="Created on">
             <p>{DateHelpers.render_date(workout.inserted_at)}</p>
           </:col>
-          <:col :let={workout} label="Last updated">
+          <:col :let={workout} label="Last updated" header_class="hidden lg:block" cell_class="hidden lg:block">
             <p>{DateHelpers.render_date(workout.updated_at)}</p>
           </:col>
           <:action :let={workout} :if={!@read_only?}>

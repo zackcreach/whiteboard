@@ -29,7 +29,7 @@
           pname = "whiteboard-mix-deps";
           version = releaseVersion;
           src = releaseSource;
-          hash = "sha256-OjxHOPlAXNYCMZpRPbhQLSavAbvdBFVjO4Bs1BdaAj8=";
+          hash = "sha256-Pzey2DSxqxl9HkuFCVZ2Rlx2D1GfsZTnxpyxKNaixPw=";
         };
       in
       with pkgs;

@@ -26,7 +26,6 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
           value={@selected_exercise.id}
           options={render_exercise_options(@exercises)}
           phx-change="update_selected_exercise"
-          disabled={@read_only?}
         />
       </div>
       <ul class="space-y-4">

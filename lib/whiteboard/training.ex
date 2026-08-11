@@ -11,8 +11,30 @@ defmodule Whiteboard.Training do
     TrainingRepo.paginate_workouts(user, requested_page)
   end
 
+  def paginate_workout_history(viewer, scope, requested_page) when is_nil(viewer) or is_struct(viewer, User) do
+    TrainingRepo.paginate_workout_history(viewer, scope, requested_page)
+  end
+
+  def list_history_exercises(viewer, scope) when is_nil(viewer) or is_struct(viewer, User) do
+    TrainingRepo.list_history_exercises(viewer, scope)
+  end
+
+  def progression_series(viewer, scope, exercise, timeframe, now \\ DateTime.utc_now())
+      when is_nil(viewer) or is_struct(viewer, User) do
+    TrainingRepo.progression_series(viewer, scope, exercise, timeframe, now)
+  end
+
+  def volume_progression_series(viewer, scope, exercise, timeframe, now \\ DateTime.utc_now())
+      when is_nil(viewer) or is_struct(viewer, User) do
+    TrainingRepo.volume_progression_series(viewer, scope, exercise, timeframe, now)
+  end
+
   def get_workout(%User{} = user, id) do
     TrainingRepo.get_workout(user, id)
+  end
+
+  def get_workout_for_viewer(viewer, id) when is_nil(viewer) or is_struct(viewer, User) do
+    TrainingRepo.get_workout_for_viewer(viewer, id)
   end
 
   def create_workout(%User{} = user, params) do

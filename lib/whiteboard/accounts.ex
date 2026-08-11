@@ -12,6 +12,12 @@ defmodule Whiteboard.Accounts do
 
   ## Database getters
 
+  def list_users do
+    User
+    |> order_by([user], asc: user.email)
+    |> Repo.all()
+  end
+
   @doc """
   Gets a user by email.
 

@@ -20,7 +20,7 @@ defmodule WhiteboardWeb.UserSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      refute response =~ user.email
+      assert response =~ "Dashboard"
       assert response =~ ~p"/workouts"
       assert response =~ ~p"/users/settings"
       refute response =~ ~p"/users/log_out"
@@ -62,8 +62,20 @@ defmodule WhiteboardWeb.UserSessionControllerTest do
           "user" => %{"email" => user.email, "password" => valid_user_password()}
         })
 
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/workouts"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Account created successfully"
+    end
+
+    test "preserves return to after registration", %{conn: conn, user: user} do
+      conn =
+        conn
+        |> init_test_session(user_return_to: "/workouts/return")
+        |> post(~p"/users/log_in", %{
+          "_action" => "registered",
+          "user" => %{"email" => user.email, "password" => valid_user_password()}
+        })
+
+      assert redirected_to(conn) == "/workouts/return"
     end
 
     test "login following password update", %{conn: conn, user: user} do

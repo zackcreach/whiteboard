@@ -24,10 +24,76 @@ defmodule Whiteboard.Training.Repo do
     |> paginate(requested_page)
   end
 
+  def paginate_workout_history(viewer, scope, requested_page) when is_nil(viewer) or is_struct(viewer, User) do
+    from(workout in Workout, as: :workout)
+    |> history_scope(viewer, scope)
+    |> join(:inner, [workout], user in assoc(workout, :user))
+    |> order_by([workout], desc: workout.inserted_at, desc: workout.id)
+    |> preload([_workout, user], user: user, exercises: ^workout_exercises_query())
+    |> paginate(requested_page)
+  end
+
+  def list_history_exercises(viewer, scope) when is_nil(viewer) or is_struct(viewer, User) do
+    from(exercise_name in ExerciseName,
+      join: exercise in Exercise,
+      on: exercise.exercise_name_id == exercise_name.id,
+      join: workout in Workout,
+      on: workout.id == exercise.workout_id,
+      as: :workout,
+      join: set in Set,
+      on: set.exercise_id == exercise.id,
+      where: not is_nil(set.weight),
+      group_by: fragment("lower(?)", exercise_name.name),
+      order_by: fragment("lower(?)", exercise_name.name),
+      select: min(exercise_name.name)
+    )
+    |> history_scope(viewer, scope)
+    |> Repo.all()
+  end
+
+  def progression_series(viewer, scope, exercise_name, timeframe, %DateTime{} = now)
+      when is_nil(viewer) or is_struct(viewer, User) do
+    progression_query()
+    |> select([workout, user, _exercise, _exercise_name, set], %{
+      user_id: user.id,
+      user_email: user.email,
+      workout_id: workout.id,
+      workout_name: workout.name,
+      occurred_at: workout.inserted_at,
+      weight: max(set.weight)
+    })
+    |> progression_results(viewer, scope, exercise_name, timeframe, now)
+  end
+
+  def volume_progression_series(viewer, scope, exercise_name, timeframe, %DateTime{} = now)
+      when is_nil(viewer) or is_struct(viewer, User) do
+    progression_query()
+    |> where([_workout, _user, _exercise, _exercise_name, set], not is_nil(set.reps))
+    |> select([workout, user, _exercise, _exercise_name, set], %{
+      user_id: user.id,
+      user_email: user.email,
+      workout_id: workout.id,
+      workout_name: workout.name,
+      occurred_at: workout.inserted_at,
+      weight: fragment("SUM(? * ?)", set.weight, set.reps)
+    })
+    |> progression_results(viewer, scope, exercise_name, timeframe, now)
+  end
+
   def get_workout(%User{id: user_id}, id) do
     from(w in Workout,
       where: w.id == ^id and w.user_id == ^user_id,
       preload: [exercises: ^workout_exercises_query()]
+    )
+    |> Repo.one()
+    |> result()
+  end
+
+  def get_workout_for_viewer(viewer, id) when is_nil(viewer) or is_struct(viewer, User) do
+    from(workout in Workout,
+      join: user in assoc(workout, :user),
+      where: workout.id == ^id,
+      preload: [user: user, exercises: ^workout_exercises_query()]
     )
     |> Repo.one()
     |> result()
@@ -496,11 +562,85 @@ defmodule Whiteboard.Training.Repo do
 
   defp workouts_query(user_id) do
     from(workout in Workout,
+      join: user in assoc(workout, :user),
       where: workout.user_id == ^user_id,
       order_by: [desc: workout.inserted_at, desc: workout.id],
-      preload: [exercises: ^workout_exercises_query()]
+      preload: [user: user, exercises: ^workout_exercises_query()]
     )
   end
+
+  defp progression_query do
+    from(workout in Workout,
+      as: :workout,
+      join: user in assoc(workout, :user),
+      join: exercise in assoc(workout, :exercises),
+      join: exercise_name in assoc(exercise, :exercise_name),
+      join: set in assoc(exercise, :sets),
+      where: not is_nil(set.weight),
+      group_by: [workout.id, workout.name, workout.inserted_at, user.id, user.email],
+      order_by: [asc: workout.inserted_at, asc: workout.id]
+    )
+  end
+
+  defp progression_results(query, viewer, scope, exercise_name, timeframe, now) do
+    query
+    |> history_scope(viewer, scope)
+    |> progression_exercise(exercise_name)
+    |> progression_timeframe(timeframe, now)
+    |> Repo.all()
+    |> Enum.group_by(&{&1.user_id, &1.user_email})
+    |> Enum.map(fn {{user_id, user_email}, points} ->
+      %{user: %{id: user_id, email: user_email}, points: points}
+    end)
+    |> Enum.sort_by(&String.downcase(&1.user.email))
+  end
+
+  defp history_scope(query, %User{id: user_id}, :me) do
+    where(query, [workout: workout], workout.user_id == ^user_id)
+  end
+
+  defp history_scope(query, %User{}, :all), do: query
+
+  defp history_scope(query, %User{}, {:user, user_id}) when is_binary(user_id) do
+    where(query, [workout: workout], workout.user_id == ^user_id)
+  end
+
+  defp history_scope(query, %User{id: user_id}, _scope) do
+    where(query, [workout: workout], workout.user_id == ^user_id)
+  end
+
+  defp history_scope(query, nil, :all), do: query
+
+  defp history_scope(query, nil, {:user, user_id}) when is_binary(user_id) do
+    where(query, [workout: workout], workout.user_id == ^user_id)
+  end
+
+  defp history_scope(query, nil, _scope), do: query
+
+  defp progression_exercise(query, :all), do: query
+  defp progression_exercise(query, "all"), do: query
+
+  defp progression_exercise(query, exercise_name) when is_binary(exercise_name) do
+    where(query, [_workout, _user, _exercise, name, _set], fragment("lower(?)", name.name) == ^exercise_name)
+  end
+
+  defp progression_exercise(query, _exercise_name), do: query
+
+  defp progression_timeframe(query, :all, _now), do: query
+
+  defp progression_timeframe(query, timeframe, now) do
+    case timeframe_cutoff(timeframe, now) do
+      %DateTime{} = cutoff -> where(query, [workout, ...], workout.inserted_at >= ^cutoff)
+      nil -> query
+    end
+  end
+
+  defp timeframe_cutoff(:one_year, now), do: DateTime.shift(now, month: -12)
+  defp timeframe_cutoff(:six_months, now), do: DateTime.shift(now, month: -6)
+  defp timeframe_cutoff(:three_months, now), do: DateTime.shift(now, month: -3)
+  defp timeframe_cutoff(:one_month, now), do: DateTime.shift(now, month: -1)
+  defp timeframe_cutoff(:one_week, now), do: DateTime.shift(now, week: -1)
+  defp timeframe_cutoff(_timeframe, _now), do: nil
 
   defp exercise_names_query(user_id) do
     from(exercise_name in ExerciseName,
