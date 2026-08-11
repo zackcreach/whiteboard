@@ -24,7 +24,6 @@ defmodule WhiteboardWeb.Components.WorkoutDetailsDialog do
       close_label="Cancel workout edit"
       focus_target="#workout_details_date"
       position_class={@position_class}
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       divider={true}
     >
       <.form id="workout-details-form" for={@form} phx-submit="update_workout_details" class="flex flex-col gap-3">

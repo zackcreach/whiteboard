@@ -296,8 +296,10 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
       refute Map.has_key?(workout_action_menu(document, workout.id).attributes, "phx-click-away")
 
-      assert class_contains?(menu_class, "w-72")
-      assert class_contains?(menu_class, "sm:w-80")
+      assert class_contains?(menu_class, "w-fit")
+      assert class_contains?(menu_class, "max-w-[calc(100vw-2rem)]")
+      refute class_contains?(menu_class, "w-72")
+      refute class_contains?(menu_class, "sm:w-80")
       refute class_contains?(menu_class, "w-96")
 
       html =

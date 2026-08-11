@@ -31,7 +31,7 @@ defmodule WhiteboardWeb.HomeLive do
             for={@create_workout_form}
             phx-change="validate_workout"
             phx-submit="create_workout"
-            class="flex flex-col md:flex-row items-center gap-4"
+            class="flex flex-col items-center gap-4 md:flex-row md:items-start"
           >
             <.input field={@create_workout_form[:name]} placeholder="Workout name (e.g. Chest)" />
             <.button id="create-workout-button" type="submit" class="w-full md:w-auto">New workout</.button>
@@ -85,7 +85,6 @@ defmodule WhiteboardWeb.HomeLive do
                 close_event="cancel_workout_action_menu"
                 close_id={"cancel-workout-action-menu-#{workout.id}"}
                 close_label="Close workout actions"
-                width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
                 row_role="workout-action-menu-item"
                 row_label_role="workout-action-menu-item-label"
                 click_away={false}
@@ -166,7 +165,6 @@ defmodule WhiteboardWeb.HomeLive do
       close_id={"cancel-delete-workout-#{@workout.id}"}
       close_label="Cancel workout delete"
       position_class="right-0 top-full mt-4"
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       divider={true}
     >
       <div class="flex gap-3">

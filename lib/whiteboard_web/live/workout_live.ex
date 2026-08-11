@@ -20,10 +20,10 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   def render(assigns) do
     ~H"""
-    <section class="flex items-center justify-between gap-4 mb-8">
+    <section class="flex items-center justify-between gap-4 mb-4">
       <div class="relative min-w-0 flex-1">
         <p class="font-extralight">{DateHelpers.render_date(Form.input_value(@workout_form, :inserted_at))}</p>
-        <div class="flex min-w-0 items-center gap-4">
+        <div class="flex min-w-0 items-center gap-2">
           <h1 class="min-w-0">{Form.input_value(@workout_form, :name)}</h1>
           <.icon_button
             :if={!@read_only?}
@@ -31,7 +31,7 @@ defmodule WhiteboardWeb.WorkoutLive do
             label="Edit workout"
             icon="hero-pencil-square size-5"
             phx-click="open_workout_details"
-            class="h-[42px] w-5 justify-center text-zinc-900 dark:text-white"
+            class="border border-transparent p-3 text-zinc-900 dark:text-white"
           />
         </div>
         <WorkoutDetailsDialog.render
@@ -122,10 +122,11 @@ defmodule WhiteboardWeb.WorkoutLive do
                       label="Delete set"
                       icon="hero-x-mark size-5"
                       class={[
-                        "ml-1.5 h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white",
+                        "ml-1.5 border border-transparent p-3 text-zinc-900 dark:text-white",
                         @read_only? && "invisible",
                         !@read_only? && "cursor-pointer"
                       ]}
+                      hover_class="after:-inset-px after:rounded-lg"
                       phx-click={unless @read_only?, do: "delete_set"}
                       phx-value-set_id={set.data.id}
                       tabindex="-1"
@@ -139,7 +140,9 @@ defmodule WhiteboardWeb.WorkoutLive do
                 <div class="flex-1">
                   <.button type="button" phx-click="create_set" phx-value-exercise_id={exercise.data.id} class="w-full cursor-pointer">Add set</.button>
                 </div>
-                <div class="h-[42px] w-12 shrink-0" />
+                <div class="ml-1.5 shrink-0 border border-transparent p-3">
+                  <span class="block size-5" />
+                </div>
               </div>
             </div>
 
@@ -213,7 +216,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   defp workout_action_menu_control(assigns) do
     ~H"""
     <div
-      class="relative ml-1.5 h-[42px] w-[42px] shrink-0"
+      class="relative ml-1.5 shrink-0"
       phx-click-away={if @workout_action_menu_id == @workout.id, do: "cancel_workout_action_menu"}
     >
       <.icon_button
@@ -222,7 +225,8 @@ defmodule WhiteboardWeb.WorkoutLive do
         icon="hero-ellipsis-vertical size-5"
         phx-click="open_workout_action_menu"
         phx-value-workout_id={@workout.id}
-        class="h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white"
+        class="border border-transparent p-3 text-zinc-900 dark:text-white"
+        hover_class="after:-inset-px after:rounded-lg"
       />
       <.workout_action_menu
         :if={@workout_action_menu_id == @workout.id}
@@ -244,7 +248,6 @@ defmodule WhiteboardWeb.WorkoutLive do
       close_event="cancel_workout_action_menu"
       close_id={"cancel-workout-action-menu-#{@workout.id}"}
       close_label="Close workout actions"
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       row_role="workout-action-menu-item"
       row_label_role="workout-action-menu-item-label"
       click_away={false}
@@ -276,7 +279,6 @@ defmodule WhiteboardWeb.WorkoutLive do
       close_id={"cancel-delete-workout-#{@workout.id}"}
       close_label="Cancel workout delete"
       position_class="right-0 top-full mt-4"
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       divider={true}
     >
       <div class="flex gap-3">
@@ -305,7 +307,7 @@ defmodule WhiteboardWeb.WorkoutLive do
   defp exercise_action_menu_control(assigns) do
     ~H"""
     <div
-      class="relative ml-1.5 h-[42px] w-[42px] shrink-0"
+      class="relative ml-1.5 shrink-0"
       phx-click-away={if @action_menu_exercise_id == @current_exercise.id, do: "cancel_exercise_action_menu"}
     >
       <.icon_button
@@ -314,7 +316,8 @@ defmodule WhiteboardWeb.WorkoutLive do
         icon="hero-ellipsis-vertical size-5"
         phx-click="open_exercise_action_menu"
         phx-value-exercise_id={@current_exercise.id}
-        class="h-[42px] w-[42px] justify-center text-zinc-900 dark:text-white"
+        class="border border-transparent p-3 text-zinc-900 dark:text-white"
+        hover_class="after:-inset-px after:rounded-lg"
       />
       <.exercise_action_menu
         :if={@action_menu_exercise_id == @current_exercise.id}

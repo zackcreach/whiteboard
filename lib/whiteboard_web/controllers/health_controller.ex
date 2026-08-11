@@ -1,12 +1,14 @@
 defmodule WhiteboardWeb.HealthController do
   use WhiteboardWeb, :controller
 
+  alias Whiteboard.Repo
+
   def index(conn, _params) do
-    case Ecto.Adapters.SQL.query(Whiteboard.Repo, "SELECT 1") do
-      {:ok, _result} ->
+    case Repo.health_check() do
+      :ok ->
         json(conn, %{status: "ok"})
 
-      {:error, _reason} ->
+      {:error, :database_unavailable} ->
         conn
         |> put_status(:service_unavailable)
         |> json(%{status: "error"})

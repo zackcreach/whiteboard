@@ -10,7 +10,7 @@ defmodule WhiteboardWeb.Components.ActionMenu do
   attr :close_id, :string, required: true
   attr :close_label, :string, required: true
   attr :position_class, :string, default: "right-0 top-full mt-4"
-  attr :width_class, :string, default: "w-96 max-w-[calc(100vw-2rem)]"
+  attr :width_class, :string, default: "w-fit max-w-[calc(100vw-2rem)]"
   attr :row_role, :string, default: "exercise-action-menu-item"
   attr :row_label_role, :string, default: "exercise-action-menu-item-label"
   attr :click_away, :boolean, default: true

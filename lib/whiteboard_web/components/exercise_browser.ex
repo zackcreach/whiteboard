@@ -18,7 +18,7 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
   def render(%{selected_exercise: %Exercise{}} = assigns) do
     ~H"""
     <div class={@container_class}>
-      <div class="mb-6">
+      <div class="mb-4">
         <.input
           type="select"
           id={"previous-exercise-#{@current_exercise_id}"}
@@ -29,8 +29,8 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
           disabled={@read_only?}
         />
       </div>
-      <ul>
-        <li :for={set <- ExerciseHelpers.render_list_with_index(@selected_exercise.sets)} class="flex gap-x-6 mb-[34px] last:mb-0">
+      <ul class="space-y-4">
+        <li :for={set <- ExerciseHelpers.render_list_with_index(@selected_exercise.sets)} class="flex items-center gap-x-6 border border-transparent py-2.5 text-base leading-6">
           <p class="font-medium">{set.index + 1}</p>
           <p>{set.weight} lbs</p>
           <p>{set.reps} reps</p>

@@ -53,7 +53,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
             autocomplete="off"
             phx-change={@filter_event}
             phx-debounce="150"
-            class="block w-full appearance-none rounded-lg border border-zinc-300 bg-white p-2.5 pr-9 text-sm text-zinc-900 focus:border-zinc-400 focus:ring-0 [&::-webkit-search-cancel-button]:hidden dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 dark:focus:border-stone-500"
+            class="block w-full appearance-none rounded-lg border border-zinc-300 bg-white p-2.5 pr-9 text-base leading-6 text-zinc-900 focus:border-zinc-400 focus:ring-0 [&::-webkit-search-cancel-button]:hidden dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 dark:focus:border-stone-500"
           />
           <.icon_button
             :if={clear_search?(@query)}

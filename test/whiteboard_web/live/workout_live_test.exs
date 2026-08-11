@@ -272,9 +272,12 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       action_menu_wrapper_class = attribute!(action_menu_wrapper, "class")
 
-      for class <- ["relative", "ml-1.5", "h-[42px]", "w-[42px]", "shrink-0"] do
+      for class <- ["relative", "ml-1.5", "shrink-0"] do
         assert class_contains?(action_menu_wrapper_class, class)
       end
+
+      refute class_contains?(action_menu_wrapper_class, "h-[42px]")
+      refute class_contains?(action_menu_wrapper_class, "w-[42px]")
 
       assert [
                %{
@@ -295,9 +298,12 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                |> List.first()
                |> attribute!("class")
 
-      for class <- ["h-[42px]", "w-[42px]", "justify-center"] do
+      for class <- ["border", "border-transparent", "p-3"] do
         assert class_contains?(action_button_class, class)
       end
+
+      refute class_contains?(action_button_class, "h-[42px]")
+      refute class_contains?(action_button_class, "w-[42px]")
     end
 
     test "opens and cancels the workout actions dialog", %{conn: conn, user: user} do
@@ -370,9 +376,10 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       refute Map.has_key?(workout_action_menu(document, workout.id).attributes, "phx-click-away")
 
-      assert class_contains?(menu_class, "w-72")
-      assert class_contains?(menu_class, "sm:w-80")
+      assert class_contains?(menu_class, "w-fit")
       assert class_contains?(menu_class, "max-w-[calc(100vw-2rem)]")
+      refute class_contains?(menu_class, "w-72")
+      refute class_contains?(menu_class, "sm:w-80")
       refute class_contains?(menu_class, "w-96")
 
       html =

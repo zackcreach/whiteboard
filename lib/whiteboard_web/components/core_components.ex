@@ -204,8 +204,8 @@ defmodule WhiteboardWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "whitespace-nowrap phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 dark:bg-stone-100 hover:bg-zinc-700 dark:hover:bg-stone-200 py-2 px-3 transition-colors duration-200 cursor-pointer",
-        "text-sm font-semibold leading-6 text-white dark:text-stone-900 active:text-white/80 dark:active:text-stone-700",
+        "whitespace-nowrap border border-transparent phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 dark:bg-stone-100 hover:bg-zinc-700 dark:hover:bg-stone-200 px-3 py-2.5 transition-colors duration-200 cursor-pointer",
+        "text-base font-semibold leading-6 text-white dark:text-stone-900 active:text-white/80 dark:active:text-stone-700",
         @class
       ]}
       {@rest}
@@ -223,7 +223,7 @@ defmodule WhiteboardWeb.CoreComponents do
   attr :type, :string, default: "button"
   attr :class, :any, default: nil
   attr :icon_class, :string, default: nil
-  attr :hover_class, :string, default: "after:h-[42px] after:w-[42px] after:rounded-lg"
+  attr :hover_class, :string, default: "after:rounded-lg"
   attr :rest, :global, include: ~w(disabled form name value)
   slot :inner_block
 
@@ -234,7 +234,7 @@ defmodule WhiteboardWeb.CoreComponents do
       aria-label={@label}
       class={[
         "relative isolate inline-flex shrink-0 cursor-pointer items-center leading-none outline-none transition-colors duration-200",
-        "after:pointer-events-none after:absolute after:left-1/2 after:top-1/2 after:-z-10 after:-translate-x-1/2 after:-translate-y-1/2 after:bg-transparent after:transition-colors after:duration-200",
+        "after:pointer-events-none after:absolute after:inset-0 after:-z-10 after:bg-transparent after:transition-colors after:duration-200",
         "hover:after:bg-zinc-200 focus-visible:after:bg-zinc-200 dark:hover:after:bg-stone-700 dark:focus-visible:after:bg-stone-700",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:after:bg-transparent dark:disabled:hover:after:bg-transparent",
         @hover_class,
@@ -335,7 +335,7 @@ defmodule WhiteboardWeb.CoreComponents do
           id={@id}
           name={@name}
           class={[
-            "appearance-none block w-full rounded-lg border border-zinc-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-zinc-900 dark:text-stone-100 focus:border-zinc-400 dark:focus:border-stone-500 focus:ring-0 sm:text-sm p-2.5 pr-9 transition-colors duration-200",
+            "appearance-none block w-full rounded-lg border border-zinc-300 dark:border-stone-600 bg-white dark:bg-stone-700 text-base leading-6 text-zinc-900 dark:text-stone-100 focus:border-zinc-400 dark:focus:border-stone-500 focus:ring-0 p-2.5 pr-9 transition-colors duration-200",
             get_border_variant_classes(@border_variant)
           ]}
           multiple={@multiple}
@@ -359,7 +359,7 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         name={@name}
         class={[
-          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 border focus:ring-0 sm:text-sm sm:leading-6 min-h-[6rem] p-2.5 pr-1.5 transition-colors duration-200",
+          "block w-full rounded-lg text-base leading-6 text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 border focus:ring-0 min-h-[6rem] p-2.5 pr-1.5 transition-colors duration-200",
           @errors == [] && "border-zinc-300 dark:border-stone-600 focus:border-zinc-400 dark:focus:border-stone-500",
           @errors != [] && "border-rose-400 focus:border-rose-400"
         ]}
@@ -381,7 +381,7 @@ defmodule WhiteboardWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "block w-full rounded-lg text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 focus:ring-0 sm:text-sm p-2.5 pr-1.5 transition-colors duration-200",
+          "block w-full rounded-lg text-base leading-6 text-zinc-900 dark:text-stone-100 bg-white dark:bg-stone-700 focus:ring-0 p-2.5 pr-1.5 transition-colors duration-200",
           @errors == [] && "border border-zinc-300 dark:border-stone-600 focus:border-zinc-400 dark:focus:border-stone-500",
           @errors != [] && "border border-rose-400 focus:border-rose-400",
           get_border_variant_classes(@border_variant),

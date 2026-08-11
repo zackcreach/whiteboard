@@ -7,7 +7,7 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
   attr :id, :string, required: true
   attr :title, :string, required: true
   attr :position_class, :string, default: "right-0 top-full mt-4"
-  attr :width_class, :string, default: "w-96 max-w-[calc(100vw-2rem)]"
+  attr :width_class, :string, default: "w-fit max-w-[calc(100vw-2rem)]"
   attr :focus_target, :string, default: nil
   attr :divider, :boolean, default: false
   attr :close_event, :string, required: true
@@ -29,7 +29,7 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
     >
       <Card.render border={true} padding_class="p-4">
         <div class="mb-2 flex items-center justify-between gap-4">
-          <h4 class="font-medium text-zinc-900 dark:text-white">{@title}</h4>
+          <h4 class="min-w-0 truncate pl-2 font-medium text-zinc-900 dark:text-white">{@title}</h4>
           <.icon_button
             id={@close_id}
             label={@close_label}
@@ -66,14 +66,14 @@ defmodule WhiteboardWeb.Components.FloatingDialog do
       phx-click={@click}
       disabled={@disabled}
       class={[
-        "flex h-[42px] w-full items-center gap-3 rounded-lg px-4 text-left text-sm text-zinc-900 dark:text-stone-100",
+        "flex h-[42px] w-full items-center gap-3 rounded-lg pl-2 pr-8 text-left text-sm text-zinc-900 dark:text-stone-100",
         @disabled && "cursor-not-allowed bg-zinc-100 text-zinc-500 dark:bg-stone-700 dark:text-stone-300",
         !@disabled && "cursor-pointer hover:bg-zinc-100 dark:hover:bg-stone-700",
         @class
       ]}
       {phx_value_attributes(@values)}
     >
-      <span :if={@icon} class="shrink-0">
+      <span :if={@icon} class="-translate-y-0.5 shrink-0">
         <.icon name={@icon} />
       </span>
       <span data-role={@label_role} class="min-w-0 flex-1 truncate">{@label}</span>

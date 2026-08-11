@@ -56,7 +56,7 @@ defmodule WhiteboardWeb.ExercisesLive do
             for={@create_exercise_category_form}
             phx-change="validate_exercise_category"
             phx-submit="create_exercise_category"
-            class="flex flex-col md:flex-row items-center gap-4"
+            class="flex flex-col items-center gap-4 md:flex-row md:items-start"
           >
             <.input field={@create_exercise_category_form[:name]} placeholder="Exercise category name" />
             <.button id="create-exercise-category-button" type="submit" class="w-full md:w-auto">
@@ -106,7 +106,7 @@ defmodule WhiteboardWeb.ExercisesLive do
             for={@create_exercise_name_form}
             phx-change="validate_exercise_name"
             phx-submit="create_exercise_name"
-            class="flex flex-col md:flex-row items-center gap-4"
+            class="flex flex-col items-center gap-4 md:flex-row md:items-start"
           >
             <div class="flex w-full">
               <div class="basis-1/3">
@@ -688,7 +688,6 @@ defmodule WhiteboardWeb.ExercisesLive do
         close_event={@cancel_event}
         close_id={"cancel-#{@id_prefix}-action-menu-#{@item.id}"}
         close_label={@close_label}
-        width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
         row_role={@row_role}
         row_label_role={@row_label_role}
         click_away={false}
@@ -722,7 +721,6 @@ defmodule WhiteboardWeb.ExercisesLive do
       close_id={"cancel-edit-exercise-category-#{@category.id}"}
       close_label="Cancel exercise category edit"
       position_class="right-0 top-full mt-4"
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       divider={true}
     >
       <.form
@@ -748,7 +746,6 @@ defmodule WhiteboardWeb.ExercisesLive do
       close_id={"cancel-edit-exercise-name-#{@exercise_name.id}"}
       close_label="Cancel exercise name edit"
       position_class="right-0 top-full mt-4"
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       divider={true}
     >
       <.form
@@ -785,7 +782,6 @@ defmodule WhiteboardWeb.ExercisesLive do
       close_id={"cancel-delete-#{@id_prefix}-#{@item.id}"}
       close_label={@close_label}
       position_class="right-0 top-full mt-4"
-      width_class="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
       divider={true}
     >
       <div class="flex gap-3">
