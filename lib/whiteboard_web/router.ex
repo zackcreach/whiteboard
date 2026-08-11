@@ -18,7 +18,9 @@ defmodule WhiteboardWeb.Router do
   end
 
   scope "/", WhiteboardWeb do
-    pipe_through :browser
+    pipe_through :api
+
+    get "/health", HealthController, :index
   end
 
   # Other scopes may use custom stacks.
