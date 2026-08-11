@@ -70,7 +70,9 @@ defmodule WhiteboardWeb.Router do
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
 
       live "/", HomeLive
+      live "/workouts", HomeLive
       live "/exercises", ExercisesLive
+      live "/workouts/delete/:workout_id", HomeLive, :delete
       live "/workouts/:workout_id", WorkoutLive
       live "/delete/:workout_id", HomeLive, :delete
     end

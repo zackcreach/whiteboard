@@ -8,13 +8,23 @@ defmodule WhiteboardWeb.UserSettingsLiveTest do
 
   describe "Settings page" do
     test "renders settings page", %{conn: conn} do
+      user = user_fixture()
+
       {:ok, _lv, html} =
         conn
-        |> log_in_user(user_fixture())
+        |> log_in_user(user)
         |> live(~p"/users/settings")
 
       assert html =~ "Change email"
       assert html =~ "Change password"
+      assert html =~ "Logged in as"
+      assert html =~ user.email
+      assert html =~ "font-bold"
+      assert html =~ ~s|href="/users/log_out"|
+      assert html =~ ~s|data-method="delete"|
+      assert html =~ "inline-flex"
+      assert html =~ "text-red-600"
+      assert html =~ "hover:text-red-500"
     end
 
     test "redirects if user is not logged in", %{conn: conn} do

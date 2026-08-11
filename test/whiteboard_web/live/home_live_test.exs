@@ -71,7 +71,25 @@ defmodule WhiteboardWeb.HomeLiveTest do
       assert class_contains?(exercise_header_class, "md:block")
     end
 
-    test "renders exercises before settings in authenticated navigation", %{conn: conn} do
+    test "renders the authenticated user's dashboard at /workouts", %{conn: conn} do
+      other_user = user_fixture()
+      user = user_fixture()
+
+      insert(:workout, user: other_user, name: "Other workout")
+      workout = insert(:workout, user: user, name: "User workout")
+
+      {:ok, _lv, html} =
+        conn
+        |> log_in_user(user)
+        |> live(~p"/workouts")
+
+      assert html =~ workout.name
+      refute html =~ "Other workout"
+      assert html =~ "New workout"
+      assert html =~ "Open workout actions"
+    end
+
+    test "renders workouts, exercises, and settings in authenticated navigation", %{conn: conn} do
       user = user_fixture()
 
       {:ok, _lv, html} =
@@ -84,9 +102,11 @@ defmodule WhiteboardWeb.HomeLiveTest do
         |> parse_document!()
         |> Floki.find("header a")
         |> Enum.map(&text_one!/1)
-        |> Enum.filter(&(&1 in ["Exercises", "Settings"]))
+        |> Enum.filter(&(&1 in ["Workouts", "Exercises", "Settings"]))
 
-      assert ["Exercises", "Settings"] == nav_labels
+      assert ["Workouts", "Exercises", "Settings"] == nav_labels
+      refute html =~ user.email
+      refute html =~ "Logout"
     end
   end
 
@@ -153,6 +173,39 @@ defmodule WhiteboardWeb.HomeLiveTest do
 
       assert {:error, {:redirect, %{to: "/"}}} = delete_result
       assert 20 == length(Training.list_workouts(user))
+    end
+
+    test "preserves the /workouts route through pagination and deletion", %{conn: conn, user: user} do
+      assert [oldest_workout | _workouts] = insert_paginated_workouts(user, 21)
+
+      assert {:ok, lv, _html} = live(conn, ~p"/workouts?page=2")
+
+      lv
+      |> element("#workout-action-menu-button-#{oldest_workout.id}")
+      |> render_click()
+
+      delete_path = ~p"/workouts/delete/#{oldest_workout.id}?page=2"
+
+      assert {:error, {:redirect, %{to: ^delete_path}}} =
+               lv
+               |> element("#delete-workout-#{oldest_workout.id}")
+               |> render_click()
+
+      assert {:ok, delete_live, _html} = live(conn, delete_path)
+
+      delete_live
+      |> element("#cancel-delete-workout-button-#{oldest_workout.id}")
+      |> render_click()
+
+      assert_redirect(delete_live, ~p"/workouts?page=2")
+
+      assert {:ok, delete_live, _html} = live(conn, delete_path)
+
+      delete_live
+      |> element("#confirm-delete-workout-#{oldest_workout.id}")
+      |> render_click()
+
+      assert_redirect(delete_live, ~p"/workouts")
     end
   end
 

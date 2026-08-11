@@ -73,6 +73,16 @@ defmodule WhiteboardWeb.UserSettingsLive do
               </:actions>
             </.simple_form>
           </div>
+          <div class="flex flex-col items-center gap-2 text-center text-sm">
+            <p>Logged in as <span class="font-bold">{@current_email}</span></p>
+            <.link
+              href={~p"/users/log_out"}
+              method="delete"
+              class="inline-flex text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300"
+            >
+              Logout
+            </.link>
+          </div>
         </div>
       </Card.render>
     </div>

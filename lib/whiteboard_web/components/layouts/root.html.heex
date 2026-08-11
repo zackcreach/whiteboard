@@ -31,8 +31,10 @@
       <div class="flex">
         <ul class="flex items-center gap-4 [&>li]:text-xs mr-4">
           <%= if @current_user do %>
-            <li class="hidden md:block">
-              {@current_user.email}
+            <li>
+              <.link href={~p"/workouts"}>
+                Workouts
+              </.link>
             </li>
             <li>
               <.link href={~p"/exercises"}>
@@ -42,14 +44,6 @@
             <li>
               <.link href={~p"/users/settings"}>
                 Settings
-              </.link>
-            </li>
-            <li>
-              <.link
-                href={~p"/users/log_out"}
-                method="delete"
-              >
-                Logout
               </.link>
             </li>
           <% else %>

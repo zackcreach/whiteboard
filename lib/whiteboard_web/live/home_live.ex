@@ -45,7 +45,7 @@ defmodule WhiteboardWeb.HomeLive do
           id="workouts"
           rows={@streams.workouts}
           pagination={@workouts_pagination}
-          page_path={fn page -> workouts_page_path(@live_action, @delete_workout_id, page) end}
+          page_path={fn page -> workouts_page_path(@workouts_path, @live_action, @delete_workout_id, page) end}
           pagination_label="Previous workouts pages"
           grid_class={[
             @read_only? && "grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_2fr_1fr_1fr]",
@@ -143,12 +143,13 @@ defmodule WhiteboardWeb.HomeLive do
     |> ok()
   end
 
-  def handle_params(params, _uri, socket) do
+  def handle_params(params, uri, socket) do
     requested_page = PaginationHelpers.parse_page(params["page"])
     pagination = Training.paginate_workouts(socket.assigns.page_owner, requested_page)
 
     socket =
       socket
+      |> assign(workouts_path: workouts_path(uri))
       |> assign(workouts_pagination: pagination)
       |> stream(:workouts, pagination.entries, reset: true)
       |> normalize_workouts_page(params["page"], pagination.current_page)
@@ -351,7 +352,9 @@ defmodule WhiteboardWeb.HomeLive do
 
   def handle_event("open_delete_workout", %{"workout_id" => workout_id}, socket) do
     socket
-    |> redirect(to: workouts_page_path(:delete, workout_id, current_workouts_page(socket)))
+    |> redirect(
+      to: workouts_page_path(socket.assigns.workouts_path, :delete, workout_id, current_workouts_page(socket))
+    )
     |> noreply()
   end
 
@@ -362,7 +365,7 @@ defmodule WhiteboardWeb.HomeLive do
   def handle_event("cancel_delete_workout", _params, socket) do
     socket
     |> close_delete_workout()
-    |> redirect(to: workouts_page_path(nil, nil, current_workouts_page(socket)))
+    |> redirect(to: workouts_page_path(socket.assigns.workouts_path, nil, nil, current_workouts_page(socket)))
     |> noreply()
   end
 
@@ -388,7 +391,7 @@ defmodule WhiteboardWeb.HomeLive do
           pagination = Training.paginate_workouts(socket.assigns.page_owner, current_workouts_page(socket))
 
           socket
-          |> redirect(to: workouts_page_path(nil, nil, pagination.current_page))
+          |> redirect(to: workouts_page_path(socket.assigns.workouts_path, nil, nil, pagination.current_page))
           |> put_flash(:info, "Workout deleted successfully")
 
         {:error, error} ->
@@ -409,6 +412,7 @@ defmodule WhiteboardWeb.HomeLive do
       workout_action_menu_id: nil,
       workout_details_workout_id: nil,
       workout_details_form: nil,
+      workouts_path: "/",
       create_workout_form: to_form(Workout.changeset(%Workout{}))
     )
     |> stream(:workouts, [])
@@ -472,16 +476,38 @@ defmodule WhiteboardWeb.HomeLive do
 
   defp patch_workouts_page(socket, current_page) do
     push_patch(socket,
-      to: workouts_page_path(socket.assigns.live_action, socket.assigns.delete_workout_id, current_page),
+      to:
+        workouts_page_path(
+          socket.assigns.workouts_path,
+          socket.assigns.live_action,
+          socket.assigns.delete_workout_id,
+          current_page
+        ),
       replace: true
     )
   end
 
-  defp workouts_page_path(:delete, workout_id, page) when is_binary(workout_id) do
+  defp workouts_path(uri) do
+    case URI.parse(uri).path do
+      "/workouts" -> "/workouts"
+      "/workouts/delete/" <> _workout_id -> "/workouts"
+      _path -> "/"
+    end
+  end
+
+  defp workouts_page_path("/workouts", :delete, workout_id, page) when is_binary(workout_id) do
+    ~p"/workouts/delete/#{workout_id}?#{workouts_page_params(page)}"
+  end
+
+  defp workouts_page_path("/", :delete, workout_id, page) when is_binary(workout_id) do
     ~p"/delete/#{workout_id}?#{workouts_page_params(page)}"
   end
 
-  defp workouts_page_path(_live_action, _workout_id, page) do
+  defp workouts_page_path("/workouts", _live_action, _workout_id, page) do
+    ~p"/workouts?#{workouts_page_params(page)}"
+  end
+
+  defp workouts_page_path("/", _live_action, _workout_id, page) do
     ~p"/?#{workouts_page_params(page)}"
   end
 
