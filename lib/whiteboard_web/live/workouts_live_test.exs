@@ -1,4 +1,4 @@
-defmodule WhiteboardWeb.HomeLiveTest do
+defmodule WhiteboardWeb.WorkoutsLiveTest do
   use WhiteboardWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest

@@ -1,4 +1,4 @@
-defmodule WhiteboardWeb.HomeLive do
+defmodule WhiteboardWeb.WorkoutsLive do
   @moduledoc """
   Workout landing page with list of workouts and the ability to make new ones
   """
@@ -47,13 +47,10 @@ defmodule WhiteboardWeb.HomeLive do
           pagination={@workouts_pagination}
           page_path={fn page -> workouts_page_path(@workouts_path, @live_action, @delete_workout_id, page) end}
           pagination_label="Previous workouts pages"
-          grid_class="grid-cols-[1fr_1.2fr_1fr_0.5fr] md:grid-cols-[1fr_1.2fr_2fr_1fr_0.5fr] lg:grid-cols-[1fr_1.2fr_2fr_1fr_1fr_0.5fr]"
+          grid_class="grid-cols-[1fr_1fr_0.5fr] md:grid-cols-[1.2fr_2fr_1fr_0.5fr] lg:grid-cols-[1.2fr_2fr_1fr_1fr_0.5fr]"
         >
           <:col :let={workout} label="Name">
             <a href={~p"/workouts/#{workout.id}"}>{workout.name}</a>
-          </:col>
-          <:col :let={workout} label="User">
-            <p class="truncate" title={workout.user.email}>{workout.user.email}</p>
           </:col>
           <:col :let={workout} label="Exercises" header_class="hidden md:block" cell_class="hidden md:block">
             <p>{ExerciseHelpers.render_exercise_names(workout)}</p>
