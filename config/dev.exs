@@ -1,5 +1,28 @@
 import Config
 
+port = String.to_integer(System.get_env("PORT") || "5000")
+
+database_config =
+  case {System.get_env("DATABASE_URL"), System.get_env("DATABASE_SOCKET_DIR")} do
+    {database_url, _socket_dir} when database_url not in [nil, ""] ->
+      [url: database_url]
+
+    {_database_url, socket_dir} when socket_dir not in [nil, ""] ->
+      [
+        socket_dir: socket_dir,
+        username: System.get_env("DATABASE_USERNAME") || "postgres",
+        database: System.get_env("DATABASE_NAME") || "whiteboard_dev"
+      ]
+
+    _external_database ->
+      [
+        username: "postgres",
+        password: "postgres",
+        hostname: "localhost",
+        database: "whiteboard_dev"
+      ]
+  end
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 
@@ -20,6 +43,8 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
+config :whiteboard, Whiteboard.Repo, database_config
+
 # Configure your database
 config :whiteboard, Whiteboard.Repo,
   # For development, we disable any cache and enable
@@ -28,10 +53,6 @@ config :whiteboard, Whiteboard.Repo,
   # The watchers configuration can be used to run external
   # watchers to your application. For example, we can use it
   # ## SSL Support
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "whiteboard_dev",
   stacktrace: true,
   # to bundle .js and .css sources.
   #
@@ -55,7 +76,7 @@ config :whiteboard, WhiteboardWeb.Endpoint,
   #     https: [
   #       port: 4001,
   #       cipher_suite: :strong,
-  http: [ip: {0, 0, 0, 0}, port: 4000],
+  http: [ip: {0, 0, 0, 0}, port: port],
   check_origin: false,
   code_reloader: true,
   # Watch static and templates for browser reloading.
@@ -84,7 +105,7 @@ config :whiteboard, WhiteboardWeb.Endpoint,
   ]
 
 # Global settings
-config :whiteboard, :base_url, "http://localhost:4000"
+config :whiteboard, :base_url, "http://localhost:#{port}"
 
 # Enable dev routes for dashboard and mailbox
 config :whiteboard, dev_routes: true

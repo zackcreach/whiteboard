@@ -86,7 +86,7 @@ defmodule Whiteboard.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing", "assets.sign_esbuild"],
+      "assets.setup": asset_setup_tasks(),
       "assets.build": ["compile", "tailwind whiteboard", "esbuild whiteboard"],
       "assets.deploy": [
         "tailwind whiteboard --minify",
@@ -95,6 +95,16 @@ defmodule Whiteboard.MixProject do
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
     ]
+  end
+
+  defp asset_setup_tasks do
+    case {System.get_env("MIX_TAILWIND_PATH"), System.get_env("MIX_ESBUILD_PATH")} do
+      {tailwind_path, esbuild_path} when tailwind_path != nil and esbuild_path != nil ->
+        []
+
+      _mix_managed_assets ->
+        ["tailwind.install --if-missing", "esbuild.install --if-missing", "assets.sign_esbuild"]
+    end
   end
 
   defp releases do

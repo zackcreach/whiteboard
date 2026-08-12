@@ -22,11 +22,11 @@ mix setup
 iex -S mix phx.server
 ```
 
-The Nix development shell provides the pinned Erlang, Elixir, Node, PostgreSQL client, and asset tooling. A PostgreSQL server must be running locally.
+The Nix development shell provides the pinned Erlang, Elixir, Node, PostgreSQL client, and asset tooling. It automatically starts an isolated PostgreSQL server for this checkout and connects through a Unix socket under `.direnv`. `mix setup` creates and seeds a normal development database.
 
-Without Nix, use [`flake.nix`](flake.nix) as the source of truth for tool versions and install matching Erlang, Elixir, Node, PostgreSQL, and asset tooling with mise, asdf, or equivalent tooling before running `mix setup`.
+Without Nix, use [`flake.nix`](flake.nix) as the source of truth for tool versions and install matching Erlang, Elixir, Node, PostgreSQL, and asset tooling with mise, asdf, or equivalent tooling. Configure PostgreSQL on localhost, with `DATABASE_SOCKET_DIR`, or with a loopback `DATABASE_URL` before running `mix setup`.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+Now you can visit [`localhost:5000`](http://localhost:5000) from your browser.
 
 ## Deployment
 

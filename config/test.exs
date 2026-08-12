@@ -1,5 +1,28 @@
 import Config
 
+database_config =
+  case {System.get_env("DATABASE_URL"), System.get_env("DATABASE_SOCKET_DIR")} do
+    {database_url, _socket_dir} when database_url not in [nil, ""] ->
+      [url: database_url]
+
+    {_database_url, socket_dir} when socket_dir not in [nil, ""] ->
+      [
+        socket_dir: socket_dir,
+        username: System.get_env("DATABASE_USERNAME") || "postgres",
+        database:
+          System.get_env("DATABASE_NAME") ||
+            "whiteboard_test#{System.get_env("MIX_TEST_PARTITION")}"
+      ]
+
+    _external_database ->
+      [
+        username: "postgres",
+        password: "postgres",
+        hostname: "localhost",
+        database: "whiteboard_test#{System.get_env("MIX_TEST_PARTITION")}"
+      ]
+  end
+
 # Only in tests, remove the complexity from the password hashing algorithm
 config :bcrypt_elixir, :log_rounds, 1
 
@@ -24,12 +47,9 @@ config :swoosh, :api_client, false
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :whiteboard, Whiteboard.Mailer, adapter: Swoosh.Adapters.Test
+config :whiteboard, Whiteboard.Repo, database_config
 
 config :whiteboard, Whiteboard.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "whiteboard_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   # We don't run a server during test. If one is required,
   # you can enable the server option below.
