@@ -17,6 +17,7 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 :root {
+  color-scheme: light;
   --chart-grid-color: var(--color-stone-400);
   --chart-series-1: var(--color-blue-600);
   --chart-series-2: var(--color-red-600);
@@ -29,6 +30,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --chart-grid-color: var(--color-stone-600);
   --chart-series-1: var(--color-blue-400);
   --chart-series-2: var(--color-red-400);
@@ -38,6 +40,10 @@
   --chart-series-6: var(--color-cyan-400);
   --chart-series-7: var(--color-pink-400);
   --chart-series-8: var(--color-indigo-400);
+}
+
+.dark .user-settings input:autofill {
+  box-shadow: inset 0 0 0 1000px var(--color-stone-700);
 }
 
 /* Heading styles */

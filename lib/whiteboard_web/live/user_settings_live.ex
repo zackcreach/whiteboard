@@ -7,10 +7,9 @@ defmodule WhiteboardWeb.UserSettingsLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto w-full sm:w-[400px]">
+    <div class="user-settings mx-auto w-full sm:w-[400px]">
       <Card.render>
-        <h3>Account Settings</h3>
-        <p class="text-sm mt-2 mb-4">Manage your account email address and password settings.</p>
+        <h3 class="mb-4">Change email address</h3>
 
         <div class="flex flex-col gap-y-12">
           <div>
@@ -21,7 +20,13 @@ defmodule WhiteboardWeb.UserSettingsLive do
               phx-change="validate_email"
               class="flex flex-col gap-y-4"
             >
-              <.input field={@email_form[:email]} type="email" placeholder="Email" required />
+              <.input
+                field={@email_form[:email]}
+                type="email"
+                placeholder="Email"
+                autocomplete="email"
+                required
+              />
               <.input
                 field={@email_form[:current_password]}
                 name="current_password"
@@ -29,6 +34,7 @@ defmodule WhiteboardWeb.UserSettingsLive do
                 type="password"
                 placeholder="Current password"
                 value={@email_form_current_password}
+                autocomplete="current-password"
                 required
               />
               <:actions>
@@ -37,6 +43,7 @@ defmodule WhiteboardWeb.UserSettingsLive do
             </.simple_form>
           </div>
           <div>
+            <h3 class="mb-4">Change password</h3>
             <.simple_form
               for={@password_form}
               id="password_form"
@@ -52,12 +59,20 @@ defmodule WhiteboardWeb.UserSettingsLive do
                 type="hidden"
                 id="hidden_user_email"
                 value={@current_email}
+                autocomplete="username"
               />
-              <.input field={@password_form[:password]} type="password" placeholder="New password" required />
+              <.input
+                field={@password_form[:password]}
+                type="password"
+                placeholder="New password"
+                autocomplete="new-password"
+                required
+              />
               <.input
                 field={@password_form[:password_confirmation]}
                 type="password"
                 placeholder="Confirm new password"
+                autocomplete="new-password"
               />
               <.input
                 field={@password_form[:current_password]}
@@ -66,6 +81,7 @@ defmodule WhiteboardWeb.UserSettingsLive do
                 placeholder="Current password"
                 id="current_password_for_password"
                 value={@current_password}
+                autocomplete="current-password"
                 required
               />
               <:actions>

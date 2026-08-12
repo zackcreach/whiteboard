@@ -10,13 +10,35 @@ defmodule WhiteboardWeb.UserSettingsLiveTest do
     test "renders settings page", %{conn: conn} do
       user = user_fixture()
 
-      {:ok, _lv, html} =
+      {:ok, lv, html} =
         conn
         |> log_in_user(user)
         |> live(~p"/users/settings")
 
+      assert has_element?(lv, "h3", "Change email address")
+      assert has_element?(lv, "h3", "Change password")
+      refute html =~ "Manage your account email address and password settings."
+      assert has_element?(lv, ~s|#email_form input[type="email"][autocomplete="email"]|)
+
+      assert has_element?(
+               lv,
+               ~s|#current_password_for_email[autocomplete="current-password"][placeholder="Current password"]|
+             )
+
+      assert has_element?(lv, ~s|#hidden_user_email[autocomplete="username"]|)
+      assert has_element?(lv, ~s|#password_form input[name="user[password]"][autocomplete="new-password"]|)
+
+      assert has_element?(
+               lv,
+               ~s|#password_form input[name="user[password_confirmation]"][autocomplete="new-password"]|
+             )
+
+      assert has_element?(
+               lv,
+               ~s|#current_password_for_password[autocomplete="current-password"][placeholder="Current password"]|
+             )
+
       assert html =~ "Change email"
-      assert html =~ "Change password"
       assert html =~ "Logged in as"
       assert html =~ user.email
       assert html =~ "font-bold"
