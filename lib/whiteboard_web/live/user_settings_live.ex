@@ -9,6 +9,19 @@ defmodule WhiteboardWeb.UserSettingsLive do
     ~H"""
     <div class="user-settings mx-auto w-full sm:w-[400px]">
       <Card.render>
+        <h3 class="mb-4">Theme</h3>
+        <.toggle_group
+          id="theme-switcher"
+          options={[
+            %{value: "light", label: "Light"},
+            %{value: "system", label: "System"},
+            %{value: "dark", label: "Dark"}
+          ]}
+          value={@theme}
+          phx-hook="ThemeSwitcher"
+          class="mb-12"
+        />
+
         <h3 class="mb-4">Change email address</h3>
 
         <div class="flex flex-col gap-y-12">
@@ -124,13 +137,15 @@ defmodule WhiteboardWeb.UserSettingsLive do
     password_changeset = Accounts.change_user_password(user)
 
     socket =
-      socket
-      |> assign(:current_password, nil)
-      |> assign(:email_form_current_password, nil)
-      |> assign(:current_email, user.email)
-      |> assign(:email_form, to_form(email_changeset))
-      |> assign(:password_form, to_form(password_changeset))
-      |> assign(:trigger_submit, false)
+      assign(socket,
+        theme: "system",
+        current_password: nil,
+        email_form_current_password: nil,
+        current_email: user.email,
+        email_form: to_form(email_changeset),
+        password_form: to_form(password_changeset),
+        trigger_submit: false
+      )
 
     {:ok, socket}
   end
@@ -195,5 +210,10 @@ defmodule WhiteboardWeb.UserSettingsLive do
       {:error, changeset} ->
         {:noreply, assign(socket, password_form: to_form(changeset))}
     end
+  end
+
+  def handle_event("set_theme", %{"theme" => theme}, socket)
+      when theme in ~w(light dark system) do
+    {:noreply, assign(socket, :theme, theme)}
   end
 end

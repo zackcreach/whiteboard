@@ -97,14 +97,19 @@ defmodule WhiteboardWeb.WorkoutsLiveTest do
         |> log_in_user(user)
         |> live(~p"/workouts")
 
+      document = parse_document!(html)
+
       nav_labels =
-        html
-        |> parse_document!()
+        document
         |> Floki.find("header a")
         |> Enum.map(&text_one!/1)
-        |> Enum.filter(&(&1 in ["Workouts", "Exercises", "Settings"]))
+        |> Enum.filter(&(&1 in ["Workouts", "Exercises"]))
 
-      assert ["Workouts", "Exercises", "Settings"] == nav_labels
+      assert ["Workouts", "Exercises"] == nav_labels
+
+      settings_link = Floki.find(document, "header a[aria-label='Settings']")
+      assert [_] = settings_link
+
       refute html =~ user.email
       refute html =~ "Logout"
     end

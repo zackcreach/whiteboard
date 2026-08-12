@@ -145,8 +145,7 @@ defmodule WhiteboardWeb.WorkoutsLive do
 
     socket =
       socket
-      |> assign(workouts_path: workouts_path(uri))
-      |> assign(workouts_pagination: pagination)
+      |> assign(workouts_path: workouts_path(uri), workouts_pagination: pagination)
       |> stream(:workouts, pagination.entries, reset: true)
       |> normalize_workouts_page(params["page"], pagination.current_page)
 
@@ -283,8 +282,7 @@ defmodule WhiteboardWeb.WorkoutsLive do
       case Training.get_workout(socket.assigns.page_owner, workout_id) do
         {:ok, %Workout{} = workout} ->
           socket
-          |> assign(workout_details_workout_id: workout.id)
-          |> assign(workout_details_form: workout_details_form(workout))
+          |> assign(workout_details_workout_id: workout.id, workout_details_form: workout_details_form(workout))
           |> close_workout_action_menu()
           |> close_delete_workout()
           |> refresh_workouts()

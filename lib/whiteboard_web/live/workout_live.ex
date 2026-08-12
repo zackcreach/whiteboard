@@ -431,21 +431,23 @@ defmodule WhiteboardWeb.WorkoutLive do
         read_only? = is_nil(current_user) or page_owner.id != current_user.id
 
         socket
-        |> assign(page_owner: page_owner)
-        |> assign(read_only?: read_only?)
-        |> assign(workout_form: workout_form)
-        |> assign(workout_details_open?: false)
-        |> assign(workout_details_form: workout_details_form(workout_form.data))
-        |> assign(exercise_names: Training.list_exercise_names(page_owner))
-        |> assign(selected_previous_exercise_ids: selected_previous_exercise_ids(page_owner, workout_form.data, %{}))
-        |> assign(replace_exercise_id: nil)
-        |> assign(replace_exercise_query: "")
-        |> assign(add_exercise_open: false)
-        |> assign(add_exercise_position: nil)
-        |> assign(add_exercise_query: "")
-        |> assign(action_menu_exercise_id: nil)
-        |> assign(workout_action_menu_id: nil)
-        |> assign(delete_workout_open?: false)
+        |> assign(
+          page_owner: page_owner,
+          read_only?: read_only?,
+          workout_form: workout_form,
+          workout_details_open?: false,
+          workout_details_form: workout_details_form(workout_form.data),
+          exercise_names: Training.list_exercise_names(page_owner),
+          selected_previous_exercise_ids: selected_previous_exercise_ids(page_owner, workout_form.data, %{}),
+          replace_exercise_id: nil,
+          replace_exercise_query: "",
+          add_exercise_open: false,
+          add_exercise_position: nil,
+          add_exercise_query: "",
+          action_menu_exercise_id: nil,
+          workout_action_menu_id: nil,
+          delete_workout_open?: false
+        )
         |> ok()
 
       {:error, :not_found} ->
@@ -593,8 +595,10 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   def handle_event("open_workout_details", _params, socket) do
     socket
-    |> assign(workout_details_open?: true)
-    |> assign(workout_details_form: workout_details_form(socket.assigns.workout_form.data))
+    |> assign(
+      workout_details_open?: true,
+      workout_details_form: workout_details_form(socket.assigns.workout_form.data)
+    )
     |> close_exercise_overlays()
     |> close_workout_action_menu()
     |> close_delete_workout()
@@ -700,9 +704,11 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   def handle_event("open_add_exercise", params, socket) do
     socket
-    |> assign(add_exercise_open: true)
-    |> assign(add_exercise_position: add_exercise_position(params))
-    |> assign(add_exercise_query: "")
+    |> assign(
+      add_exercise_open: true,
+      add_exercise_position: add_exercise_position(params),
+      add_exercise_query: ""
+    )
     |> close_replace_exercise()
     |> close_exercise_action_menu()
     |> close_workout_details()
@@ -750,8 +756,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
   def handle_event("open_replace_exercise", %{"exercise_id" => exercise_id}, socket) do
     socket
-    |> assign(replace_exercise_id: exercise_id)
-    |> assign(replace_exercise_query: "")
+    |> assign(replace_exercise_id: exercise_id, replace_exercise_query: "")
     |> close_add_exercise()
     |> close_exercise_action_menu()
     |> close_workout_details()
@@ -1059,16 +1064,11 @@ defmodule WhiteboardWeb.WorkoutLive do
   defp exercise_name(%Exercise{}), do: "Exercise"
 
   defp close_replace_exercise(socket) do
-    socket
-    |> assign(replace_exercise_id: nil)
-    |> assign(replace_exercise_query: "")
+    assign(socket, replace_exercise_id: nil, replace_exercise_query: "")
   end
 
   defp close_add_exercise(socket) do
-    socket
-    |> assign(add_exercise_open: false)
-    |> assign(add_exercise_position: nil)
-    |> assign(add_exercise_query: "")
+    assign(socket, add_exercise_open: false, add_exercise_position: nil, add_exercise_query: "")
   end
 
   defp close_exercise_action_menu(socket) do

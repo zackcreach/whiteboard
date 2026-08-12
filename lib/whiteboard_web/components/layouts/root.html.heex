@@ -28,8 +28,8 @@
         <p class="text-lg uppercase font-black tracking-tight">whiteboard</p>
       </a>
 
-      <div class="flex">
-        <ul class="flex items-center gap-4 [&>li]:text-xs mr-4">
+      <div class="flex items-center">
+        <ul class="flex items-center gap-4 [&>li]:text-xs mr-2">
           <%= if @current_user do %>
             <li>
               <.link href={~p"/workouts"}>
@@ -39,11 +39,6 @@
             <li>
               <.link href={~p"/exercises"}>
                 Exercises
-              </.link>
-            </li>
-            <li>
-              <.link href={~p"/users/settings"}>
-                Settings
               </.link>
             </li>
           <% else %>
@@ -59,15 +54,14 @@
             </li>
           <% end %>
         </ul>
-        <.icon_button
-          id="dark-mode-toggle"
-          label="Toggle dark mode"
+        <.icon_link
+          :if={@current_user}
+          href={~p"/users/settings"}
+          icon="hero-cog-6-tooth"
+          icon_class="size-5"
+          label="Settings"
           class="p-2 text-zinc-900 dark:text-white"
-          phx-hook="ThemeSwitcher"
-        >
-          <.icon name="hero-sun" class="relative z-10 hidden size-5 dark:block" />
-          <.icon name="hero-moon" class="relative z-10 block size-5 dark:hidden" />
-        </.icon_button>
+        />
       </div>
     </header>
     {@inner_content}

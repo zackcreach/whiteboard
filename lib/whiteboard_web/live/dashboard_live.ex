@@ -260,13 +260,15 @@ defmodule WhiteboardWeb.DashboardLive do
 
     socket =
       socket
-      |> assign(filters: filters)
-      |> assign(filter_form: to_form(filter_params(filters), as: :filters))
-      |> assign(user_options: user_options(socket.assigns.users))
-      |> assign(exercise_options: exercise_options(exercises))
-      |> assign(weight_graph_data: graph_data(weight_series))
-      |> assign(volume_graph_data: graph_data(volume_series))
-      |> assign(workouts_pagination: pagination)
+      |> assign(
+        filters: filters,
+        filter_form: to_form(filter_params(filters), as: :filters),
+        user_options: user_options(socket.assigns.users),
+        exercise_options: exercise_options(exercises),
+        weight_graph_data: graph_data(weight_series),
+        volume_graph_data: graph_data(volume_series),
+        workouts_pagination: pagination
+      )
       |> stream(:workouts, pagination.entries, reset: true)
 
     noreply(socket)

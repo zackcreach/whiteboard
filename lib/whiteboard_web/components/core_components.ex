@@ -219,6 +219,48 @@ defmodule WhiteboardWeb.CoreComponents do
   end
 
   @doc """
+  Renders a joined toggle button group (MUI-style).
+
+  Each option is a map with `:value` and `:label` keys. The `value` attr
+  indicates which option is currently active.
+
+  ## Examples
+
+      <.toggle_group
+        id="theme-switcher"
+        options={[%{value: "light", label: "Light"}, %{value: "dark", label: "Dark"}]}
+        value="light"
+      />
+  """
+  attr :id, :string, required: true
+  attr :options, :list, required: true
+  attr :value, :string, default: nil
+  attr :class, :any, default: nil
+  attr :rest, :global
+
+  def toggle_group(assigns) do
+    ~H"""
+    <div id={@id} class={["flex", @class]} {@rest}>
+      <button
+        :for={{option, index} <- Enum.with_index(@options)}
+        type="button"
+        data-value={option.value}
+        class={[
+          "flex-1 border px-4 h-[46px] cursor-pointer text-base font-semibold transition-colors duration-200",
+          index == 0 && "rounded-l-lg -mr-px",
+          index == length(@options) - 1 && "rounded-r-lg",
+          index > 0 && index < length(@options) - 1 && "-mr-px",
+          option.value == @value && "relative z-10 bg-zinc-200 dark:bg-stone-600 border-zinc-400 dark:border-zinc-400 text-zinc-900 dark:text-white",
+          option.value != @value && "bg-transparent border-zinc-300 dark:border-stone-600 text-stone-400 dark:text-stone-500"
+        ]}
+      >
+        {option.label}
+      </button>
+    </div>
+    """
+  end
+
+  @doc """
   Renders an icon-only button with an out-of-flow hover target.
   """
   attr :icon, :string, default: nil
@@ -235,20 +277,47 @@ defmodule WhiteboardWeb.CoreComponents do
     <button
       type={@type}
       aria-label={@label}
-      class={[
-        "relative isolate inline-flex shrink-0 cursor-pointer items-center leading-none outline-none transition-colors duration-200",
-        "after:pointer-events-none after:absolute after:inset-0 after:-z-10 after:bg-transparent after:transition-colors after:duration-200",
-        "hover:after:bg-zinc-200 focus-visible:after:bg-zinc-200 dark:hover:after:bg-stone-700 dark:focus-visible:after:bg-stone-700",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:after:bg-transparent dark:disabled:hover:after:bg-transparent",
-        @hover_class,
-        @class
-      ]}
+      class={icon_action_classes(@hover_class, @class)}
       {@rest}
     >
       <.icon :if={@icon} name={@icon} class={@icon_class} />
       {render_slot(@inner_block)}
     </button>
     """
+  end
+
+  @doc """
+  Renders an icon-only link with the same hover treatment as `icon_button`.
+  """
+  attr :icon, :string, default: nil
+  attr :label, :string, required: true
+  attr :class, :any, default: nil
+  attr :icon_class, :string, default: nil
+  attr :hover_class, :string, default: "after:rounded-lg"
+  attr :rest, :global, include: ~w(href navigate patch method)
+  slot :inner_block
+
+  def icon_link(assigns) do
+    ~H"""
+    <.link
+      aria-label={@label}
+      class={icon_action_classes(@hover_class, @class)}
+      {@rest}
+    >
+      <.icon :if={@icon} name={@icon} class={@icon_class} />
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
+
+  defp icon_action_classes(hover_class, extra_class) do
+    [
+      "relative isolate inline-flex shrink-0 cursor-pointer items-center leading-none outline-none transition-colors duration-200",
+      "after:pointer-events-none after:absolute after:inset-0 after:-z-10 after:bg-transparent after:transition-colors after:duration-200",
+      "hover:after:bg-zinc-200 focus-visible:after:bg-zinc-200 dark:hover:after:bg-stone-700 dark:focus-visible:after:bg-stone-700",
+      hover_class,
+      extra_class
+    ]
   end
 
   @doc """
@@ -304,8 +373,7 @@ defmodule WhiteboardWeb.CoreComponents do
     errors = if Phoenix.Component.used_input?(field), do: field.errors, else: []
 
     assigns
-    |> assign(field: nil, id: assigns.id || field.id)
-    |> assign(:errors, Enum.map(errors, &translate_error(&1)))
+    |> assign(field: nil, id: assigns.id || field.id, errors: Enum.map(errors, &translate_error(&1)))
     |> assign_new(:name, fn -> if assigns.multiple, do: field.name <> "[]", else: field.name end)
     |> assign_new(:value, fn -> field.value end)
     |> input()
