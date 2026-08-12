@@ -1,6 +1,6 @@
 import Config
 
-port = String.to_integer(System.get_env("PORT") || "5000")
+port = String.to_integer(System.get_env("PORT") || "4000")
 
 database_config =
   case {System.get_env("DATABASE_URL"), System.get_env("DATABASE_SOCKET_DIR")} do
