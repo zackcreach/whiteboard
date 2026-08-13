@@ -36,6 +36,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Install Nix
+        uses: DeterminateSystems/determinate-nix-action@61cbfe2efc2d4e7a8a6d56967c3c1058e846c858
+
       - name: Connect to tailnet
         id: tailscale
         uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8
