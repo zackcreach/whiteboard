@@ -2,6 +2,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/master";
     flake-utils.url = "github:numtide/flake-utils";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -9,6 +11,7 @@
       self,
       nixpkgs,
       flake-utils,
+      deploy-rs,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -79,7 +82,13 @@
           postBuild = ''
             mix do deps.loadpaths --no-deps-check + tailwind whiteboard --minify + esbuild whiteboard --minify + phx.digest
           '';
+          postInstall = ''
+            mkdir -p $out/share/prominent-tools
+            printf '%s\n' '${self.rev or self.dirtyRev or "0000000000000000000000000000000000000000"}' > $out/share/prominent-tools/revision
+          '';
         };
+
+        packages.deploy-rs = deploy-rs.packages.${system}.default;
 
         devShells.default = pkgs.mkShell {
           buildInputs = [
@@ -118,5 +127,23 @@
           '';
         };
       }
-    );
+    )
+    // {
+      deploy.nodes.symphony = {
+        hostname = "symphony";
+        sshUser = "prominent-deploy";
+        sshOpts = [
+          "-o"
+          "StrictHostKeyChecking=accept-new"
+        ];
+        remoteBuild = true;
+        profiles.whiteboard = {
+          user = "prominent-deploy";
+          profilePath = "/nix/var/nix/profiles/per-user/prominent-deploy/whiteboard";
+          path = deploy-rs.lib.x86_64-linux.activate.custom self.packages.x86_64-linux.default "sudo /run/current-system/sw/bin/prominent-tools-activate whiteboard";
+        };
+      };
+
+      checks.x86_64-linux = deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
+    };
 }
