@@ -13,6 +13,8 @@ Whiteboard is a Phoenix LiveView-based fitness tracking application that allows 
 
 ## Key Development Commands
 
+Use `nix develop -c mix setup` for a first checkout and `nix develop -c iex -S mix phx.server` for normal sessions. The Nix shell owns PostgreSQL 18 in `.direnv/postgresql-18`; use `nix develop -c dev-postgres status|stop` for lifecycle control. Docker Compose is only for container/release verification.
+
 ### Setup & Running
 ```bash
 mix setup                    # Install deps, setup DB, build assets
