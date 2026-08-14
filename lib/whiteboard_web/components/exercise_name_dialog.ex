@@ -68,7 +68,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
           />
         </div>
       </div>
-      <div class="max-h-56 overflow-y-auto">
+      <div class="h-56 overflow-y-auto">
         <FloatingDialog.row
           :for={exercise_name <- matching_exercise_names}
           id={"#{@option_id_prefix}-#{exercise_name.id}"}
@@ -81,7 +81,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
         >
           <span :if={exercise_name.id == @current_exercise_name_id} class="text-xs font-medium text-zinc-500 dark:text-stone-300">Current</span>
         </FloatingDialog.row>
-        <p :if={matching_exercise_names == []} class="flex h-[42px] items-center px-2 text-sm text-zinc-500 dark:text-stone-300">{@empty_message}</p>
+        <p :if={matching_exercise_names == []} class="flex h-full items-center justify-center px-2 text-center text-sm text-zinc-500 dark:text-stone-300">{@empty_message}</p>
       </div>
     </FloatingDialog.render>
     """

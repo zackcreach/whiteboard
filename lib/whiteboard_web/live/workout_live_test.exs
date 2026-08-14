@@ -1266,7 +1266,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       assert [empty_message] = Floki.find(document, "#add-exercise-popover p")
       assert "No matching exercises" == empty_message |> Floki.text() |> String.trim()
 
-      assert "flex h-[42px] items-center px-2 text-sm text-zinc-500 dark:text-stone-300" ==
+      assert "flex h-full items-center justify-center px-2 text-center text-sm text-zinc-500 dark:text-stone-300" ==
                attribute(empty_message, "class")
 
       assert [clear_button] = Floki.find(document, "#add-exercise-query-clear")
