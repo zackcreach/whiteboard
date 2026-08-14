@@ -92,6 +92,15 @@ defmodule Whiteboard.Training do
     TrainingRepo.update_exercise(user, params, id)
   end
 
+  def replace_exercise_name(%User{} = user, exercise_id, exercise_name_id) do
+    with {:ok, current_exercise} <- get_exercise(user, exercise_id),
+         {:ok, _exercise_name} <- get_exercise_name(user, exercise_name_id) do
+      current_exercise
+      |> replacement_exercise_params(user, exercise_name_id)
+      |> then(&update_exercise(user, &1, exercise_id))
+    end
+  end
+
   def delete_exercise(%User{} = user, id) do
     TrainingRepo.delete_exercise(user, id)
   end
@@ -172,5 +181,18 @@ defmodule Whiteboard.Training do
 
   def clear_exercise_sets(%User{} = user, exercise_id) do
     TrainingRepo.clear_exercise_sets(user, exercise_id)
+  end
+
+  defp replacement_exercise_params(current_exercise, user, exercise_name_id) do
+    case list_previous_exercises(user, current_exercise.workout_id, exercise_name_id) do
+      [%{sets: sets} | _previous_exercises] ->
+        %{
+          exercise_name_id: exercise_name_id,
+          sets: Enum.map(sets, &%{weight: &1.weight, reps: &1.reps})
+        }
+
+      [] ->
+        %{exercise_name_id: exercise_name_id}
+    end
   end
 end

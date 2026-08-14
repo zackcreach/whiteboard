@@ -50,6 +50,7 @@ defmodule WhiteboardWeb.WorkoutLive do
             position="top"
             exercise_names={@exercise_names}
             query={@add_exercise_query}
+            query_form_id="add-exercise-search-form"
             position_class="right-0 top-full mt-4"
           />
         </div>
@@ -787,7 +788,7 @@ defmodule WhiteboardWeb.WorkoutLive do
         socket
       ) do
     socket =
-      case update_current_workout_exercise(socket, exercise_id, %{exercise_name_id: exercise_name_id}) do
+      case replace_current_workout_exercise(socket, exercise_id, exercise_name_id) do
         {:ok, %Exercise{}} ->
           socket
           |> assign_workout_form()
@@ -1142,9 +1143,9 @@ defmodule WhiteboardWeb.WorkoutLive do
     |> noreply()
   end
 
-  defp update_current_workout_exercise(socket, exercise_id, params) do
+  defp replace_current_workout_exercise(socket, exercise_id, exercise_name_id) do
     with {:ok, %Exercise{}} <- current_workout_exercise(socket, exercise_id) do
-      Training.update_exercise(socket.assigns.page_owner, params, exercise_id)
+      Training.replace_exercise_name(socket.assigns.page_owner, exercise_id, exercise_name_id)
     end
   end
 

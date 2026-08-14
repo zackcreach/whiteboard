@@ -1322,10 +1322,8 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert %{
                options: [%{name: "Rope pushdown"}],
-               search_input: %{attributes: attributes}
+               search_input: %{attributes: %{"form" => "add-exercise-search-form"}}
              } = add_exercise_popover(document)
-
-      refute Map.has_key?(attributes, "form")
     end
 
     test "keeps the previous exercise selector visible after adding an exercise", %{conn: conn} do
@@ -1712,7 +1710,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   end
 
   describe "exercise swap popover" do
-    test "changes an exercise name in place and preserves the card contents", %{conn: conn} do
+    test "changes an exercise name in place and restores weight and reps from its latest prior use", %{conn: conn} do
       %{
         workout: workout,
         dips: dips,
@@ -1920,14 +1918,16 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                  set_rows: [
                    %{
                      label: "1",
-                     notes_input: %{attributes: %{"value" => "controlled"}},
-                     reps_input: %{attributes: %{"value" => "8"}},
-                     weight_input: %{attributes: %{"value" => "45.0"}}
+                     notes_input: %{attributes: attributes},
+                     reps_input: %{attributes: %{"value" => "4"}},
+                     weight_input: %{attributes: %{"value" => "70.0"}}
                    }
                  ]
                },
                %{id: ^last_card_id, title: "Squat"}
              ] = exercise_cards(document)
+
+      refute Map.has_key?(attributes, "value")
 
       assert [] = Floki.find(document, "#replace-exercise-popover-#{middle_exercise.id}")
 
@@ -1949,7 +1949,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                  exercise_name_id: ^pullups_id,
                  exercise_name: %{name: "Pullups"},
                  notes: "slow negative",
-                 sets: [%{weight: 45.0, reps: 8, notes: "controlled"}]
+                 sets: [%{weight: 70.0, reps: 4, notes: nil}]
                },
                %{id: ^last_exercise_id, exercise_name: %{name: "Squat"}}
              ] = updated_workout.exercises

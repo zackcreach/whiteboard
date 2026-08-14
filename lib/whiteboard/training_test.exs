@@ -466,6 +466,70 @@ defmodule Whiteboard.TrainingTest do
               }} = Training.replace_exercise(user, previous_exercise.id, current_exercise.id)
     end
 
+    test "replaces an exercise name and copies sets from its newest prior instance", %{
+      user: user,
+      exercise_name: exercise_name
+    } do
+      replacement_exercise_name = Factory.insert(:exercise_name, user: user)
+      current_workout = Factory.insert(:workout, user: user)
+      older_workout = Factory.insert(:workout, user: user)
+      newer_workout = Factory.insert(:workout, user: user)
+
+      current_exercise =
+        Factory.insert(:exercise,
+          workout: current_workout,
+          exercise_name: exercise_name,
+          notes: "keep these notes",
+          sets: [Factory.build(:set, weight: 95.0, reps: 3, notes: "replace this")]
+        )
+
+      Factory.insert(:exercise,
+        workout: older_workout,
+        exercise_name: replacement_exercise_name,
+        sets: [Factory.build(:set, weight: 45.0, reps: 10, notes: "older")]
+      )
+
+      Factory.insert(:exercise,
+        workout: newer_workout,
+        exercise_name: replacement_exercise_name,
+        sets: [Factory.build(:set, weight: 65.0, reps: 6, notes: "newer")]
+      )
+
+      assert {:ok,
+              %Exercise{
+                exercise_name_id: replacement_exercise_name_id,
+                notes: "keep these notes",
+                sets: [%{weight: 65.0, reps: 6, notes: nil}]
+              }} =
+               Training.replace_exercise_name(user, current_exercise.id, replacement_exercise_name.id)
+
+      assert replacement_exercise_name.id == replacement_exercise_name_id
+    end
+
+    test "replaces an exercise name without history while retaining its sets", %{
+      user: user,
+      exercise_name: exercise_name
+    } do
+      replacement_exercise_name = Factory.insert(:exercise_name, user: user)
+      workout = Factory.insert(:workout, user: user)
+
+      current_exercise =
+        Factory.insert(:exercise,
+          workout: workout,
+          exercise_name: exercise_name,
+          sets: [Factory.build(:set, weight: 95.0, reps: 3, notes: "keep this")]
+        )
+
+      assert {:ok,
+              %Exercise{
+                exercise_name_id: replacement_exercise_name_id,
+                sets: [%{weight: 95.0, reps: 3, notes: "keep this"}]
+              }} =
+               Training.replace_exercise_name(user, current_exercise.id, replacement_exercise_name.id)
+
+      assert replacement_exercise_name.id == replacement_exercise_name_id
+    end
+
     test "creates and deletes sets only for the exercise owner", %{
       user: user,
       other_user: other_user,
