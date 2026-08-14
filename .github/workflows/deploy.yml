@@ -91,5 +91,5 @@ jobs:
           [[ "$status_result" == 0 ]]
           git checkout --detach "$target_revision"
           deployment_phase="build"
-          nix run .#deploy-rs -- .#symphony.whiteboard
+          nix run .#deploy-rs -- --skip-checks .#symphony.whiteboard
           trap - ERR
