@@ -1242,6 +1242,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
       document = parse_document!(html)
 
       assert %{
+               attributes: %{"class" => popover_class},
                options: options,
                search_input: %{
                  attributes: %{
@@ -1251,19 +1252,37 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                }
              } = add_exercise_popover(document)
 
+      assert popover_class =~ "w-[300px]"
+
       assert ["Rope pushdown", "Skull crushers"] == Enum.map(options, & &1.name)
+
+      html =
+        lv
+        |> element("#add-exercise-query")
+        |> render_change(%{"add_exercise_query" => "asdf"})
+
+      document = parse_document!(html)
+
+      assert [empty_message] = Floki.find(document, "#add-exercise-popover p")
+      assert "No matching exercises" == empty_message |> Floki.text() |> String.trim()
+
+      assert "flex h-[42px] items-center px-2 text-sm text-zinc-500 dark:text-stone-300" ==
+               attribute(empty_message, "class")
 
       assert [clear_button] = Floki.find(document, "#add-exercise-query-clear")
 
       assert %{
-               attributes: %{
-                 "aria-label" => "Clear exercise search",
-                 "id" => "add-exercise-query-clear",
-                 "phx-click" => "filter_add_exercises",
-                 "phx-value-value" => "",
-                 "type" => "button"
-               }
+               attributes:
+                 %{
+                   "aria-label" => "Clear exercise search",
+                   "id" => "add-exercise-query-clear",
+                   "phx-click" => "filter_add_exercises",
+                   "phx-value-value" => "",
+                   "type" => "button"
+                 } = attributes
              } = button_details(clear_button)
+
+      assert attributes["class"] =~ "!absolute"
 
       html =
         lv

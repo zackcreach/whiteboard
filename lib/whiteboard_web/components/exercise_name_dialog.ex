@@ -37,6 +37,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
       close_id={@cancel_id}
       close_label={@cancel_label}
       position_class={@position_class}
+      width_class="w-[300px] max-w-[calc(100vw-2rem)]"
       focus_target={"##{@query_id}"}
     >
       <% matching_exercise_names = filtered_exercise_names(@exercise_names, @query) %>
@@ -62,7 +63,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
             icon="hero-x-mark size-4"
             phx-click={@filter_event}
             phx-value-value=""
-            class="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 justify-center text-zinc-500 hover:text-zinc-900 dark:text-stone-300 dark:hover:text-stone-100"
+            class="!absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 justify-center text-zinc-500 hover:text-zinc-900 dark:text-stone-300 dark:hover:text-stone-100"
             hover_class="after:h-6 after:w-6 after:rounded"
           />
         </div>
@@ -80,7 +81,7 @@ defmodule WhiteboardWeb.Components.ExerciseNameDialog do
         >
           <span :if={exercise_name.id == @current_exercise_name_id} class="text-xs font-medium text-zinc-500 dark:text-stone-300">Current</span>
         </FloatingDialog.row>
-        <p :if={matching_exercise_names == []} class="px-2 py-3 text-sm text-zinc-500 dark:text-stone-300">{@empty_message}</p>
+        <p :if={matching_exercise_names == []} class="flex h-[42px] items-center px-2 text-sm text-zinc-500 dark:text-stone-300">{@empty_message}</p>
       </div>
     </FloatingDialog.render>
     """
