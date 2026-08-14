@@ -4,6 +4,10 @@
     flake-utils.url = "github:numtide/flake-utils";
     deploy-rs.url = "github:serokell/deploy-rs";
     deploy-rs.inputs.nixpkgs.follows = "nixpkgs";
+    heroicons = {
+      url = "github:tailwindlabs/heroicons/v2.2.0";
+      flake = false;
+    };
   };
 
   outputs =
@@ -12,6 +16,7 @@
       nixpkgs,
       flake-utils,
       deploy-rs,
+      heroicons,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -28,12 +33,46 @@
         elixir = beamBuilder.elixir_1_20;
         releaseSource = ./.;
         releaseVersion = "0.1.0";
-        releaseDependencies = beamBuilder.fetchMixDeps {
-          pname = "whiteboard-mix-deps";
-          version = releaseVersion;
-          src = releaseSource;
-          hash = "sha256-Pzey2DSxqxl9HkuFCVZ2Rlx2D1GfsZTnxpyxKNaixPw=";
+        mixNixDeps = import ./deps.nix {
+          inherit (pkgs) lib;
+          beamPackages = beamBuilder;
+          overrides = _final: previous: {
+            lazy_html = previous.lazy_html.overrideAttrs (_old: {
+              preBuild = ''
+                export HOME="$TMPDIR"
+                export XDG_CACHE_HOME="$TMPDIR"
+              '';
+            });
+            uxid = previous.uxid.overrideAttrs (_old: {
+              postPatch = ''
+                substituteInPlace mix.exs \
+                  --replace-fail "elixirc_options: [warnings_as_errors: true]" \
+                  "elixirc_options: [warnings_as_errors: false]"
+              '';
+            });
+          };
         };
+        updateMixDeps = pkgs.writeShellApplication {
+          name = "update-mix-deps";
+          runtimeInputs = [ pkgs.mix2nix ];
+          text = ''
+            mix2nix mix.lock | sed -e '$d' > deps.nix
+          '';
+        };
+        dependencyFreshness =
+          pkgs.runCommand "whiteboard-mix-dependencies-fresh"
+            {
+              nativeBuildInputs = [ pkgs.mix2nix ];
+            }
+            ''
+              mix2nix ${./mix.lock} | sed -e '$d' > generated-deps.nix
+              if ! cmp --silent generated-deps.nix ${./deps.nix}; then
+                echo "deps.nix is stale. Run: nix run .#update-mix-deps" >&2
+                diff --unified ${./deps.nix} generated-deps.nix >&2 || true
+                exit 1
+              fi
+              touch $out
+            '';
         devPostgres = pkgs.writeShellApplication {
           name = "dev-postgres";
           runtimeInputs = [ pkgs.postgresql_18_jit ];
@@ -76,7 +115,9 @@
           pname = "whiteboard";
           version = releaseVersion;
           src = releaseSource;
-          mixFodDeps = releaseDependencies;
+          inherit mixNixDeps;
+          nativeBuildInputs = [ dependencyFreshness ];
+          HEROICONS_PATH = "${heroicons}/optimized";
           MIX_ESBUILD_PATH = "${esbuild}/bin/esbuild";
           MIX_TAILWIND_PATH = "${tailwindcss_4}/bin/tailwindcss";
           postBuild = ''
@@ -84,11 +125,21 @@
           '';
           postInstall = ''
             mkdir -p $out/share/prominent-tools
-            printf '%s\n' '${self.rev or self.dirtyRev or "0000000000000000000000000000000000000000"}' > $out/share/prominent-tools/revision
+            printf '%s\n' '${
+              self.rev or self.dirtyRev or "0000000000000000000000000000000000000000"
+            }' > $out/share/prominent-tools/revision
           '';
         };
 
         packages.deploy-rs = deploy-rs.packages.${system}.default;
+        packages.dependency-freshness = dependencyFreshness;
+
+        apps.update-mix-deps = {
+          type = "app";
+          program = "${updateMixDeps}/bin/update-mix-deps";
+        };
+
+        checks.dependency-freshness = dependencyFreshness;
 
         devShells.default = pkgs.mkShell {
           buildInputs = [
@@ -101,6 +152,7 @@
             devPostgres
             esbuild
             tailwindcss_4
+            mix2nix
             glibcLocales
           ]
           ++ optional stdenv.isLinux inotify-tools
@@ -110,6 +162,7 @@
 
           MIX_ESBUILD_PATH = "${esbuild}/bin/esbuild";
           MIX_TAILWIND_PATH = "${tailwindcss_4}/bin/tailwindcss";
+          HEROICONS_PATH = "${heroicons}/optimized";
 
           shellHook = ''
             alias ips='iex -S mix phx.server'
@@ -148,6 +201,8 @@
         };
       };
 
-      checks.x86_64-linux = deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
+      checks.x86_64-linux = deploy-rs.lib.x86_64-linux.deployChecks self.deploy // {
+        dependency-freshness = self.packages.x86_64-linux.dependency-freshness;
+      };
     };
 }

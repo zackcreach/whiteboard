@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
 export default ({ matchComponents, theme }) => {
-  const iconsDir = join(process.cwd(), 'deps/heroicons/optimized')
+  const iconsDir = process.env.HEROICONS_PATH
   const values = {}
   const icons = [
     ['', '/24/outline'],

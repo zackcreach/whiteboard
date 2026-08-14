@@ -51,8 +51,6 @@ defmodule Whiteboard.MixProject do
       {:finch, "~> 0.23.0"},
       {:floki, "~> 0.38.4", only: :test},
       {:gettext, "~> 1.0.2"},
-      {:heroicons,
-       github: "tailwindlabs/heroicons", tag: "v2.2.0", sparse: "optimized", app: false, compile: false, depth: 1},
       {:jason, "~> 1.4.5"},
       {:lazy_html, "~> 0.1.12", only: :test},
       {:phoenix, "~> 1.8.9"},

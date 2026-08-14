@@ -23,6 +23,8 @@ nix develop -c iex -S mix phx.server
 
 The Nix development shell provides the pinned Erlang, Elixir, Node, PostgreSQL client, and asset tooling. It automatically starts an isolated PostgreSQL server for this checkout and connects through a Unix socket under `.direnv/postgresql-18`. Use `nix develop -c dev-postgres status` or `nix develop -c dev-postgres stop` for lifecycle control. `DATABASE_URL` or `DATABASE_SOCKET_DIR` uses an external database instead.
 
+After changing Mix dependencies, run `nix run .#update-mix-deps` and commit `mix.lock` with the generated `deps.nix`. Finish with `nix flake check`.
+
 Without Nix, use [`flake.nix`](flake.nix) as the source of truth for tool versions and install matching Erlang, Elixir, Node, PostgreSQL, and asset tooling with mise, asdf, or equivalent tooling. Configure PostgreSQL on localhost, with `DATABASE_SOCKET_DIR`, or with a loopback `DATABASE_URL` before running `mix setup`.
 
 Now you can visit [`localhost:5000`](http://localhost:5000) from your browser.
