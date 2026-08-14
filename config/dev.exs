@@ -107,5 +107,10 @@ config :whiteboard, WhiteboardWeb.Endpoint,
 # Global settings
 config :whiteboard, :base_url, "http://localhost:#{port}"
 
+config :whiteboard, :turnstile,
+  enabled: true,
+  site_key: "1x00000000000000000000AA",
+  secret_key: "1x0000000000000000000000000000000AA"
+
 # Enable dev routes for dashboard and mailbox
 config :whiteboard, dev_routes: true

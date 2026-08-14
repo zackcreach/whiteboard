@@ -80,6 +80,15 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
+  config :whiteboard, :turnstile,
+    enabled: true,
+    site_key:
+      System.get_env("TURNSTILE_SITE_KEY") ||
+        raise("environment variable TURNSTILE_SITE_KEY is missing."),
+    secret_key:
+      System.get_env("TURNSTILE_SECRET_KEY") ||
+        raise("environment variable TURNSTILE_SECRET_KEY is missing.")
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

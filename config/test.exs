@@ -55,6 +55,8 @@ config :whiteboard, Whiteboard.Repo,
   # you can enable the server option below.
   pool_size: System.schedulers_online() * 2
 
+config :whiteboard, :turnstile, enabled: false
+
 config :whiteboard, WhiteboardWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "Mf7xNhePKXXOtiRJ8ElznNYe5i7+zwfCUSz3QroyvTvz+TlXjzCnCAo8kSnDbrrd",

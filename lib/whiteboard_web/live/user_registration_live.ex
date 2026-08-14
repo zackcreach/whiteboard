@@ -4,6 +4,7 @@ defmodule WhiteboardWeb.UserRegistrationLive do
 
   alias Whiteboard.Accounts
   alias Whiteboard.Accounts.User
+  alias Whiteboard.Turnstile
   alias WhiteboardWeb.Components.Card
 
   def render(assigns) do
@@ -36,6 +37,10 @@ defmodule WhiteboardWeb.UserRegistrationLive do
           <.input field={@form[:email]} type="email" placeholder="Email" required />
           <.input field={@form[:password]} type="password" placeholder="Password" required />
 
+          <div phx-update="ignore" id="turnstile-container">
+            <div class="cf-turnstile" data-sitekey={@turnstile_site_key}></div>
+          </div>
+
           <:actions>
             <.button phx-disable-with="Creating account..." class="w-full">Create an account</.button>
           </:actions>
@@ -47,26 +52,30 @@ defmodule WhiteboardWeb.UserRegistrationLive do
 
   def mount(_params, _session, socket) do
     changeset = Accounts.change_user_registration(%User{})
+    turnstile_site_key = Application.get_env(:whiteboard, :turnstile)[:site_key]
 
     socket =
       socket
-      |> assign(trigger_submit: false, check_errors: false)
+      |> assign(trigger_submit: false, check_errors: false, turnstile_site_key: turnstile_site_key)
       |> assign_form(changeset)
 
     {:ok, socket, temporary_assigns: [form: nil]}
   end
 
-  def handle_event("save", %{"user" => user_params}, socket) do
-    case Accounts.register_user(user_params) do
-      {:ok, user} ->
-        {:ok, _} =
-          Accounts.deliver_user_confirmation_instructions(
-            user,
-            &url(~p"/users/confirm/#{&1}")
-          )
+  def handle_event("save", %{"user" => user_params} = params, socket) do
+    with :ok <- Turnstile.verify(params["cf-turnstile-response"]),
+         {:ok, user} <- Accounts.register_user(user_params) do
+      {:ok, _} =
+        Accounts.deliver_user_confirmation_instructions(
+          user,
+          &url(~p"/users/confirm/#{&1}")
+        )
 
-        changeset = Accounts.change_user_registration(user)
-        {:noreply, socket |> assign(trigger_submit: true) |> assign_form(changeset)}
+      changeset = Accounts.change_user_registration(user)
+      {:noreply, socket |> assign(trigger_submit: true) |> assign_form(changeset)}
+    else
+      {:error, :verification_failed} ->
+        {:noreply, put_flash(socket, :error, "Verification failed. Please try again.")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, socket |> assign(check_errors: true) |> assign_form(changeset)}
