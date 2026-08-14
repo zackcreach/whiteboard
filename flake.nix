@@ -33,15 +33,25 @@
         elixir = beamBuilder.elixir_1_20;
         releaseSource = ./.;
         releaseVersion = "0.1.0";
+        lexborSource = pkgs.fetchFromGitHub {
+          owner = "lexbor";
+          repo = "lexbor";
+          rev = "244b84956a6dc7eec293781d051354f351274c46";
+          sha256 = "1d4w57lxiysfjf34jz9igvv5ipzn6xc2wf0sgvmd0srwcna7zsis";
+        };
         mixNixDeps = import ./deps.nix {
           inherit (pkgs) lib;
           beamPackages = beamBuilder;
           overrides = _final: previous: {
             lazy_html = previous.lazy_html.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.git ];
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.cmake ];
+              dontUseCmakeConfigure = true;
               preBuild = ''
                 export HOME="$TMPDIR"
                 export XDG_CACHE_HOME="$TMPDIR"
+                mkdir -p _build/c/third_party/lexbor
+                cp -R ${lexborSource} _build/c/third_party/lexbor/244b84956a6dc7eec293781d051354f351274c46
+                chmod -R u+w _build/c/third_party/lexbor
               '';
             });
             uxid = previous.uxid.overrideAttrs (_old: {
