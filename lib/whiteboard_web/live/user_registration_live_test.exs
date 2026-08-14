@@ -10,7 +10,7 @@ defmodule WhiteboardWeb.UserRegistrationLiveTest do
 
       assert html =~ "Register"
       assert html =~ "Log in"
-      assert html =~ "data-size=\"invisible\""
+      refute html =~ "data-size="
     end
 
     test "redirects if already logged in", %{conn: conn} do

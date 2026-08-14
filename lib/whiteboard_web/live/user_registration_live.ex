@@ -38,7 +38,7 @@ defmodule WhiteboardWeb.UserRegistrationLive do
           <.input field={@form[:password]} type="password" placeholder="Password" required />
 
           <div phx-update="ignore" id="turnstile-container">
-            <div class="cf-turnstile" data-sitekey={@turnstile_site_key} data-size="invisible"></div>
+            <div class="cf-turnstile" data-sitekey={@turnstile_site_key}></div>
           </div>
 
           <:actions>
