@@ -18,28 +18,30 @@
 
 :root {
   color-scheme: light;
+  --primary-color: var(--color-black);
   --chart-grid-color: var(--color-stone-400);
-  --chart-series-1: var(--color-blue-600);
-  --chart-series-2: var(--color-red-600);
-  --chart-series-3: var(--color-green-600);
-  --chart-series-4: var(--color-violet-600);
-  --chart-series-5: var(--color-orange-600);
-  --chart-series-6: var(--color-cyan-600);
-  --chart-series-7: var(--color-pink-600);
-  --chart-series-8: var(--color-indigo-600);
+  --chart-series-1: var(--primary-color);
+  --chart-series-2: var(--color-stone-700);
+  --chart-series-3: var(--color-stone-500);
+  --chart-series-4: var(--color-stone-800);
+  --chart-series-5: var(--color-stone-400);
+  --chart-series-6: var(--color-stone-600);
+  --chart-series-7: var(--color-stone-300);
+  --chart-series-8: var(--color-stone-900);
 }
 
 .dark {
   color-scheme: dark;
+  --primary-color: var(--color-white);
   --chart-grid-color: var(--color-stone-600);
-  --chart-series-1: var(--color-blue-400);
-  --chart-series-2: var(--color-red-400);
-  --chart-series-3: var(--color-green-400);
-  --chart-series-4: var(--color-violet-400);
-  --chart-series-5: var(--color-orange-400);
-  --chart-series-6: var(--color-cyan-400);
-  --chart-series-7: var(--color-pink-400);
-  --chart-series-8: var(--color-indigo-400);
+  --chart-series-1: var(--primary-color);
+  --chart-series-2: var(--color-stone-300);
+  --chart-series-3: var(--color-stone-500);
+  --chart-series-4: var(--color-stone-200);
+  --chart-series-5: var(--color-stone-600);
+  --chart-series-6: var(--color-stone-400);
+  --chart-series-7: var(--color-stone-700);
+  --chart-series-8: var(--color-stone-100);
 }
 
 .dark .user-settings input:autofill {
