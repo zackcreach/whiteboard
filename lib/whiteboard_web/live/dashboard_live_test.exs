@@ -8,7 +8,7 @@ defmodule WhiteboardWeb.DashboardLiveTest do
   alias Whiteboard.Training
 
   describe "workout history dashboard" do
-    test "renders sections, default filters, chart, and scoped table in order", %{conn: conn} do
+    test "renders sections, signed-in default filters, chart, and scoped table in order", %{conn: conn} do
       user = user_fixture()
       other_user = user_fixture()
       exercise_name = insert(:exercise_name, user: user, name: "Bench Press")
@@ -25,10 +25,10 @@ defmodule WhiteboardWeb.DashboardLiveTest do
       assert html =~ "Weight"
       assert html =~ "Volume"
       assert html =~ "The heaviest set weight recorded in each workout"
-      assert html =~ "Total volume per workout: sum(weight × reps) across all matching sets"
+      assert html =~ "Total volume per workout (weight × reps across all matching sets)"
       assert html =~ "Previous workouts"
       assert html =~ workout.name
-      assert html =~ "Other workout"
+      refute html =~ "Other workout"
       assert html =~ "weight-chart"
       assert html =~ "volume-chart"
       assert html =~ user.email
@@ -39,21 +39,71 @@ defmodule WhiteboardWeb.DashboardLiveTest do
         |> Floki.find("#weight-chart svg text")
         |> Enum.map(&(&1 |> Floki.text() |> String.trim()))
 
-      assert ["0.0", "50.0", "100.0", "150.0", "200.0"] -- weight_axis_labels == []
-
-      month_labels = Enum.filter(weight_axis_labels, &Regex.match?(~r/^[A-Z][a-z]{2} \d+$/, &1))
-
-      assert [_ | _] = month_labels
-      assert Enum.all?(month_labels, &String.ends_with?(&1, " 1"))
-      assert [_ | _] = html |> Floki.parse_document!() |> Floki.find("#weight-users")
-      assert [_ | _] = html |> Floki.parse_document!() |> Floki.find("#volume-users")
+      assert ["0", "50", "100", "150", "200"] -- weight_axis_labels == []
+      assert [] == html |> Floki.parse_document!() |> Floki.find("#weight-users")
+      assert [] == html |> Floki.parse_document!() |> Floki.find("#volume-users")
       assert section_position(html, "Dashboard") < section_position(html, "Weight")
       assert section_position(html, "Filters") < section_position(html, "Workout stats")
       assert section_position(html, "Workout stats") < section_position(html, "Weight")
       assert section_position(html, "Weight") < section_position(html, "Volume")
       assert section_position(html, "Volume") < section_position(html, "Previous workouts")
       document = Floki.parse_document!(html)
+      assert [_selected_user] = Floki.find(document, "#filters_user option[value='#{user.id}'][selected]")
+      assert [_selected_exercise] = Floki.find(document, "#filters_exercise option[value=all][selected]")
+      assert [_selected_timeframe] = Floki.find(document, "#filters_timeframe option[value='1m'][selected]")
+    end
+
+    test "uses public one-year defaults for guests", %{conn: conn} do
+      user = user_fixture()
+      other_user = user_fixture()
+      exercise_name = insert(:exercise_name, user: user, name: "Deadlift")
+      other_exercise_name = insert(:exercise_name, user: other_user, name: "Squat")
+      workout = insert_weighted_workout(user, exercise_name, "Public deadlift", 315.0)
+      other_workout = insert_weighted_workout(other_user, other_exercise_name, "Other public workout", 225.0)
+
+      assert {:ok, _live_view, html} = live(conn, ~p"/")
+
+      assert html =~ workout.name
+      assert html =~ other_workout.name
+      document = Floki.parse_document!(html)
       assert [_selected_user] = Floki.find(document, "#filters_user option[value=all][selected]")
+      assert [_selected_timeframe] = Floki.find(document, "#filters_timeframe option[value='1y'][selected]")
+      assert [] == Floki.find(document, "#filters_exercise")
+    end
+
+    test "applies signed-in defaults to omitted query filters", %{conn: conn} do
+      user = user_fixture()
+      other_user = user_fixture()
+      exercise_name = insert(:exercise_name, user: user, name: "Bench Press")
+      workout = insert_weighted_workout(user, exercise_name, "My bench", 145.0)
+      insert(:workout, user: other_user, name: "Other workout")
+
+      assert {:ok, _live_view, html} = conn |> log_in_user(user) |> live(~p"/?exercise=bench%20press")
+
+      assert html =~ workout.name
+      refute html =~ "Other workout"
+      document = Floki.parse_document!(html)
+      assert [_selected_user] = Floki.find(document, "#filters_user option[value='#{user.id}'][selected]")
+      assert [_selected_exercise] = Floki.find(document, "#filters_exercise option[value='bench press'][selected]")
+      assert [_selected_timeframe] = Floki.find(document, "#filters_timeframe option[value='1m'][selected]")
+    end
+
+    test "applies guest defaults to omitted query filters", %{conn: conn} do
+      user = user_fixture()
+      other_user = user_fixture()
+      exercise_name = insert(:exercise_name, user: user, name: "Deadlift")
+      other_exercise_name = insert(:exercise_name, user: other_user, name: "Squat")
+      workout = insert_weighted_workout(user, exercise_name, "Public deadlift", 315.0)
+      other_workout = insert_weighted_workout(other_user, other_exercise_name, "Other public workout", 225.0)
+
+      assert {:ok, _live_view, html} = live(conn, ~p"/?user=all")
+
+      assert html =~ workout.name
+      assert html =~ other_workout.name
+      document = Floki.parse_document!(html)
+      assert [_selected_user] = Floki.find(document, "#filters_user option[value=all][selected]")
+      assert [_selected_timeframe] = Floki.find(document, "#filters_timeframe option[value='1y'][selected]")
+      assert [] == Floki.find(document, "#filters_exercise")
     end
 
     test "persists filters in the URL and updates both graph and table for user changes", %{conn: conn} do

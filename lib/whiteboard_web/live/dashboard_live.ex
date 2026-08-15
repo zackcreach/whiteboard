@@ -77,7 +77,7 @@ defmodule WhiteboardWeb.DashboardLive do
           <.progression_panel
             id="volume"
             title="Volume"
-            subtitle="Total volume per workout: sum(weight × reps) across all matching sets"
+            subtitle="Total volume per workout (weight × reps across all matching sets)"
             axis_label="Volume"
             empty_message="No sets with weight and reps match these filters."
             graph_data={@volume_graph_data}
@@ -226,7 +226,7 @@ defmodule WhiteboardWeb.DashboardLive do
         text-anchor="middle"
         style="font-size: 0.75rem; line-height: 1rem"
       >
-        {Calendar.strftime(occurred_at, "%b %-d")}
+        {Calendar.strftime(occurred_at, "%-m/%-d")}
       </text>
       <line
         x1={x_pixel}
@@ -291,25 +291,29 @@ defmodule WhiteboardWeb.DashboardLive do
   end
 
   defp parse_filters(params, current_user, users) do
-    user = normalize_user(params["user"], current_user, users)
+    defaults = default_filters(current_user)
+    user = normalize_user(params["user"], current_user, users, defaults.user)
 
     scope = user_scope(user)
 
     %{
       user: user,
       scope: scope,
-      exercise: exercise_for_scope(scope, normalize_exercise_value(params["exercise"])),
-      timeframe_value: normalize_timeframe_value(params["timeframe"]),
-      timeframe: timeframe(params["timeframe"])
+      exercise: exercise_for_scope(scope, normalize_exercise_value(params["exercise"] || defaults.exercise)),
+      timeframe_value: normalize_timeframe_value(params["timeframe"] || defaults.timeframe_value),
+      timeframe: timeframe(params["timeframe"] || defaults.timeframe_value)
     }
   end
 
-  defp normalize_user(nil, _current_user, _users), do: "all"
-  defp normalize_user("me", %{} = current_user, _users), do: current_user.id
-  defp normalize_user("me", nil, _users), do: "all"
-  defp normalize_user("all", _current_user, _users), do: "all"
+  defp default_filters(%{} = current_user), do: %{user: current_user.id, exercise: "all", timeframe_value: "1m"}
+  defp default_filters(nil), do: %{user: "all", exercise: "all", timeframe_value: "1y"}
 
-  defp normalize_user(user_id, _current_user, users) do
+  defp normalize_user(nil, _current_user, _users, default_user), do: default_user
+  defp normalize_user("me", %{} = current_user, _users, _default_user), do: current_user.id
+  defp normalize_user("me", nil, _users, _default_user), do: "all"
+  defp normalize_user("all", _current_user, _users, _default_user), do: "all"
+
+  defp normalize_user(user_id, _current_user, users, _default_user) do
     if Enum.any?(users, &(&1.id == user_id)), do: user_id, else: "all"
   end
 
@@ -319,7 +323,6 @@ defmodule WhiteboardWeb.DashboardLive do
   defp exercise_for_scope(:all, _exercise), do: "all"
   defp exercise_for_scope(_scope, exercise), do: exercise
 
-  defp normalize_exercise_value(nil), do: "all"
   defp normalize_exercise_value(exercise), do: String.downcase(exercise)
 
   defp normalize_exercise(filters, exercises) do
@@ -358,8 +361,7 @@ defmodule WhiteboardWeb.DashboardLive do
     points = Enum.flat_map(series, & &1.points)
     first = points |> Enum.map(& &1.occurred_at) |> Enum.min_by(&DateTime.to_unix(&1, :microsecond))
     last = points |> Enum.map(& &1.occurred_at) |> Enum.max_by(&DateTime.to_unix(&1, :microsecond))
-    first = month_start(first)
-    last = last |> month_start() |> DateTime.shift(month: 1)
+    {first, last} = graph_range(first, last)
     maximum_weight = points |> Enum.map(& &1.weight) |> Enum.max()
     occurred_at_scale = Plox.datetime_scale(first, last)
     x_axis_ticks = month_ticks(first, last)
@@ -387,17 +389,23 @@ defmodule WhiteboardWeb.DashboardLive do
     %{graph: graph, series: graph_series, x_axis_ticks: x_axis_ticks, y_axis_ticks: y_axis_ticks}
   end
 
-  defp month_start(date_time) do
-    %{date_time | day: 1, hour: 0, minute: 0, second: 0, microsecond: {0, 0}}
+  defp graph_range(first, last) do
+    case DateTime.diff(last, first) do
+      seconds when seconds < 1 -> {DateTime.shift(first, day: -1), DateTime.shift(last, day: 1)}
+      _seconds -> {first, last}
+    end
   end
 
   defp month_ticks(first, last) do
-    months = (last.year - first.year) * 12 + last.month - first.month
-    interval = months |> Kernel./(5) |> ceil() |> max(1)
-
     first
-    |> Stream.iterate(&DateTime.shift(&1, month: interval))
-    |> Enum.take_while(&(DateTime.compare(&1, last) != :gt))
+    |> month_start()
+    |> DateTime.shift(month: 1)
+    |> Stream.iterate(&DateTime.shift(&1, month: 1))
+    |> Enum.take_while(&DateTime.before?(&1, last))
+  end
+
+  defp month_start(date_time) do
+    %{date_time | day: 1, hour: 0, minute: 0, second: 0, microsecond: {0, 0}}
   end
 
   defp y_axis_scale(maximum) do
@@ -438,6 +446,6 @@ defmodule WhiteboardWeb.DashboardLive do
   defp page_value(page), do: page
   defp reject_nil_values(params), do: Map.reject(params, fn {_key, value} -> is_nil(value) end)
 
-  defp format_value(value) when is_float(value), do: :erlang.float_to_binary(value, decimals: 1)
+  defp format_value(value) when is_float(value), do: round(value)
   defp format_value(value), do: value
 end
