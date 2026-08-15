@@ -1,8 +1,15 @@
 defmodule WhiteboardWeb.UserLoginLiveTest do
-  use WhiteboardWeb.ConnCase, async: true
+  use WhiteboardWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Whiteboard.AccountsFixtures
+
+  alias Whiteboard.AuthRateLimiter
+
+  setup do
+    :ok = AuthRateLimiter.reset()
+    :ok
+  end
 
   describe "Log in page" do
     test "renders log in page", %{conn: conn} do

@@ -10,6 +10,7 @@ defmodule Whiteboard.Application do
     children = [
       WhiteboardWeb.Telemetry,
       Whiteboard.Repo,
+      Whiteboard.AuthRateLimiter,
       {Phoenix.PubSub, name: Whiteboard.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Whiteboard.Finch},

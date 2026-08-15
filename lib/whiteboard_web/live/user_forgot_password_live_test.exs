@@ -1,11 +1,17 @@
 defmodule WhiteboardWeb.UserForgotPasswordLiveTest do
-  use WhiteboardWeb.ConnCase, async: true
+  use WhiteboardWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Whiteboard.AccountsFixtures
 
   alias Whiteboard.Accounts
+  alias Whiteboard.AuthRateLimiter
   alias Whiteboard.Repo
+
+  setup do
+    :ok = AuthRateLimiter.reset()
+    :ok
+  end
 
   describe "Forgot password page" do
     test "renders email page", %{conn: conn} do
@@ -58,6 +64,31 @@ defmodule WhiteboardWeb.UserForgotPasswordLiveTest do
 
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "If your email is in our system"
       assert Repo.all(Accounts.UserToken) == []
+    end
+
+    test "throttles reset emails without changing the response", %{conn: conn, user: user} do
+      responses =
+        for _attempt <- 1..6 do
+          {:ok, live_view, _html} = live(conn, ~p"/users/reset_password")
+
+          {:ok, redirected_conn} =
+            live_view
+            |> form("#reset_password_form", user: %{"email" => user.email})
+            |> render_submit()
+            |> follow_redirect(conn, "/")
+
+          Phoenix.Flash.get(redirected_conn.assigns.flash, :info)
+        end
+
+      message =
+        "If your email is in our system, you will receive instructions to reset your password shortly."
+
+      assert List.duplicate(message, 6) == responses
+
+      assert 5 ==
+               Accounts.UserToken
+               |> Repo.all()
+               |> Enum.count(&(&1.context == "reset_password"))
     end
   end
 end

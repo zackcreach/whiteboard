@@ -3,6 +3,8 @@ defmodule WhiteboardWeb.UserForgotPasswordLive do
   use WhiteboardWeb, :live_view
 
   alias Whiteboard.Accounts
+  alias Whiteboard.AuthRateLimiter
+  alias WhiteboardWeb.ClientIp
   alias WhiteboardWeb.Components.Card
 
   def render(assigns) do
@@ -29,16 +31,15 @@ defmodule WhiteboardWeb.UserForgotPasswordLive do
   end
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, form: to_form(%{}, as: "user"))}
+    {:ok,
+     assign(socket,
+       client_ip: ClientIp.from_socket(socket),
+       form: to_form(%{}, as: "user")
+     )}
   end
 
   def handle_event("send_email", %{"user" => %{"email" => email}}, socket) do
-    if user = Accounts.get_user_by_email(email) do
-      Accounts.deliver_user_reset_password_instructions(
-        user,
-        &url(~p"/users/reset_password/#{&1}")
-      )
-    end
+    deliver_reset_instructions(socket.assigns.client_ip, email)
 
     info =
       "If your email is in our system, you will receive instructions to reset your password shortly."
@@ -47,5 +48,19 @@ defmodule WhiteboardWeb.UserForgotPasswordLive do
      socket
      |> put_flash(:info, info)
      |> redirect(to: ~p"/")}
+  end
+
+  defp deliver_reset_instructions(client_ip, email) do
+    with true <- AuthRateLimiter.allow?(client_ip, email),
+         user when not is_nil(user) <- Accounts.get_user_by_email(email) do
+      Accounts.deliver_user_reset_password_instructions(
+        user,
+        &url(~p"/users/reset_password/#{&1}")
+      )
+
+      :ok
+    else
+      _not_delivered -> :ok
+    end
   end
 end

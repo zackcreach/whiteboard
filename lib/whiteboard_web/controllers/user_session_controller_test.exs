@@ -1,9 +1,12 @@
 defmodule WhiteboardWeb.UserSessionControllerTest do
-  use WhiteboardWeb.ConnCase, async: true
+  use WhiteboardWeb.ConnCase, async: false
 
   import Whiteboard.AccountsFixtures
 
+  alias Whiteboard.AuthRateLimiter
+
   setup do
+    :ok = AuthRateLimiter.reset()
     %{user: user_fixture()}
   end
 
@@ -97,6 +100,36 @@ defmodule WhiteboardWeb.UserSessionControllerTest do
 
       assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid email or password"
       assert redirected_to(conn) == ~p"/users/log_in"
+    end
+
+    test "throttles valid credentials after repeated invalid attempts", %{user: user} do
+      for last_octet <- 1..5 do
+        conn =
+          build_conn()
+          |> put_req_header("x-forwarded-for", "192.0.2.#{last_octet}")
+          |> post(~p"/users/log_in", %{
+            "user" => %{"email" => user.email, "password" => "invalid_password"}
+          })
+
+        assert "Invalid email or password" == Phoenix.Flash.get(conn.assigns.flash, :error)
+        refute get_session(conn, :user_token)
+      end
+
+      conn =
+        build_conn()
+        |> put_req_header("x-forwarded-for", "198.51.100.1")
+        |> post(~p"/users/log_in", %{
+          "user" => %{"email" => user.email, "password" => valid_user_password()}
+        })
+
+      assert "Invalid email or password" == Phoenix.Flash.get(conn.assigns.flash, :error)
+
+      assert "Too many attempts. Try again in 15 minutes." ==
+               Phoenix.Flash.get(conn.assigns.flash, :info)
+
+      assert ~p"/users/log_in" == redirected_to(conn)
+      assert ["900"] == get_resp_header(conn, "retry-after")
+      refute get_session(conn, :user_token)
     end
   end
 
