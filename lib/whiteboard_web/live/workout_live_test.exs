@@ -730,6 +730,7 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert html =~ "exercise-chart-#{current_exercise.id}"
       assert html =~ "exercise-chart-timeframe-select-#{current_exercise.id}"
+      assert ["one_month"] == chart_timeframes(html, "#exercise-chart-#{current_exercise.id}")
       refute html =~ "previous-exercise-#{current_exercise.id}"
       assert html =~ "previous-exercise-#{other_current_exercise.id}"
 
@@ -742,6 +743,8 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
                html
                |> parse_document!()
                |> Floki.find("#exercise-chart-timeframe-select-#{current_exercise.id} option[value=all][selected]")
+
+      assert ["all"] == chart_timeframes(html, "#exercise-chart-#{current_exercise.id}")
     end
 
     test "keeps chart history available on read-only workout pages", %{conn: conn} do
@@ -1575,6 +1578,19 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
 
       assert [] = Floki.find(document, "#add-exercise-popover")
     end
+  end
+
+  defp chart_timeframes(html, selector) do
+    html
+    |> parse_document!()
+    |> Floki.find(selector)
+    |> Enum.map(fn element ->
+      element
+      |> Floki.attribute("data-chart-model")
+      |> List.first()
+      |> Jason.decode!()
+      |> Map.fetch!("timeframe")
+    end)
   end
 
   describe "exercise reordering" do

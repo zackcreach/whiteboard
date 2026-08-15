@@ -63,17 +63,18 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
         <p :if={is_nil(@selected_exercise)} class="mt-4">No previous exercises found</p>
       </div>
 
-      <div :if={@browser_view == :chart} id={"exercise-progression-#{@current_exercise_id}"}>
-        <div class="progression-graph">
+      <div :if={@browser_view == :chart} id={"exercise-progression-#{@current_exercise_id}"} class="min-h-0 md:relative md:min-h-[200px] md:flex-1">
+        <div class="progression-graph h-full min-h-0 md:absolute md:inset-0">
           <div :if={is_nil(@chart_graph_data)} id={"exercise-chart-empty-#{@current_exercise_id}"} class="flex min-h-72 items-center justify-center text-sm text-stone-500 dark:text-stone-400">
             No weighted previous history matches this duration.
           </div>
           <ProgressionChart.render
             :if={@chart_graph_data}
             id={"exercise-chart-#{@current_exercise_id}"}
-            graph_data={@chart_graph_data}
+            series={@chart_graph_data}
+            timeframe={@chart_timeframe}
             axis_label="Weight"
-            class="max-w-[900px]"
+            class="h-[200px] md:h-full"
           />
         </div>
       </div>
@@ -164,10 +165,13 @@ defmodule WhiteboardWeb.Components.ExerciseBrowser do
         exercise_name_id: socket.assigns.current_exercise_name_id,
         timeframe: timeframe
       })
-      |> ProgressionChart.graph_data()
+      |> present_series()
 
-    assign(socket, chart_graph_data: chart_graph_data)
+    assign(socket, chart_graph_data: chart_graph_data, chart_timeframe: timeframe)
   end
+
+  defp present_series([]), do: nil
+  defp present_series(series), do: series
 
   defp find_selected_exercise(selected_exercise_id, exercises) when is_binary(selected_exercise_id) do
     Enum.find(exercises, fn exercise -> exercise.id == selected_exercise_id end)

@@ -2,148 +2,104 @@ defmodule WhiteboardWeb.Components.ProgressionChart do
   @moduledoc false
   use WhiteboardWeb, :component
 
-  @series_colors [
-    "var(--chart-series-1)",
-    "var(--chart-series-2)",
-    "var(--chart-series-3)",
-    "var(--chart-series-4)",
-    "var(--chart-series-5)",
-    "var(--chart-series-6)",
-    "var(--chart-series-7)",
-    "var(--chart-series-8)"
-  ]
+  @series_colors Enum.map(1..8, &"--chart-series-#{&1}")
 
   attr :id, :string, required: true
-  attr :graph_data, :any, required: true
-  attr :axis_label, :string, required: true
+  attr :series, :list, required: true
+  attr :timeframe, :atom, required: true
+  attr :axis_label, :string, default: nil
   attr :class, :any, default: nil
 
   def render(assigns) do
+    assigns = assign(assigns, model: chart_model(assigns.series, assigns.timeframe, assigns.axis_label))
+
     ~H"""
-    <.responsive_graph :let={graph} id={@id} for={@graph_data.graph} width={900} height={320} margin={{16, 24, 48, 64}} class={@class}>
-      <.month_x_axis scale={graph[:occurred_at]} ticks={@graph_data.x_axis_ticks} />
-      <Plox.y_axis :let={value} scale={graph[:weight]} ticks={@graph_data.y_axis_ticks} label_color="currentColor" line_color="var(--chart-grid-color)">
-        {format_value(value)}
-      </Plox.y_axis>
-      <text x="14" y="160" transform="rotate(-90 14 160)" class="chart-axis-title">{@axis_label}</text>
-      <%= for series <- @graph_data.series do %>
-        <Plox.line_plot dataset={graph[series.key]} color={series.color} />
-        <Plox.points_plot dataset={graph[series.key]} color={series.color} radius="4" />
-      <% end %>
-    </.responsive_graph>
+    <div
+      id={@id}
+      phx-hook="ProgressionChart"
+      phx-update="ignore"
+      data-chart-model={Jason.encode!(@model)}
+      class={["w-full min-w-0", @class]}
+    />
     """
   end
 
-  def graph_data([]), do: nil
+  def chart_model([], _timeframe, _axis_label), do: nil
 
-  def graph_data(series) do
+  def chart_model(series, timeframe, axis_label) do
     points = Enum.flat_map(series, & &1.points)
-    first = points |> Enum.map(& &1.occurred_at) |> Enum.min_by(&DateTime.to_unix(&1, :microsecond))
-    last = points |> Enum.map(& &1.occurred_at) |> Enum.max_by(&DateTime.to_unix(&1, :microsecond))
-    {first, last} = graph_range(first, last)
-    maximum_weight = points |> Enum.map(& &1.weight) |> Enum.max()
-    occurred_at_scale = Plox.datetime_scale(first, last)
-    x_axis_ticks = month_ticks(first, last)
-    {weight_scale, y_axis_ticks} = y_axis_scale(maximum_weight)
+    first = points |> Enum.min_by(&DateTime.to_unix(&1.occurred_at, :microsecond)) |> Map.fetch!(:occurred_at)
+    last = points |> Enum.max_by(&DateTime.to_unix(&1.occurred_at, :microsecond)) |> Map.fetch!(:occurred_at)
+    {first, last} = chart_range(first, last)
 
-    graph_series =
-      series
-      |> Enum.with_index()
-      |> Enum.map(fn {user_series, index} ->
-        key = {:series, index}
-        color = Enum.at(@series_colors, rem(index, length(@series_colors)))
-
-        dataset =
-          Plox.dataset(user_series.points, x: {occurred_at_scale, & &1.occurred_at}, y: {weight_scale, & &1.weight})
-
-        %{key: key, color: color, label: user_series.user.email, dataset: dataset}
-      end)
-
-    graph =
-      Plox.to_graph(
-        scales: [occurred_at: occurred_at_scale, weight: weight_scale],
-        datasets: Enum.map(graph_series, &{&1.key, &1.dataset})
-      )
-
-    %{graph: graph, series: graph_series, x_axis_ticks: x_axis_ticks, y_axis_ticks: y_axis_ticks}
+    %{
+      axis_label: axis_label,
+      timeframe: timeframe,
+      boundaries: first |> boundaries(last, timeframe) |> Enum.map(&DateTime.to_unix(&1, :millisecond)),
+      range: [DateTime.to_unix(first, :millisecond), DateTime.to_unix(last, :millisecond)],
+      series:
+        series
+        |> Enum.with_index()
+        |> Enum.map(fn {user_series, index} ->
+          %{
+            color: Enum.at(@series_colors, rem(index, length(@series_colors))),
+            label: user_series.user.email,
+            points: Enum.map(user_series.points, &chart_point/1)
+          }
+        end)
+    }
   end
 
-  attr :for, :any, required: true
-  attr :id, :string, required: true
-  attr :width, :integer, required: true
-  attr :height, :integer, required: true
-  attr :margin, :any, default: {35, 70}
-  attr :padding, :any, default: 0
-  attr :class, :any, default: nil
-  slot :inner_block, required: true
+  def boundaries(first, last, timeframe) do
+    span = DateTime.diff(last, first, :day)
+    cadence = cadence(timeframe, span)
 
-  defp responsive_graph(assigns) do
-    graph = Plox.Graph.put_dimensions(assigns.for, Plox.Dimensions.new(assigns))
-    assigns = assign(assigns, graph: graph)
-
-    ~H"""
-    <div id={@id} class={["aspect-[900/320] w-full min-w-0", @class]}>
-      <svg class="size-full" viewBox={"0 0 #{@width} #{@height}"} xmlns="http://www.w3.org/2000/svg">
-        {render_slot(@inner_block, @graph)}
-      </svg>
-    </div>
-    """
-  end
-
-  attr :scale, :any, required: true
-  attr :ticks, :list, required: true
-
-  defp month_x_axis(assigns) do
-    ~H"""
-    <%= for occurred_at <- @ticks do %>
-      <% x_pixel = Plox.GraphScale.to_graph_x(@scale, occurred_at) %>
-      <text x={x_pixel} y={@scale.dimensions.height - @scale.dimensions.margin.bottom + 16} fill="currentColor" dominant-baseline="hanging" text-anchor="middle" style="font-size: 0.75rem; line-height: 1rem">
-        {Calendar.strftime(occurred_at, "%-m/%-d")}
-      </text>
-      <line x1={x_pixel} y1={@scale.dimensions.margin.top} x2={x_pixel} y2={@scale.dimensions.height - @scale.dimensions.margin.bottom} stroke="var(--chart-grid-color)" stroke-width="1" />
-    <% end %>
-    """
-  end
-
-  defp graph_range(first, last) do
-    case DateTime.diff(last, first) do
-      seconds when seconds < 1 -> {DateTime.shift(first, day: -1), DateTime.shift(last, day: 1)}
-      _seconds -> {first, last}
-    end
-  end
-
-  defp month_ticks(first, last) do
     first
-    |> month_start()
-    |> DateTime.shift(month: 1)
-    |> Stream.iterate(&DateTime.shift(&1, month: 1))
-    |> Enum.take_while(&DateTime.before?(&1, last))
+    |> boundary_start(cadence)
+    |> Stream.iterate(&DateTime.shift(&1, [{cadence, 1}]))
+    |> Enum.take_while(&(DateTime.compare(&1, last) != :gt))
   end
 
-  defp month_start(date_time) do
-    %{date_time | day: 1, hour: 0, minute: 0, second: 0, microsecond: {0, 0}}
+  defp chart_point(point) do
+    %{
+      occurred_at: DateTime.to_unix(point.occurred_at, :millisecond),
+      weight: decimal_to_number(point.weight),
+      workout_id: point.workout_id,
+      workout_name: point.workout_name
+    }
   end
 
-  defp y_axis_scale(maximum) do
-    target = if maximum > 0, do: maximum * 1.1, else: 1.0
-    interval = target |> Kernel./(5) |> nice_interval()
-    upper_bound = target |> Kernel./(interval) |> ceil() |> Kernel.*(interval)
-    ticks = upper_bound |> Kernel./(interval) |> round() |> Kernel.+(1)
+  defp decimal_to_number(%Decimal{} = value), do: Decimal.to_float(value)
+  defp decimal_to_number(value), do: value
 
-    {Plox.number_scale(0.0, upper_bound), ticks}
-  end
-
-  defp nice_interval(value) do
-    magnitude = value |> :math.log10() |> Float.floor() |> trunc() |> then(&:math.pow(10, &1))
-
-    case value / magnitude do
-      fraction when fraction <= 1 -> magnitude
-      fraction when fraction <= 2 -> magnitude * 2
-      fraction when fraction <= 5 -> magnitude * 5
-      _fraction -> magnitude * 10
+  defp chart_range(first, last) do
+    case DateTime.compare(first, last) do
+      :eq -> {DateTime.shift(first, day: -1), DateTime.shift(last, day: 1)}
+      _comparison -> {first, last}
     end
   end
 
-  defp format_value(value) when is_float(value), do: round(value)
-  defp format_value(value), do: value
+  defp cadence(:one_week, _span), do: :day
+  defp cadence(:one_month, _span), do: :week
+  defp cadence(timeframe, _span) when timeframe in [:three_months, :six_months, :one_year], do: :month
+  defp cadence(:all, span) when span <= 14, do: :day
+  defp cadence(:all, span) when span <= 90, do: :week
+  defp cadence(:all, span) when span <= 730, do: :month
+  defp cadence(:all, _span), do: :year
+
+  defp boundary_start(date_time, :day), do: day_start(date_time)
+  defp boundary_start(date_time, :week), do: week_start(date_time)
+  defp boundary_start(date_time, :month), do: month_start(date_time)
+  defp boundary_start(date_time, :year), do: year_start(date_time)
+
+  defp day_start(date_time), do: %{date_time | hour: 0, minute: 0, second: 0, microsecond: {0, 0}}
+
+  defp week_start(date_time) do
+    date_time
+    |> day_start()
+    |> DateTime.shift(day: -rem(Date.day_of_week(date_time), 7))
+  end
+
+  defp month_start(date_time), do: %{day_start(date_time) | day: 1}
+  defp year_start(date_time), do: %{day_start(date_time) | month: 1, day: 1}
 end

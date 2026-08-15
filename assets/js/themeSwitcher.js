@@ -13,20 +13,27 @@ export const ThemeSwitcher = {
   mounted() {
     const saved = localStorage.getItem('theme')
     this.pushEvent('set_theme', { theme: saved || 'system' })
+    this.listenerController = new AbortController()
 
-    this.el.querySelectorAll('[data-value]').forEach((button) => {
-      button.addEventListener('click', () => {
+    this.el.addEventListener(
+      'click',
+      (event) => {
+        const button = event.target.closest('[data-value]')
+        if (!button) return
+
         const theme = button.dataset.value
 
-        if (theme === 'system') {
-          localStorage.removeItem('theme')
-        } else {
-          localStorage.setItem('theme', theme)
-        }
+        if (theme === 'system') localStorage.removeItem('theme')
+        else localStorage.setItem('theme', theme)
 
         applyTheme(theme)
         this.pushEvent('set_theme', { theme })
-      })
-    })
+      },
+      { signal: this.listenerController.signal }
+    )
+  },
+
+  destroyed() {
+    this.listenerController.abort()
   },
 }

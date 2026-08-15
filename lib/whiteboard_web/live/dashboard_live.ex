@@ -55,6 +55,7 @@ defmodule WhiteboardWeb.DashboardLive do
             axis_label="Weight"
             empty_message="No weighted sets match these filters."
             graph_data={@weight_graph_data}
+            timeframe={@filters.timeframe}
             show_users?={@filters.scope == :all}
           />
           <.progression_panel
@@ -64,6 +65,7 @@ defmodule WhiteboardWeb.DashboardLive do
             axis_label="Volume"
             empty_message="No sets with weight and reps match these filters."
             graph_data={@volume_graph_data}
+            timeframe={@filters.timeframe}
             show_users?={@filters.scope == :all}
           />
         </div>
@@ -113,6 +115,7 @@ defmodule WhiteboardWeb.DashboardLive do
   attr :axis_label, :string, required: true
   attr :empty_message, :string, required: true
   attr :graph_data, :any, required: true
+  attr :timeframe, :atom, required: true
   attr :show_users?, :boolean, required: true
 
   defp progression_panel(assigns) do
@@ -130,23 +133,28 @@ defmodule WhiteboardWeb.DashboardLive do
           :if={@graph_data}
           id={"#{@id}-layout"}
           class={[
-            "progression-chart-layout grid min-w-0 gap-6",
+            "progression-chart-layout grid min-w-0 gap-2 sm:gap-6",
             @show_users? && "2xl:grid-cols-[minmax(0,1fr)_12rem]"
           ]}
         >
-          <ProgressionChart.render id={"#{@id}-chart"} graph_data={@graph_data} axis_label={@axis_label} />
+          <ProgressionChart.render
+            id={"#{@id}-chart"}
+            series={@graph_data}
+            timeframe={@timeframe}
+            class="h-[200px] sm:h-80"
+          />
 
           <aside
             :if={@show_users?}
             id={"#{@id}-users"}
             aria-label={"#{@title} users"}
-            class="min-w-0 2xl:border-l 2xl:border-stone-300 2xl:pl-6 dark:2xl:border-stone-600"
+            class="-mt-4 min-w-0 sm:mt-0 2xl:border-l 2xl:border-stone-300 2xl:pl-6 dark:2xl:border-stone-600"
           >
             <h4 class="mb-3 font-medium">Users</h4>
             <ul class="max-h-80 space-y-3 overflow-y-auto pr-2 text-sm">
-              <li :for={series <- @graph_data.series} class="flex min-w-0 items-center gap-2">
-                <span class="size-2.5 shrink-0 rounded-full" style={"background-color: #{series.color}"} />
-                <span class="truncate" title={series.label}>{series.label}</span>
+              <li :for={{series, index} <- Enum.with_index(@graph_data)} class="flex min-w-0 items-center gap-2">
+                <span class="size-2.5 shrink-0 rounded-full" style={"background-color: var(--chart-series-#{rem(index, 8) + 1})"} />
+                <span class="truncate" title={series.user.email}>{series.user.email}</span>
               </li>
             </ul>
           </aside>
@@ -184,14 +192,17 @@ defmodule WhiteboardWeb.DashboardLive do
         filter_form: to_form(filter_params(filters), as: :filters),
         user_options: user_options(socket.assigns.users),
         exercise_options: exercise_options(exercises),
-        weight_graph_data: ProgressionChart.graph_data(weight_series),
-        volume_graph_data: ProgressionChart.graph_data(volume_series),
+        weight_graph_data: present_series(weight_series),
+        volume_graph_data: present_series(volume_series),
         workouts_pagination: pagination
       )
       |> stream(:workouts, pagination.entries, reset: true)
 
     noreply(socket)
   end
+
+  defp present_series([]), do: nil
+  defp present_series(series), do: series
 
   def handle_event("filters_changed", %{"filters" => params}, socket) do
     previous_user = socket.assigns.filters.user

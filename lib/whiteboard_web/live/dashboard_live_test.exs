@@ -33,13 +33,15 @@ defmodule WhiteboardWeb.DashboardLiveTest do
       assert html =~ "volume-chart"
       assert html =~ user.email
 
-      weight_axis_labels =
-        html
-        |> Floki.parse_document!()
-        |> Floki.find("#weight-chart svg text")
-        |> Enum.map(&(&1 |> Floki.text() |> String.trim()))
+      assert [
+               %{
+                 "axis_label" => nil,
+                 "timeframe" => "one_month",
+                 "series" => [%{"points" => [%{"weight" => 145.0}]}]
+               }
+             ] =
+               chart_models(html, "#weight-chart")
 
-      assert ["0", "50", "100", "150", "200"] -- weight_axis_labels == []
       assert [] == html |> Floki.parse_document!() |> Floki.find("#weight-users")
       assert [] == html |> Floki.parse_document!() |> Floki.find("#volume-users")
       assert section_position(html, "Dashboard") < section_position(html, "Weight")
@@ -126,7 +128,8 @@ defmodule WhiteboardWeb.DashboardLiveTest do
       assert html =~ "Other bench"
       assert html =~ other_user.email
       assert [] == html |> Floki.parse_document!() |> Floki.find("#filters_exercise")
-      assert 2 == html |> Floki.parse_document!() |> Floki.find("#weight-chart polyline") |> length()
+      assert [%{"series" => weight_series}] = chart_models(html, "#weight-chart")
+      assert 2 == length(weight_series)
       assert 2 == html |> Floki.parse_document!() |> Floki.find("#weight-users li") |> length()
       assert 2 == html |> Floki.parse_document!() |> Floki.find("#volume-users li") |> length()
     end
@@ -201,4 +204,16 @@ defmodule WhiteboardWeb.DashboardLiveTest do
   end
 
   defp section_position(html, text), do: html |> :binary.match(text) |> elem(0)
+
+  defp chart_models(html, selector) do
+    html
+    |> Floki.parse_document!()
+    |> Floki.find(selector)
+    |> Enum.map(fn element ->
+      element
+      |> Floki.attribute("data-chart-model")
+      |> List.first()
+      |> Jason.decode!()
+    end)
+  end
 end

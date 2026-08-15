@@ -149,7 +149,7 @@ defmodule WhiteboardWeb.WorkoutLive do
 
             <.live_component
               module={ExerciseBrowser}
-              container_class="mt-8 md:mt-0"
+              container_class="mt-8 md:mt-0 md:flex md:min-h-0 md:flex-col md:overflow-hidden"
               id={"exercise-browser-#{exercise.data.id}"}
               page_owner={@page_owner}
               read_only?={@read_only?}

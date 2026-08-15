@@ -3,6 +3,7 @@ const closest = (target, selector) => target?.closest?.(selector)
 export const ExerciseReorder = {
   mounted() {
     this.draggingExerciseId = null
+    this.listenerController = new AbortController()
 
     this.handleDragStart = (event) => {
       const handle = closest(event.target, '[data-role="exercise-drag-handle"]')
@@ -66,17 +67,15 @@ export const ExerciseReorder = {
       this.draggingExerciseId = null
     }
 
-    this.el.addEventListener('dragstart', this.handleDragStart)
-    this.el.addEventListener('dragover', this.handleDragOver)
-    this.el.addEventListener('drop', this.handleDrop)
-    this.el.addEventListener('dragend', this.handleDragEnd)
+    const listenerOptions = { signal: this.listenerController.signal }
+    this.el.addEventListener('dragstart', this.handleDragStart, listenerOptions)
+    this.el.addEventListener('dragover', this.handleDragOver, listenerOptions)
+    this.el.addEventListener('drop', this.handleDrop, listenerOptions)
+    this.el.addEventListener('dragend', this.handleDragEnd, listenerOptions)
   },
 
   destroyed() {
-    this.el.removeEventListener('dragstart', this.handleDragStart)
-    this.el.removeEventListener('dragover', this.handleDragOver)
-    this.el.removeEventListener('drop', this.handleDrop)
-    this.el.removeEventListener('dragend', this.handleDragEnd)
+    this.listenerController.abort()
   },
 
   reorderedExerciseIds(draggingExerciseId, targetExerciseId) {

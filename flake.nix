@@ -33,6 +33,17 @@
         elixir = beamBuilder.elixir_1_20;
         releaseSource = ./.;
         releaseVersion = "0.1.0";
+        assetsNodeModules = pkgs.buildNpmPackage {
+          pname = "whiteboard-assets";
+          version = releaseVersion;
+          src = ./assets;
+          npmDepsHash = "sha256-z6id4SkfQPNdfNL/8jcWsS2SPWZFz2SpEW2br5uQx4A=";
+          dontNpmBuild = true;
+          installPhase = ''
+            mkdir -p $out
+            cp -R node_modules $out/
+          '';
+        };
         lexborSource = pkgs.fetchFromGitHub {
           owner = "lexbor";
           repo = "lexbor";
@@ -136,6 +147,10 @@
           HEROICONS_PATH = "${heroicons}/optimized";
           MIX_ESBUILD_PATH = "${esbuild}/bin/esbuild";
           MIX_TAILWIND_PATH = "${tailwindcss_4}/bin/tailwindcss";
+          NODE_PATH = "${assetsNodeModules}/node_modules";
+          postPatch = ''
+            ln -s ${assetsNodeModules}/node_modules assets/node_modules
+          '';
           postBuild = ''
             mix do deps.loadpaths --no-deps-check + tailwind whiteboard --minify + esbuild whiteboard --minify + phx.digest
           '';

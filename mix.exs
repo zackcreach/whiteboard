@@ -59,7 +59,6 @@ defmodule Whiteboard.MixProject do
       {:phoenix_live_dashboard, "~> 0.8.7"},
       {:phoenix_live_reload, "~> 1.7.0", only: :dev},
       {:phoenix_live_view, "~> 1.2.8"},
-      {:plox, "~> 0.3.0"},
       {:postgrex, "~> 0.22.3"},
       {:publicist, "1.1.0"},
       {:styler, "~> 1.12.2", only: [:dev, :test], runtime: false},
@@ -85,8 +84,9 @@ defmodule Whiteboard.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": asset_setup_tasks(),
-      "assets.build": ["compile", "tailwind whiteboard", "esbuild whiteboard"],
+      "assets.build": ["compile", "cmd --cd assets npm ci", "tailwind whiteboard", "esbuild whiteboard"],
       "assets.deploy": [
+        "cmd --cd assets npm ci",
         "tailwind whiteboard --minify",
         "esbuild whiteboard --minify",
         "phx.digest"
@@ -101,7 +101,12 @@ defmodule Whiteboard.MixProject do
         []
 
       _mix_managed_assets ->
-        ["tailwind.install --if-missing", "esbuild.install --if-missing", "assets.sign_esbuild"]
+        [
+          "cmd --cd assets npm ci",
+          "tailwind.install --if-missing",
+          "esbuild.install --if-missing",
+          "assets.sign_esbuild"
+        ]
     end
   end
 

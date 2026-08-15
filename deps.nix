@@ -437,19 +437,6 @@ let
       beamDeps = [ phoenix_html ];
     };
 
-    plox = buildMix rec {
-      name = "plox";
-      version = "0.3.0";
-
-      src = fetchHex {
-        pkg = "plox";
-        version = "${version}";
-        sha256 = "5a9d139e7b74214866572a477cb5e899801678f281b91f1920bec36bd59be6ae";
-      };
-
-      beamDeps = [ decimal phoenix_live_view ];
-    };
-
     plug = buildMix rec {
       name = "plug";
       version = "1.20.3";

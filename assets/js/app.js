@@ -27,13 +27,14 @@ import topbar from '../vendor/topbar'
 // Hooks
 import { ExerciseReorder } from './exerciseReorder'
 import { FlashAutoDismiss } from './flashAutoDismiss'
+import { ProgressionChart } from './progressionChart'
 import { ThemeSwitcher } from './themeSwitcher'
 
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute('content')
 
-const hooks = { ...colocatedHooks, ExerciseReorder, FlashAutoDismiss, ThemeSwitcher }
+const hooks = { ...colocatedHooks, ExerciseReorder, FlashAutoDismiss, ProgressionChart, ThemeSwitcher }
 
 const liveSocket = new LiveSocket('/live', Socket, {
   longPollFallbackMs: 2500,

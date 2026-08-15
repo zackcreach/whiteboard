@@ -20,6 +20,7 @@
   color-scheme: light;
   --primary-color: var(--color-black);
   --chart-grid-color: var(--color-stone-400);
+  --chart-text-color: var(--color-stone-700);
   --chart-series-1: var(--primary-color);
   --chart-series-2: var(--color-stone-700);
   --chart-series-3: var(--color-stone-500);
@@ -34,6 +35,7 @@
   color-scheme: dark;
   --primary-color: var(--color-white);
   --chart-grid-color: var(--color-stone-600);
+  --chart-text-color: var(--color-stone-200);
   --chart-series-1: var(--primary-color);
   --chart-series-2: var(--color-stone-300);
   --chart-series-3: var(--color-stone-500);
@@ -66,30 +68,3 @@ h4 {
 }
 
 /* This file is for your main application CSS */
-
-.progression-chart-layout,
-.progression-chart-layout > div:first-child {
-  width: 100% !important;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.progression-graph svg {
-  width: 100%;
-  height: 100%;
-  color: var(--color-stone-700);
-}
-
-.progression-graph svg text {
-  fill: currentColor;
-  font-size: 12px;
-}
-
-.progression-graph .chart-axis-title {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.dark .progression-graph svg {
-  color: var(--color-stone-200);
-}
