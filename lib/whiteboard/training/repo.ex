@@ -80,6 +80,25 @@ defmodule Whiteboard.Training.Repo do
     |> progression_results(viewer, scope, exercise_name, timeframe, now)
   end
 
+  def exercise_progression_series(%User{} = user, params, %DateTime{} = now) do
+    %{workout_id: workout_id, exercise_name_id: exercise_name_id, timeframe: timeframe} = params
+
+    progression_query()
+    |> where(
+      [workout, _user, exercise, _exercise_name, _set],
+      exercise.exercise_name_id == ^exercise_name_id and workout.id != ^workout_id
+    )
+    |> select([workout, user, _exercise, _exercise_name, set], %{
+      user_id: user.id,
+      user_email: user.email,
+      workout_id: workout.id,
+      workout_name: workout.name,
+      occurred_at: workout.inserted_at,
+      weight: max(set.weight)
+    })
+    |> progression_results(user, :me, :all, timeframe, now)
+  end
+
   def get_workout(%User{id: user_id}, id) do
     from(w in Workout,
       where: w.id == ^id and w.user_id == ^user_id,

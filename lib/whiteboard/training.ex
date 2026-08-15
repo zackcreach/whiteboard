@@ -29,6 +29,10 @@ defmodule Whiteboard.Training do
     TrainingRepo.volume_progression_series(viewer, scope, exercise, timeframe, now)
   end
 
+  def exercise_progression_series(%User{} = user, params, now \\ DateTime.utc_now()) do
+    TrainingRepo.exercise_progression_series(user, params, now)
+  end
+
   def get_workout(%User{} = user, id) do
     TrainingRepo.get_workout(user, id)
   end

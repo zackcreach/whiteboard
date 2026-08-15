@@ -7,29 +7,12 @@ defmodule WhiteboardWeb.DashboardLive do
   alias Whiteboard.Accounts
   alias Whiteboard.Training
   alias WhiteboardWeb.Components.Card
+  alias WhiteboardWeb.Components.ProgressionChart
   alias WhiteboardWeb.Components.Table
   alias WhiteboardWeb.Utils.DateHelpers
   alias WhiteboardWeb.Utils.ExerciseHelpers
   alias WhiteboardWeb.Utils.PaginationHelpers
-
-  @series_colors [
-    "var(--chart-series-1)",
-    "var(--chart-series-2)",
-    "var(--chart-series-3)",
-    "var(--chart-series-4)",
-    "var(--chart-series-5)",
-    "var(--chart-series-6)",
-    "var(--chart-series-7)",
-    "var(--chart-series-8)"
-  ]
-  @timeframes [
-    {"All time", "all", :all},
-    {"1 year", "1y", :one_year},
-    {"6 months", "6m", :six_months},
-    {"3 months", "3m", :three_months},
-    {"1 month", "1m", :one_month},
-    {"1 week", "1w", :one_week}
-  ]
+  alias WhiteboardWeb.Utils.ProgressionFilters
 
   def render(assigns) do
     ~H"""
@@ -57,7 +40,7 @@ defmodule WhiteboardWeb.DashboardLive do
               aria-label="Exercise"
               options={@exercise_options}
             />
-            <.input field={@filter_form[:timeframe]} type="select" aria-label="Timeframe" options={timeframe_options()} />
+            <.input field={@filter_form[:timeframe]} type="select" aria-label="Timeframe" options={ProgressionFilters.timeframe_options()} />
           </.form>
         </Card.render>
       </section>
@@ -151,17 +134,7 @@ defmodule WhiteboardWeb.DashboardLive do
             @show_users? && "2xl:grid-cols-[minmax(0,1fr)_12rem]"
           ]}
         >
-          <.responsive_graph :let={graph} id={"#{@id}-chart"} for={@graph_data.graph} width={900} height={320} margin={{16, 24, 48, 64}}>
-            <.month_x_axis scale={graph[:occurred_at]} ticks={@graph_data.x_axis_ticks} />
-            <Plox.y_axis :let={value} scale={graph[:weight]} ticks={@graph_data.y_axis_ticks} label_color="currentColor" line_color="var(--chart-grid-color)">
-              {format_value(value)}
-            </Plox.y_axis>
-            <text x="14" y="160" transform="rotate(-90 14 160)" class="chart-axis-title">{@axis_label}</text>
-            <%= for series <- @graph_data.series do %>
-              <Plox.line_plot dataset={graph[series.key]} color={series.color} />
-              <Plox.points_plot dataset={graph[series.key]} color={series.color} radius="4" />
-            <% end %>
-          </.responsive_graph>
+          <ProgressionChart.render id={"#{@id}-chart"} graph_data={@graph_data} axis_label={@axis_label} />
 
           <aside
             :if={@show_users?}
@@ -183,60 +156,6 @@ defmodule WhiteboardWeb.DashboardLive do
         </div>
       </div>
     </Card.render>
-    """
-  end
-
-  attr :for, :any, required: true
-  attr :id, :string, required: true
-  attr :width, :integer, required: true
-  attr :height, :integer, required: true
-  attr :margin, :any, default: {35, 70}
-  attr :padding, :any, default: 0
-  slot :inner_block, required: true
-
-  defp responsive_graph(assigns) do
-    graph = Plox.Graph.put_dimensions(assigns.for, Plox.Dimensions.new(assigns))
-    assigns = assign(assigns, graph: graph)
-
-    ~H"""
-    <div id={@id} class="aspect-[900/320] w-full min-w-0">
-      <svg
-        class="size-full"
-        viewBox={"0 0 #{@width} #{@height}"}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {render_slot(@inner_block, @graph)}
-      </svg>
-    </div>
-    """
-  end
-
-  attr :scale, :any, required: true
-  attr :ticks, :list, required: true
-
-  defp month_x_axis(assigns) do
-    ~H"""
-    <%= for occurred_at <- @ticks do %>
-      <% x_pixel = Plox.GraphScale.to_graph_x(@scale, occurred_at) %>
-      <text
-        x={x_pixel}
-        y={@scale.dimensions.height - @scale.dimensions.margin.bottom + 16}
-        fill="currentColor"
-        dominant-baseline="hanging"
-        text-anchor="middle"
-        style="font-size: 0.75rem; line-height: 1rem"
-      >
-        {Calendar.strftime(occurred_at, "%-m/%-d")}
-      </text>
-      <line
-        x1={x_pixel}
-        y1={@scale.dimensions.margin.top}
-        x2={x_pixel}
-        y2={@scale.dimensions.height - @scale.dimensions.margin.bottom}
-        stroke="var(--chart-grid-color)"
-        stroke-width="1"
-      />
-    <% end %>
     """
   end
 
@@ -265,8 +184,8 @@ defmodule WhiteboardWeb.DashboardLive do
         filter_form: to_form(filter_params(filters), as: :filters),
         user_options: user_options(socket.assigns.users),
         exercise_options: exercise_options(exercises),
-        weight_graph_data: graph_data(weight_series),
-        volume_graph_data: graph_data(volume_series),
+        weight_graph_data: ProgressionChart.graph_data(weight_series),
+        volume_graph_data: ProgressionChart.graph_data(volume_series),
         workouts_pagination: pagination
       )
       |> stream(:workouts, pagination.entries, reset: true)
@@ -332,15 +251,16 @@ defmodule WhiteboardWeb.DashboardLive do
   end
 
   defp normalize_timeframe_value(value) do
-    if Enum.any?(@timeframes, fn {_label, option_value, _timeframe} -> option_value == value end),
-      do: value,
-      else: "all"
+    case ProgressionFilters.timeframe(value) do
+      {:ok, _timeframe} -> value
+      :error -> "all"
+    end
   end
 
   defp timeframe(value) do
-    case Enum.find(@timeframes, fn {_label, option_value, _timeframe} -> option_value == value end) do
-      {_label, _value, timeframe} -> timeframe
-      nil -> :all
+    case ProgressionFilters.timeframe(value) do
+      {:ok, timeframe} -> timeframe
+      :error -> :all
     end
   end
 
@@ -353,80 +273,6 @@ defmodule WhiteboardWeb.DashboardLive do
   end
 
   defp exercise_options(exercises), do: [{"All exercises", "all"} | Enum.map(exercises, &{&1, String.downcase(&1)})]
-  defp timeframe_options, do: Enum.map(@timeframes, fn {label, value, _timeframe} -> {label, value} end)
-
-  defp graph_data([]), do: nil
-
-  defp graph_data(series) do
-    points = Enum.flat_map(series, & &1.points)
-    first = points |> Enum.map(& &1.occurred_at) |> Enum.min_by(&DateTime.to_unix(&1, :microsecond))
-    last = points |> Enum.map(& &1.occurred_at) |> Enum.max_by(&DateTime.to_unix(&1, :microsecond))
-    {first, last} = graph_range(first, last)
-    maximum_weight = points |> Enum.map(& &1.weight) |> Enum.max()
-    occurred_at_scale = Plox.datetime_scale(first, last)
-    x_axis_ticks = month_ticks(first, last)
-    {weight_scale, y_axis_ticks} = y_axis_scale(maximum_weight)
-
-    graph_series =
-      series
-      |> Enum.with_index()
-      |> Enum.map(fn {user_series, index} ->
-        key = {:series, index}
-        color = Enum.at(@series_colors, rem(index, length(@series_colors)))
-
-        dataset =
-          Plox.dataset(user_series.points, x: {occurred_at_scale, & &1.occurred_at}, y: {weight_scale, & &1.weight})
-
-        %{key: key, color: color, label: user_series.user.email, dataset: dataset}
-      end)
-
-    graph =
-      Plox.to_graph(
-        scales: [occurred_at: occurred_at_scale, weight: weight_scale],
-        datasets: Enum.map(graph_series, &{&1.key, &1.dataset})
-      )
-
-    %{graph: graph, series: graph_series, x_axis_ticks: x_axis_ticks, y_axis_ticks: y_axis_ticks}
-  end
-
-  defp graph_range(first, last) do
-    case DateTime.diff(last, first) do
-      seconds when seconds < 1 -> {DateTime.shift(first, day: -1), DateTime.shift(last, day: 1)}
-      _seconds -> {first, last}
-    end
-  end
-
-  defp month_ticks(first, last) do
-    first
-    |> month_start()
-    |> DateTime.shift(month: 1)
-    |> Stream.iterate(&DateTime.shift(&1, month: 1))
-    |> Enum.take_while(&DateTime.before?(&1, last))
-  end
-
-  defp month_start(date_time) do
-    %{date_time | day: 1, hour: 0, minute: 0, second: 0, microsecond: {0, 0}}
-  end
-
-  defp y_axis_scale(maximum) do
-    target = if maximum > 0, do: maximum * 1.1, else: 1.0
-    interval = target |> Kernel./(5) |> nice_interval()
-    upper_bound = target |> Kernel./(interval) |> ceil() |> Kernel.*(interval)
-    ticks = upper_bound |> Kernel./(interval) |> round() |> Kernel.+(1)
-
-    {Plox.number_scale(0.0, upper_bound), ticks}
-  end
-
-  defp nice_interval(value) do
-    magnitude = value |> :math.log10() |> Float.floor() |> trunc() |> then(&:math.pow(10, &1))
-
-    case value / magnitude do
-      fraction when fraction <= 1 -> magnitude
-      fraction when fraction <= 2 -> magnitude * 2
-      fraction when fraction <= 5 -> magnitude * 5
-      _fraction -> magnitude * 10
-    end
-  end
 
   defp filter_params(filters) do
     %{"user" => filters.user, "exercise" => filters.exercise, "timeframe" => filters.timeframe_value}
@@ -445,7 +291,4 @@ defmodule WhiteboardWeb.DashboardLive do
   defp page_value(1), do: nil
   defp page_value(page), do: page
   defp reject_nil_values(params), do: Map.reject(params, fn {_key, value} -> is_nil(value) end)
-
-  defp format_value(value) when is_float(value), do: round(value)
-  defp format_value(value), do: value
 end

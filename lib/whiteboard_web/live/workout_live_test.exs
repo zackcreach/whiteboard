@@ -705,6 +705,70 @@ defmodule WhiteboardWeb.WorkoutLiveTest do
   end
 
   describe "exercise browser" do
+    test "switches each exercise browser between sets and chart history", %{conn: conn} do
+      exercise_name = insert(:exercise_name, name: "Bench Press")
+      current_workout = insert(:workout, name: "Current Workout")
+      previous_workout = insert(:workout, name: "Previous Workout")
+      current_exercise = insert(:exercise, workout: current_workout, exercise_name: exercise_name)
+      other_current_exercise = insert(:exercise, workout: current_workout, exercise_name: exercise_name)
+      previous_exercise = insert(:exercise, workout: previous_workout, exercise_name: exercise_name)
+
+      insert(:set, exercise: previous_exercise, weight: 135.0, reps: 5)
+
+      {:ok, live_view, html} =
+        conn
+        |> log_in_user(user_fixture())
+        |> live(~p"/workouts/#{current_workout.id}")
+
+      assert html =~ "previous-exercise-#{current_exercise.id}"
+      refute html =~ "exercise-chart-#{current_exercise.id}"
+
+      html =
+        live_view
+        |> element("#exercise-browser-view-#{current_exercise.id}-chart")
+        |> render_click()
+
+      assert html =~ "exercise-chart-#{current_exercise.id}"
+      assert html =~ "exercise-chart-timeframe-select-#{current_exercise.id}"
+      refute html =~ "previous-exercise-#{current_exercise.id}"
+      assert html =~ "previous-exercise-#{other_current_exercise.id}"
+
+      html =
+        live_view
+        |> element("#exercise-chart-timeframe-select-#{current_exercise.id}")
+        |> render_change(%{"chart" => %{"timeframe" => "all"}})
+
+      assert [_selected_timeframe] =
+               html
+               |> parse_document!()
+               |> Floki.find("#exercise-chart-timeframe-select-#{current_exercise.id} option[value=all][selected]")
+    end
+
+    test "keeps chart history available on read-only workout pages", %{conn: conn} do
+      owner = insert(:user)
+      viewer = insert(:user)
+      exercise_name = insert(:exercise_name, user: owner, name: "Bench Press")
+      current_workout = insert(:workout, user: owner)
+      previous_workout = insert(:workout, user: owner)
+      current_exercise = insert(:exercise, workout: current_workout, exercise_name: exercise_name)
+      previous_exercise = insert(:exercise, workout: previous_workout, exercise_name: exercise_name)
+
+      insert(:set, exercise: previous_exercise, weight: 135.0)
+
+      {:ok, live_view, _html} =
+        conn
+        |> log_in_user(viewer)
+        |> live(~p"/workouts/#{current_workout.id}")
+
+      html =
+        live_view
+        |> element("#exercise-browser-view-#{current_exercise.id}-chart")
+        |> render_click()
+
+      assert html =~ "exercise-chart-#{current_exercise.id}"
+      refute html =~ "Edit workout"
+    end
+
     test "renders exercise action rows and clears current exercise sets", %{conn: conn} do
       exercise_category = insert(:exercise_category, name: "Strength")
       exercise_name = insert(:exercise_name, name: "Bench Press", exercise_category_id: exercise_category.id)

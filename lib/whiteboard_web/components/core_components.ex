@@ -221,8 +221,9 @@ defmodule WhiteboardWeb.CoreComponents do
   @doc """
   Renders a joined toggle button group (MUI-style).
 
-  Each option is a map with `:value` and `:label` keys. The `value` attr
-  indicates which option is currently active.
+  Each option is a map with `:value` and `:label` keys. Options may include
+  an `:icon` key to render an icon-only button. The `value` attr indicates
+  which option is currently active.
 
   ## Examples
 
@@ -236,6 +237,8 @@ defmodule WhiteboardWeb.CoreComponents do
   attr :options, :list, required: true
   attr :value, :string, default: nil
   attr :class, :any, default: nil
+  attr :on_click, :string, default: nil
+  attr :target, :any, default: nil
   attr :rest, :global
 
   def toggle_group(assigns) do
@@ -244,9 +247,16 @@ defmodule WhiteboardWeb.CoreComponents do
       <button
         :for={{option, index} <- Enum.with_index(@options)}
         type="button"
+        id={"#{@id}-#{option.value}"}
+        aria-label={option.label}
         data-value={option.value}
+        phx-click={@on_click}
+        phx-target={@target}
+        phx-value-option={option.value}
         class={[
-          "flex-1 border px-4 h-[46px] cursor-pointer text-base font-semibold transition-colors duration-200",
+          "flex h-[45px] items-center justify-center border text-base font-semibold leading-none transition-colors duration-200 cursor-pointer",
+          is_nil(option[:icon]) && "flex-1 px-4",
+          option[:icon] && "w-[46px]",
           index == 0 && "rounded-l-lg -mr-px",
           index == length(@options) - 1 && "rounded-r-lg",
           index > 0 && index < length(@options) - 1 && "-mr-px",
@@ -254,7 +264,8 @@ defmodule WhiteboardWeb.CoreComponents do
           option.value != @value && "bg-transparent border-zinc-300 dark:border-stone-600 text-stone-400 dark:text-stone-500"
         ]}
       >
-        {option.label}
+        <.icon :if={option[:icon]} name={option.icon} class="block scale-95 self-center" />
+        <span :if={is_nil(option[:icon])}>{option.label}</span>
       </button>
     </div>
     """

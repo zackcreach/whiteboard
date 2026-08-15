@@ -390,6 +390,58 @@ defmodule Whiteboard.TrainingTest do
                Training.list_previous_exercises(user, current_workout.id, relevant_exercise_name.id)
     end
 
+    test "lists weighted exercise progression by owner, exercise, workout, and timeframe", %{
+      user: user,
+      other_user: other_user,
+      exercise_category: exercise_category,
+      exercise_name: exercise_name
+    } do
+      now = ~U[2024-06-01 00:00:00.000000Z]
+      current_workout = Factory.insert(:workout, user: user, inserted_at: ~U[2024-06-01 00:00:00.000000Z])
+      previous_workout = Factory.insert(:workout, user: user, inserted_at: ~U[2024-05-15 00:00:00.000000Z])
+      old_workout = Factory.insert(:workout, user: user, inserted_at: ~U[2024-04-15 00:00:00.000000Z])
+
+      current_exercise = Factory.insert(:exercise, workout: current_workout, exercise_name: exercise_name)
+      Factory.insert(:set, exercise: current_exercise, weight: 300.0)
+
+      previous_exercise = Factory.insert(:exercise, workout: previous_workout, exercise_name: exercise_name)
+      Factory.insert(:set, exercise: previous_exercise, weight: 135.0)
+      Factory.insert(:set, exercise: previous_exercise, weight: 155.0)
+
+      old_exercise = Factory.insert(:exercise, workout: old_workout, exercise_name: exercise_name)
+      Factory.insert(:set, exercise: old_exercise, weight: 200.0)
+
+      irrelevant_exercise_name =
+        Factory.insert(:exercise_name, user: user, exercise_category: exercise_category, name: "Rows")
+
+      irrelevant_exercise =
+        Factory.insert(:exercise, workout: previous_workout, exercise_name: irrelevant_exercise_name)
+
+      Factory.insert(:set, exercise: irrelevant_exercise, weight: 400.0)
+
+      unweighted_exercise = Factory.insert(:exercise, workout: previous_workout, exercise_name: exercise_name)
+      Factory.insert(:set, exercise: unweighted_exercise, weight: nil)
+
+      other_workout = Factory.insert(:workout, user: other_user, inserted_at: ~U[2024-05-20 00:00:00.000000Z])
+      other_exercise = Factory.insert(:exercise, workout: other_workout, exercise_name: exercise_name)
+      Factory.insert(:set, exercise: other_exercise, weight: 500.0)
+
+      assert [
+               %{
+                 user: %{id: user_id},
+                 points: [%{workout_id: previous_workout_id, weight: 155.0}]
+               }
+             ] =
+               Training.exercise_progression_series(
+                 user,
+                 %{workout_id: current_workout.id, exercise_name_id: exercise_name.id, timeframe: :one_month},
+                 now
+               )
+
+      assert user.id == user_id
+      assert previous_workout.id == previous_workout_id
+    end
+
     test "creates exercises only inside the user's workout and catalog", %{
       user: user,
       other_user: other_user,
