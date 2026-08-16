@@ -12,7 +12,7 @@ defmodule WhiteboardWeb.UserConfirmationLive do
         <h3>Confirm email</h3>
         <p
           :if={@email}
-          class="my-4 rounded-lg border border-stone-300 bg-stone-50 px-4 py-3 text-center text-sm font-semibold text-stone-700 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200"
+          class="my-4 rounded-lg border border-stone-300 bg-stone-50 px-4 py-5 text-center text-sm font-semibold text-stone-700 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200"
         >
           {@email}
         </p>
