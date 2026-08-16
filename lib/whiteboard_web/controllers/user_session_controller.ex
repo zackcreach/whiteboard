@@ -7,7 +7,7 @@ defmodule WhiteboardWeb.UserSessionController do
   alias WhiteboardWeb.UserAuth
 
   def create(conn, %{"_action" => "registered"} = params) do
-    create(conn, params, "Account created successfully!", ~p"/workouts")
+    create(conn, params, "Account created successfully!", ~p"/")
   end
 
   def create(conn, %{"_action" => "password_updated"} = params) do

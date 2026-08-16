@@ -89,25 +89,6 @@ defmodule Whiteboard.Accounts do
   end
 
   @doc """
-  Registers a user and delivers their confirmation email atomically.
-  """
-  def register_user_with_confirmation(attrs, confirmation_url_fun) when is_function(confirmation_url_fun, 1) do
-    result =
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
-      |> Ecto.Multi.run(:email, fn _repo, %{user: user} ->
-        deliver_user_confirmation_instructions(user, confirmation_url_fun)
-      end)
-      |> Repo.transaction()
-
-    case result do
-      {:ok, %{user: user}} -> {:ok, user}
-      {:error, :user, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
-      {:error, :email, _reason, _changes} -> {:error, :email_delivery_failed}
-    end
-  end
-
-  @doc """
   Returns an `%Ecto.Changeset{}` for tracking user changes.
 
   ## Examples

@@ -55,7 +55,7 @@ defmodule WhiteboardWeb.UserRegistrationLiveTest do
 
       conn = follow_trigger_action(form, conn)
 
-      assert redirected_to(conn) == ~p"/workouts"
+      assert redirected_to(conn) == ~p"/"
 
       # Now do a logged in request and assert on the menu
       conn = get(conn, "/")
@@ -66,25 +66,26 @@ defmodule WhiteboardWeb.UserRegistrationLiveTest do
       refute response =~ "Logout"
     end
 
-    test "shows a retryable error when confirmation delivery fails", %{conn: conn} do
+    test "logs the user in when background confirmation delivery fails", %{conn: conn} do
       mailer_config = Application.fetch_env!(:whiteboard, Whiteboard.Mailer)
-      Application.put_env(:whiteboard, Whiteboard.Mailer, adapter: Whiteboard.FailingMailerAdapter)
+
+      Application.put_env(:whiteboard, Whiteboard.Mailer,
+        adapter: Whiteboard.FailingMailerAdapter,
+        test_process: self()
+      )
+
       on_exit(fn -> Application.put_env(:whiteboard, Whiteboard.Mailer, mailer_config) end)
 
       {:ok, lv, _html} = live(conn, ~p"/users/register")
       email = unique_user_email()
       form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
-
-      assert render_submit(form) =~
-               "We couldn&#39;t send your confirmation email. Please try again in a moment."
-
-      assert nil == Accounts.get_user_by_email(email)
-
-      Application.put_env(:whiteboard, Whiteboard.Mailer, mailer_config)
       render_submit(form)
 
-      assert_receive {:email, %{to: [{"", ^email}]}}
+      assert_receive {:email_delivery_attempted, %{to: [{"", ^email}]}}
       assert %Accounts.User{email: ^email} = Accounts.get_user_by_email(email)
+
+      conn = follow_trigger_action(form, conn)
+      assert redirected_to(conn) == ~p"/"
     end
 
     test "renders errors for duplicated email", %{conn: conn} do

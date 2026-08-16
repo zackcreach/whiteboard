@@ -12,6 +12,7 @@ defmodule Whiteboard.Application do
       Whiteboard.Repo,
       Whiteboard.AuthRateLimiter,
       {Phoenix.PubSub, name: Whiteboard.PubSub},
+      {Task.Supervisor, name: Whiteboard.TaskSupervisor},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Whiteboard.Finch},
       # Start a worker by calling: Whiteboard.Worker.start_link(arg)
