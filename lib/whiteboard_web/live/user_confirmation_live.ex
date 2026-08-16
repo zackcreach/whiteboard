@@ -10,7 +10,7 @@ defmodule WhiteboardWeb.UserConfirmationLive do
     <div class="mx-auto w-full sm:w-[400px]">
       <Card.render>
         <h3>Confirm email</h3>
-        <p :if={@email} class="mt-2 text-sm text-stone-600 dark:text-stone-300">
+        <p :if={@email} class="my-4 text-center text-sm font-semibold text-stone-600 dark:text-stone-300">
           {@email}
         </p>
 
