@@ -9,21 +9,17 @@ defmodule WhiteboardWeb.UserConfirmationInstructionsLive do
     ~H"""
     <div class="mx-auto w-full sm:w-[400px]">
       <Card.render>
-        <h3>No confirmation instructions received?</h3>
+        <h3>Resend confirmation email</h3>
         <p class="text-sm mt-2 mb-4">We'll send a new confirmation link to your inbox.</p>
 
         <.simple_form for={@form} id="resend_confirmation_form" phx-submit="send_instructions" class="flex flex-col gap-y-4">
           <.input field={@form[:email]} type="email" placeholder="Email" required />
           <:actions>
             <.button phx-disable-with="Sending..." class="w-full">
-              Resend confirmation instructions
+              Resend
             </.button>
           </:actions>
         </.simple_form>
-
-        <p class="text-center mt-4">
-          <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
-        </p>
       </Card.render>
     </div>
     """
