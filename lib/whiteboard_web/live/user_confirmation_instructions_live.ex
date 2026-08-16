@@ -9,7 +9,7 @@ defmodule WhiteboardWeb.UserConfirmationInstructionsLive do
     ~H"""
     <div class="mx-auto w-full sm:w-[400px]">
       <Card.render>
-        <h3>Resend confirmation email</h3>
+        <h3>Confirm email</h3>
         <p class="text-sm mt-2 mb-4">We'll send a new confirmation link to your inbox.</p>
 
         <.simple_form for={@form} id="resend_confirmation_form" phx-submit="send_instructions" class="flex flex-col gap-y-4">

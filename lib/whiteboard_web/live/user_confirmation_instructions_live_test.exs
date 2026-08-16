@@ -15,7 +15,7 @@ defmodule WhiteboardWeb.UserConfirmationInstructionsLiveTest do
     test "renders the resend confirmation page", %{conn: conn} do
       {:ok, lv, html} = live(conn, ~p"/users/confirm")
 
-      assert html =~ "Resend confirmation email"
+      assert html =~ "Confirm email"
       assert has_element?(lv, "#resend_confirmation_form button", "Resend")
       refute has_element?(lv, ~s|a[href="#{~p"/users/register"}"]|)
       refute has_element?(lv, ~s|a[href="#{~p"/users/log_in"}"]|)
