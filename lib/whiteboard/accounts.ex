@@ -277,6 +277,16 @@ defmodule Whiteboard.Accounts do
   end
 
   @doc """
+  Gets the user associated with a valid confirmation token.
+  """
+  def get_user_by_confirmation_token(token) do
+    case UserToken.verify_email_token_query(token, "confirm") do
+      {:ok, query} -> Repo.one(query)
+      _error -> nil
+    end
+  end
+
+  @doc """
   Confirms a user by the given token.
 
   If the token matches, the user account is marked as confirmed

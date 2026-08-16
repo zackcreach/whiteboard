@@ -9,18 +9,17 @@ defmodule WhiteboardWeb.UserConfirmationLive do
     ~H"""
     <div class="mx-auto w-full sm:w-[400px]">
       <Card.render>
-        <h3>Confirm Account</h3>
+        <h3>Confirm email</h3>
+        <p :if={@email} class="mt-2 text-sm text-stone-600 dark:text-stone-300">
+          {@email}
+        </p>
 
         <.simple_form for={@form} id="confirmation_form" phx-submit="confirm_account" class="flex flex-col gap-y-4">
           <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
           <:actions>
-            <.button phx-disable-with="Confirming..." class="w-full">Confirm my account</.button>
+            <.button phx-disable-with="Confirming..." class="w-full">Yes this is me</.button>
           </:actions>
         </.simple_form>
-
-        <p class="text-center mt-4">
-          <.link href={~p"/users/register"}>Register</.link> | <.link href={~p"/users/log_in"}>Log in</.link>
-        </p>
       </Card.render>
     </div>
     """
@@ -28,7 +27,15 @@ defmodule WhiteboardWeb.UserConfirmationLive do
 
   def mount(%{"token" => token}, _session, socket) do
     form = to_form(%{"token" => token}, as: "user")
-    {:ok, assign(socket, form: form), temporary_assigns: [form: nil]}
+
+    email =
+      case {Accounts.get_user_by_confirmation_token(token), socket.assigns.current_user} do
+        {%{email: email}, _current_user} -> email
+        {nil, %{email: email}} -> email
+        {nil, nil} -> nil
+      end
+
+    {:ok, assign(socket, form: form, email: email), temporary_assigns: [form: nil]}
   end
 
   # Do not log in the user after confirmation to avoid a

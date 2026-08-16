@@ -12,9 +12,26 @@ defmodule WhiteboardWeb.UserConfirmationLiveTest do
   end
 
   describe "Confirm user" do
-    test "renders confirmation page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/users/confirm/some-token")
-      assert html =~ "Confirm Account"
+    test "renders confirmation page", %{conn: conn, user: user} do
+      token =
+        extract_user_token(fn url ->
+          Accounts.deliver_user_confirmation_instructions(user, url)
+        end)
+
+      {:ok, lv, html} = live(conn, ~p"/users/confirm/#{token}")
+
+      assert html =~ "Confirm email"
+      assert html =~ user.email
+      assert html =~ "Yes this is me"
+      refute has_element?(lv, ~s|a[href="#{~p"/users/register"}"]|)
+      refute has_element?(lv, ~s|a[href="#{~p"/users/log_in"}"]|)
+    end
+
+    test "shows the signed-in email when the confirmation token is unavailable", %{conn: conn, user: user} do
+      conn = log_in_user(conn, user)
+      {:ok, _lv, html} = live(conn, ~p"/users/confirm/unavailable-token")
+
+      assert html =~ user.email
     end
 
     test "confirms the given token once", %{conn: conn, user: user} do
