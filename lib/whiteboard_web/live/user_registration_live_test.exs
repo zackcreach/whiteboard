@@ -1,8 +1,10 @@
 defmodule WhiteboardWeb.UserRegistrationLiveTest do
-  use WhiteboardWeb.ConnCase, async: true
+  use WhiteboardWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Whiteboard.AccountsFixtures
+
+  alias Whiteboard.Accounts
 
   describe "Registration page" do
     test "renders registration page", %{conn: conn} do
@@ -44,6 +46,11 @@ defmodule WhiteboardWeb.UserRegistrationLiveTest do
       email = unique_user_email()
       form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
       render_submit(form)
+      assert_receive {:email, email_message}
+      assert {"Whiteboard", "mailer@mg.zackcrea.ch"} == email_message.from
+      assert [{"", ^email}] = email_message.to
+      assert email_message.text_body =~ "/users/confirm/"
+
       conn = follow_trigger_action(form, conn)
 
       assert redirected_to(conn) == ~p"/workouts"
@@ -55,6 +62,27 @@ defmodule WhiteboardWeb.UserRegistrationLiveTest do
       assert response =~ "Workouts"
       assert response =~ "Settings"
       refute response =~ "Logout"
+    end
+
+    test "shows a retryable error when confirmation delivery fails", %{conn: conn} do
+      mailer_config = Application.fetch_env!(:whiteboard, Whiteboard.Mailer)
+      Application.put_env(:whiteboard, Whiteboard.Mailer, adapter: Whiteboard.FailingMailerAdapter)
+      on_exit(fn -> Application.put_env(:whiteboard, Whiteboard.Mailer, mailer_config) end)
+
+      {:ok, lv, _html} = live(conn, ~p"/users/register")
+      email = unique_user_email()
+      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
+
+      assert render_submit(form) =~
+               "We couldn&#39;t send your confirmation email. Please try again in a moment."
+
+      assert nil == Accounts.get_user_by_email(email)
+
+      Application.put_env(:whiteboard, Whiteboard.Mailer, mailer_config)
+      render_submit(form)
+
+      assert_receive {:email, %{to: [{"", ^email}]}}
+      assert %Accounts.User{email: ^email} = Accounts.get_user_by_email(email)
     end
 
     test "renders errors for duplicated email", %{conn: conn} do

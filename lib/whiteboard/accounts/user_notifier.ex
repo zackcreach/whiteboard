@@ -9,7 +9,7 @@ defmodule Whiteboard.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"Whiteboard", "contact@example.com"})
+      |> from({"Whiteboard", Application.fetch_env!(:whiteboard, :mailer_from_email)})
       |> subject(subject)
       |> text_body(body)
 

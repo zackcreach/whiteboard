@@ -71,6 +71,8 @@ config :whiteboard, WhiteboardWeb.Endpoint,
   # of this file so it overrides the configuration defined above.
   live_view: [signing_salt: "7IMWAw1M"]
 
+config :whiteboard, :mailer_from_email, "mailer@mg.zackcrea.ch"
+
 config :whiteboard,
   ecto_repos: [Whiteboard.Repo],
   generators: [timestamp_type: :utc_datetime]

@@ -63,6 +63,17 @@ if config_env() == :prod do
     |> System.get_env("#{scheme}://#{host}:#{url_port}")
     |> String.split(",", trim: true)
 
+  mailgun_domain =
+    System.get_env("MAILGUN_DOMAIN") ||
+      raise("environment variable MAILGUN_DOMAIN is missing.")
+
+  config :whiteboard, Whiteboard.Mailer,
+    adapter: Swoosh.Adapters.Mailgun,
+    api_key:
+      System.get_env("MAILGUN_API_KEY") ||
+        raise("environment variable MAILGUN_API_KEY is missing."),
+    domain: mailgun_domain
+
   config :whiteboard,
          Whiteboard.Repo,
          [pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")] ++ database_options
@@ -79,6 +90,11 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base
+
+  config :whiteboard,
+         :mailer_from_email,
+         System.get_env("MAILGUN_FROM_EMAIL") ||
+           raise("environment variable MAILGUN_FROM_EMAIL is missing.")
 
   config :whiteboard, :turnstile,
     enabled: true,

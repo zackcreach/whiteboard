@@ -64,13 +64,11 @@ defmodule WhiteboardWeb.UserRegistrationLive do
 
   def handle_event("save", %{"user" => user_params} = params, socket) do
     with :ok <- Turnstile.verify(params["cf-turnstile-response"]),
-         {:ok, user} <- Accounts.register_user(user_params) do
-      {:ok, _} =
-        Accounts.deliver_user_confirmation_instructions(
-          user,
-          &url(~p"/users/confirm/#{&1}")
-        )
-
+         {:ok, user} <-
+           Accounts.register_user_with_confirmation(
+             user_params,
+             &url(~p"/users/confirm/#{&1}")
+           ) do
       changeset = Accounts.change_user_registration(user)
       {:noreply, socket |> assign(trigger_submit: true) |> assign_form(changeset)}
     else
@@ -79,6 +77,14 @@ defmodule WhiteboardWeb.UserRegistrationLive do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, socket |> assign(check_errors: true) |> assign_form(changeset)}
+
+      {:error, :email_delivery_failed} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "We couldn't send your confirmation email. Please try again in a moment."
+         )}
     end
   end
 
