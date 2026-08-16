@@ -69,7 +69,7 @@ defmodule WhiteboardWeb.UserRegistrationLive do
              user_params,
              &url(~p"/users/confirm/#{&1}")
            ) do
-      changeset = Accounts.change_user_registration(user)
+      changeset = Accounts.change_user_registration(user, user_params)
       {:noreply, socket |> assign(trigger_submit: true) |> assign_form(changeset)}
     else
       {:error, :verification_failed} ->

@@ -44,12 +44,14 @@ defmodule WhiteboardWeb.UserRegistrationLiveTest do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       email = unique_user_email()
-      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
-      render_submit(form)
+      user_attributes = valid_user_attributes(email: email)
+      form = form(lv, "#registration_form", user: user_attributes)
+      result = render_submit(form)
       assert_receive {:email, email_message}
       assert {"Whiteboard", "mailer@mg.zackcrea.ch"} == email_message.from
       assert [{"", ^email}] = email_message.to
       assert email_message.text_body =~ "/users/confirm/"
+      assert result =~ ~s(value="#{user_attributes.password}")
 
       conn = follow_trigger_action(form, conn)
 
