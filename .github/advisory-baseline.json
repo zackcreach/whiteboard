@@ -1,0 +1,9 @@
+{
+  "findings": {
+    "Hex:bandit:CVE-2026-74836": 8.7,
+    "Hex:bandit:CVE-2026-75484": 6.9,
+    "Hex:phoenix_live_view:CVE-2026-64941": 2.1,
+    "Hex:postgrex:CVE-2026-66838": 5.9
+  },
+  "version": 1
+}

@@ -212,8 +212,7 @@ defmodule WhiteboardWeb.UserSettingsLive do
     end
   end
 
-  def handle_event("set_theme", %{"theme" => theme}, socket)
-      when theme in ~w(light dark system) do
+  def handle_event("set_theme", %{"theme" => theme}, socket) when theme in ~w(light dark system) do
     {:noreply, assign(socket, :theme, theme)}
   end
 end
