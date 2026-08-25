@@ -10,12 +10,12 @@ let
   packages = with beamPackages; with self; {
     bandit = buildMix rec {
       name = "bandit";
-      version = "1.12.4";
+      version = "1.12.5";
 
       src = fetchHex {
         pkg = "bandit";
         version = "${version}";
-        sha256 = "84513318c5752a2a8017664450f889b47fae5d53d64698ddf1e4fb09a7449e8d";
+        sha256 = "c5684ca062fa407cac115aec3256383f3e2ec9fdced7904d59cf5a7bb7ed6181";
       };
 
       beamDeps = [ hpax plug telemetry thousand_island websock ];
@@ -88,12 +88,12 @@ let
 
     ecto = buildMix rec {
       name = "ecto";
-      version = "3.14.1";
+      version = "3.14.2";
 
       src = fetchHex {
         pkg = "ecto";
         version = "${version}";
-        sha256 = "24b991956796700f467d0a3ef3d303138a3ef9ddddf8b98f43758ee067b20a30";
+        sha256 = "25d60b8c816a07d19d85b80bdf60978bd8b102209dda198d768cd7c6745339a6";
       };
 
       beamDeps = [ decimal jason telemetry ];
@@ -335,12 +335,12 @@ let
 
     phoenix = buildMix rec {
       name = "phoenix";
-      version = "1.8.9";
+      version = "1.8.13";
 
       src = fetchHex {
         pkg = "phoenix";
         version = "${version}";
-        sha256 = "3477e2dd5a4f61820341169031bdfe21275f659923bea9c5c0ea2aa1c3fcc046";
+        sha256 = "ad14e24d10e5a52d5f80429053bbe3a5d124311a2868fceb0a01a2e859c44539";
       };
 
       beamDeps = [ bandit jason phoenix_pubsub phoenix_template plug plug_crypto telemetry websock_adapter ];
@@ -400,12 +400,12 @@ let
 
     phoenix_live_view = buildMix rec {
       name = "phoenix_live_view";
-      version = "1.2.8";
+      version = "1.2.10";
 
       src = fetchHex {
         pkg = "phoenix_live_view";
         version = "${version}";
-        sha256 = "b05ffe21f43c0ff219da62948b482c324aa5b8873e17b0c0cac58289a178af38";
+        sha256 = "bcf9d64846b770bc64b1a58dc40af406d80eb61b6e516f7aea4cc8cc15e0a1d9";
       };
 
       beamDeps = [ jason lazy_html phoenix phoenix_html phoenix_template plug telemetry ];
@@ -413,12 +413,12 @@ let
 
     phoenix_pubsub = buildMix rec {
       name = "phoenix_pubsub";
-      version = "2.2.0";
+      version = "2.3.0";
 
       src = fetchHex {
         pkg = "phoenix_pubsub";
         version = "${version}";
-        sha256 = "adc313a5bf7136039f63cfd9668fde73bba0765e0614cba80c06ac9460ff3e96";
+        sha256 = "eec7be6e9cf02e2551d389b558402d6c637cd3973796326e7ba4bb03c6b2e91d";
       };
 
       beamDeps = [];
@@ -465,12 +465,12 @@ let
 
     postgrex = buildMix rec {
       name = "postgrex";
-      version = "0.22.3";
+      version = "0.22.4";
 
       src = fetchHex {
         pkg = "postgrex";
         version = "${version}";
-        sha256 = "f018c13752b2b46e8d35d7e2d84c3276557cbfd880769109021a1d0ee36c1cfe";
+        sha256 = "4aae45a2d60e35b04eea2602440be152fae332901f1fc7a60fc7cb7f0f9a9c5a";
       };
 
       beamDeps = [ db_connection decimal jason ];
@@ -504,12 +504,12 @@ let
 
     swoosh = buildMix rec {
       name = "swoosh";
-      version = "1.27.0";
+      version = "1.27.1";
 
       src = fetchHex {
         pkg = "swoosh";
         version = "${version}";
-        sha256 = "5da7d3b11de5d61327275ed599cb311942ea6e23cdbb411981f46ee150cddf76";
+        sha256 = "9e732f469259e5e84364967b6e0b5d5562adf35bd77576b92a6f3753de6ae9e1";
       };
 
       beamDeps = [ bandit finch idna jason mime plug telemetry ];
@@ -582,12 +582,12 @@ let
 
     uxid = buildMix rec {
       name = "uxid";
-      version = "2.9.0";
+      version = "2.9.1";
 
       src = fetchHex {
         pkg = "uxid";
         version = "${version}";
-        sha256 = "af4a43db3e9f25b7b182eb1870c712224e9a205f39676d98e6cfaaf3fe6029c1";
+        sha256 = "b55c9068b2c97ffefbddfc9d0d09821a549d2934de0bde2f7bdb4b0e4b95fa64";
       };
 
       beamDeps = [ ecto ];
