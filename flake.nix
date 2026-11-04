@@ -24,7 +24,7 @@
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs.lib) optional optionals;
 
-        beamBuilder = pkgs.beamMinimal29Packages.extend (
+        beamBuilder = pkgs.beamMinimal29Packages.overrideScope (
           _final: previous: {
             elixir = previous.elixir_1_20;
           }
@@ -144,10 +144,12 @@
           src = releaseSource;
           inherit mixNixDeps;
           nativeBuildInputs = [ dependencyFreshness ];
-          HEROICONS_PATH = "${heroicons}/optimized";
-          MIX_ESBUILD_PATH = "${esbuild}/bin/esbuild";
-          MIX_TAILWIND_PATH = "${tailwindcss_4}/bin/tailwindcss";
-          NODE_PATH = "${assetsNodeModules}/node_modules";
+          env = {
+            HEROICONS_PATH = "${heroicons}/optimized";
+            MIX_ESBUILD_PATH = "${esbuild}/bin/esbuild";
+            MIX_TAILWIND_PATH = "${tailwindcss_4}/bin/tailwindcss";
+            NODE_PATH = "${assetsNodeModules}/node_modules";
+          };
           postPatch = ''
             ln -s ${assetsNodeModules}/node_modules assets/node_modules
           '';

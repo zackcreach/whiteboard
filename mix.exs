@@ -43,7 +43,7 @@ defmodule Whiteboard.MixProject do
   defp deps do
     [
       {:bcrypt_elixir, "~> 3.3.2"},
-      {:bandit, "~> 1.12.4"},
+      {:bandit, "~> 1.14.1"},
       {:decimal, "~> 3.0", override: true},
       {:ecto_sql, "~> 3.14.0"},
       {:esbuild, "~> 0.10.0", runtime: Mix.env() == :dev},
@@ -55,7 +55,7 @@ defmodule Whiteboard.MixProject do
       {:lazy_html, "~> 0.1.12", only: :test},
       {:phoenix, "~> 1.8.9"},
       {:phoenix_ecto, "~> 4.7.0"},
-      {:phoenix_html, "~> 4.3.0"},
+      {:phoenix_html, "~> 4.4.0"},
       {:phoenix_live_dashboard, "~> 0.8.7"},
       {:phoenix_live_reload, "~> 1.7.0", only: :dev},
       {:phoenix_live_view, "~> 1.2.8"},

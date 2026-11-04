@@ -10,12 +10,12 @@ let
   packages = with beamPackages; with self; {
     bandit = buildMix rec {
       name = "bandit";
-      version = "1.12.5";
+      version = "1.14.1";
 
       src = fetchHex {
         pkg = "bandit";
         version = "${version}";
-        sha256 = "c5684ca062fa407cac115aec3256383f3e2ec9fdced7904d59cf5a7bb7ed6181";
+        sha256 = "87c7ee5e08fb5f22d4e072e681e1101266a21432889b08ef8d0cb0c1450f8bba";
       };
 
       beamDeps = [ hpax plug telemetry thousand_island websock ];
@@ -75,12 +75,12 @@ let
 
     decimal = buildMix rec {
       name = "decimal";
-      version = "3.1.1";
+      version = "3.2.0";
 
       src = fetchHex {
         pkg = "decimal";
         version = "${version}";
-        sha256 = "c5f25f2ced74a0587d03e6023f595db8e924c9d3922c8c8ffd9edfc4498cf1f6";
+        sha256 = "190bca80580ce61aa69bb0eacadd7677710205c770225c2c2c07e32a5c31b234";
       };
 
       beamDeps = [];
@@ -361,12 +361,12 @@ let
 
     phoenix_html = buildMix rec {
       name = "phoenix_html";
-      version = "4.3.0";
+      version = "4.4.0";
 
       src = fetchHex {
         pkg = "phoenix_html";
         version = "${version}";
-        sha256 = "3eaa290a78bab0f075f791a46a981bbe769d94bc776869f4f3063a14f30497ad";
+        sha256 = "94832038da7ab8f86d4c0d36f7797a269fd06fe611f25c69f55108c075505228";
       };
 
       beamDeps = [];
@@ -452,12 +452,12 @@ let
 
     plug_crypto = buildMix rec {
       name = "plug_crypto";
-      version = "2.2.0";
+      version = "2.2.1";
 
       src = fetchHex {
         pkg = "plug_crypto";
         version = "${version}";
-        sha256 = "83a95744ab1c75876542b6fab135fcc176280e0f301a111c1f757fddcec95d2c";
+        sha256 = "4417ccbd8f85e627321cd07d2ab9c4b621f1fd883b9905af241f9b4b780b94b6";
       };
 
       beamDeps = [];
@@ -569,12 +569,12 @@ let
 
     thousand_island = buildMix rec {
       name = "thousand_island";
-      version = "1.5.0";
+      version = "1.6.0";
 
       src = fetchHex {
         pkg = "thousand_island";
         version = "${version}";
-        sha256 = "708923d40523e43cf99041ab37a0d4b0ec426ac6438fa3716ab23d919eaeb412";
+        sha256 = "4d4720470f091fc21a1311777c2ac66916c43621bffc068590c9f9bb3cd057a3";
       };
 
       beamDeps = [ telemetry ];
