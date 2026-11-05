@@ -608,12 +608,12 @@ let
 
     websock_adapter = buildMix rec {
       name = "websock_adapter";
-      version = "0.7.0";
+      version = "0.7.1";
 
       src = fetchHex {
         pkg = "websock_adapter";
         version = "${version}";
-        sha256 = "a7243f803540425d4890e4c7bc0af9b2519e3935b6c01d9a924ba63527549d65";
+        sha256 = "70ba4d602442397e11ffaade1af1bb1aeba880c9e20e5d83a1c4f26ca5e0118d";
       };
 
       beamDeps = [ bandit plug websock ];
